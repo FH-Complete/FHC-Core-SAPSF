@@ -30,14 +30,31 @@ class Example extends JOB_Controller
 
 		$queryResult = $this->QueryUserModel->getAll();
 
-		// If groups are present
 		if (isError($queryResult))
 		{
 			$this->logError('Error: '.getError($queryResult));
 		}
 		elseif (hasData($queryResult))
 		{
-			$this->logInfo('Result: '.getData($queryResult));
+			$this->logInfo('Result: '.print_r(getData($queryResult), true));
+		}
+		else
+		{
+			$this->logInfo('No elements were found');
+		}
+
+		$this->logInfo('Example job stop');
+
+		$this->logInfo('Example job start');
+		$queryResult = $this->QueryUserModel->getByUserId('bison');
+
+		if (isError($queryResult))
+		{
+			$this->logError('Error: '.getError($queryResult));
+		}
+		elseif (hasData($queryResult))
+		{
+			$this->logInfo('Result: '.print_r(getData($queryResult), true));
 		}
 		else
 		{

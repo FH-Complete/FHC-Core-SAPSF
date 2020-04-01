@@ -39,7 +39,7 @@ abstract class SAPSFClientModel extends CI_Model
         }
 		else
 		{
-			$data = $this->sapsfclientlib->hasData() ? $this->getSFData($wsResult) : $wsResult;
+			$data = $this->sapsfclientlib->hasData() ? $this->_getSFData($wsResult) : $wsResult;
 			$wsResult = success($data);
 		}
 
@@ -51,7 +51,7 @@ abstract class SAPSFClientModel extends CI_Model
 	// --------------------------------------------------------------------------------------------
 	// Private methods
 
-	private function getSFData($response)
+	private function _getSFData($response)
 	{
 		$data = null;
 
@@ -63,7 +63,6 @@ abstract class SAPSFClientModel extends CI_Model
 				if (isset($responsebody->d->results))
 				{
 					$data = $responsebody->d->results;
-
 				}
 				else
 					$data = $responsebody->d;

@@ -233,7 +233,6 @@ class SAPSFClientLib
     {
         //TODO: implement session reuse and pagination
         return \Httpful\Request::get($uri)
-            //->expectsJson() // parse from json
             ->addHeader('Authorization', $this->_authorisationString)
             ->send();
     }
@@ -241,7 +240,6 @@ class SAPSFClientLib
     private function _callPOST($uri)
     {
         return \Httpful\Request::post($uri)
-            //->expectsJson() // parse from json
             ->addHeader('Authorization', $this->_authorisationString)
             ->body(http_build_query($this->_callParametersArray))
             ->sendsType(\Httpful\Mime::FORM)
@@ -302,8 +300,7 @@ class SAPSFClientLib
             else
             {
                 // If data are present set property
-                if (isset($responsebody->d) && count($responsebody->d) > 0 &&
-                    !(isset($responsebody->d) && isset($responsebody->d->results) && count($responsebody->d->results) == 0))
+                if (isset($responsebody->d) && count($responsebody->d) > 0)
                     $this->_hasData = true;
 
                 $checkResponse = $response; // returns a success

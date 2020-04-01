@@ -7,7 +7,7 @@ require_once APPPATH.'models/extensions/FHC-Core-SAPSF/SAPSFClientModel.php';
  */
 class SAPSFQueryModel extends SAPSFClientModel
 {
-    private $_entity;//Main entity queried, e.g. User
+	private $_entity;//Main entity queried, e.g. User
     private $_mainUriProperties;//Properties of the entity.
     //Is part of the Odata url separated by / before the ? markingoptions section.
     //Can be navigation properties leading to another entity or simple properties.
@@ -21,6 +21,8 @@ class SAPSFQueryModel extends SAPSFClientModel
 	const SELECTOPTION = 'select';
 	const ORDERBYOPTION = 'orderby';
 	const FORMATOPTION = 'format';
+
+	const DEFAULT_FILTER_CONNECTIONOPERATOR = 'and';
     const FILTERVALUE_PLACEHOLDER = '?';
 
 
@@ -45,10 +47,14 @@ class SAPSFQueryModel extends SAPSFClientModel
 		$this->_generateQueryString();
 		if ($this->_hasError())
 		{
-			return error($this->_errors);
+			return error(implode("; ", $this->_errors));
 		}
 
-    	return $this->_call($this->_odataQueryString, SAPSFClientLib::HTTP_GET_METHOD);
+		$queryString = $this->_odataQueryString;
+		//reset properties
+		$this->_initialiseProperties();
+
+    	return $this->_call($queryString, SAPSFClientLib::HTTP_GET_METHOD);
     }
 
     protected function _setEntity($entityName, $entityValue = null)
@@ -64,8 +70,8 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_setError('Invalid entity name provided: '.$entityName);
     }
 
-    protected function _setMainUriProperty($propertyName, $propertyValue = null)
-    {
+	protected function _setMainUriProperty($propertyName, $propertyValue = null)
+	{
 		if (is_string($propertyName) && $this->_checkMainUriPropertyName($propertyName))
 		{
 			$propertyValue = is_string($propertyValue) ? $propertyValue : null;
@@ -74,7 +80,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 		}
 		else
 			$this->_setError('Invalid uri property name provided: '.$propertyName);
-    }
+	}
 
 	protected function _setMainUriProperties($queryProperties)
 	{
@@ -109,9 +115,9 @@ class SAPSFQueryModel extends SAPSFClientModel
 					return;
 				}
 
-				if (is_string($val))
+				if (is_string($val) || is_numeric($val))
 				{
-					$val = "'" . $this->_encodeForOdata($val) . "'";
+					$val = $this->_encodeFilterValue($val);
 				}
 				else
 				{
@@ -126,10 +132,46 @@ class SAPSFQueryModel extends SAPSFClientModel
     		$this->_setError('Invalid filter string or invalid filter values provided. Filter values in the string should be replaced by ? and it shouldn\'t contain any unallowed special characters.');
     }
 
-    /*protected function _setFilter($filterName, $filterValue)
+    protected function _setFilter($filterName, $filterValue, $logicalOperator = 'eq')
     {
-        $this->_setQueryOption('filter', $filterValue);
-    }*/
+    	if ($this->_checkFilter($filterName, $logicalOperator))
+		{
+        	$this->_setQueryOption(self::FILTEROPTION, array('filters' => array(array('name' => $filterName, 'value' => $filterValue, 'operator' => $logicalOperator))));
+		}
+    }
+
+	protected function _setFilters($filterProperties, $logicalConnectionOperator = self::DEFAULT_FILTER_CONNECTIONOPERATOR)
+	{
+		if (is_array($filterProperties))
+		{
+			if ($this->_checkLogicalConnectionOperator($logicalConnectionOperator))
+			{
+				$filters = array('filters' => array(), 'connectionOperator' => $logicalConnectionOperator);
+				foreach ($filterProperties as $filterProperty)
+				{
+					if (is_array($filterProperty))
+					{
+						if (isset($filterProperty['name']) && isset($filterProperty['value']) && isset($filterProperty['operator']))
+						{
+							if ($this->_checkFilter($filterProperty['name'], $filterProperty['operator']))
+								$filters['filters'][] = array('name' => $filterProperty['name'], 'value' => $filterProperty['value'], 'operator' => $filterProperty['operator']);
+						}
+						else
+							$this->_setError('Filtername, value or operator not provided. Array must contain [name], [value] and [operator] (or/and) properties.');
+					}
+					else
+					{
+						$this->_setError('Invalid filter property provided: ' . $filterProperty);
+					}
+				}
+				$this->_setQueryOption(self::FILTEROPTION, $filters);
+			}
+			else
+				$this->_setError('Invalid logical connection operator provided: ' . $logicalConnectionOperator);
+		}
+		else
+			$this->_setError('Invalid filter properties provided');
+	}
 
     protected function _setSelect($selectProperty)
     {
@@ -199,7 +241,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 		$this->_entity = array();
 		$this->_mainUriProperties = array();
 		$this->_queryOptions = array();
-		$this->_odataQueryString = array();
+		$this->_odataQueryString = '';
 		$this->_hasError = false;
 		$this->_errors = array();
 	}
@@ -246,6 +288,9 @@ class SAPSFQueryModel extends SAPSFClientModel
 			{
 				foreach ($this->_queryOptions as $optionname => $queryOptions)
 				{
+					if (isEmptyArray($queryOptions))
+						continue;
+
 					$queryString .= ($firstQueryOptions) ? '?' : '&';
 
 					switch($optionname)
@@ -263,19 +308,50 @@ class SAPSFQueryModel extends SAPSFClientModel
 							}
 						break;
 						case self::FILTEROPTION:
-							$first = true;
-							foreach ($queryOptions as $filterString)
+							$filteroptions = array();
+							foreach ($queryOptions as $filter)
 							{
-								if (isset($filterString))
+								if (is_string($filter))
 								{
-									if ($first)
-										$queryString .= '$' . self::FILTEROPTION . '=';
-									else
-										$queryString .= ' and ';//TODO default: concatinate filter with and
-									$queryString .= $filterString;
-									$first = false;
+									$filteroptions[] = $filter;
+								}
+								else
+								{
+									if (isset($filter['filters']) && is_array($filter['filters']) &&
+										!(count($filter['filters']) > 1 && !isset($filter['connectionOperator'])))
+									{
+										$fiStr = '';
+										$firstfil = true;
+										foreach ($filter['filters'] as $fil)
+										{
+											if (!$firstfil)
+												$fiStr .= ' ' . $filter['connectionOperator'] . ' ';
+											$fiStr .= $fil['name'] . ' '. $fil['operator'] . ' ' . $this->_encodeFilterValue($fil['value']);
+											$firstfil = false;
+										}
+										$filteroptions[] = $fiStr;
+									}
 								}
 							}
+							$nofilteroptions = count($filteroptions);
+							if ($nofilteroptions > 0)
+							{
+								$queryString .= '$' . self::FILTEROPTION . '=';
+								if ($nofilteroptions == 1)
+									$queryString .= $filteroptions[0];
+								else
+								{
+									$firstfi = true;
+									foreach ($filteroptions as $filteroption)
+									{
+										if (!$firstfi)
+											$queryString .= ' ' . self::DEFAULT_FILTER_CONNECTIONOPERATOR . ' ';
+										$queryString .= '(' . $filteroption . ')';
+										$firstfi = false;
+									}
+								}
+							}
+
 							break;
 						case self::ORDERBYOPTION:
 							$first = true;
@@ -296,12 +372,11 @@ class SAPSFQueryModel extends SAPSFClientModel
 							break;
 						case self::FORMATOPTION:
 							$queryString .= '$' . self::FORMATOPTION . '=' . $queryOptions[0];
-
 					}
 					$firstQueryOptions = false;
 				}
-				$this->_setOdataQueryString($queryString);
 			}
+			$this->_setOdataQueryString($queryString);
 		}
 		else
 			$this->_setError('Entity not set');
@@ -311,6 +386,25 @@ class SAPSFQueryModel extends SAPSFClientModel
 	{
 		$this->_setFormat();
 		$this->_odataQueryString = $odataQueryString;
+	}
+
+	private function _checkFilter($filterName, $logicalOperator)
+	{
+		$valid = true;
+
+		//var_dump($this->_checkQueryOptionName($filterName));
+		if (!is_string($filterName) || !$this->_checkQueryOptionName($filterName))
+		{
+			$this->_setError('Invalid filter property provided: '.$filterName);
+			$valid = false;
+		}
+		elseif (!is_string($logicalOperator) || !$this->_checkLogicalOperator($logicalOperator))
+		{
+			$this->_setError('Invalid filter logical operator provided: '.$logicalOperator);
+			$valid = false;
+		}
+
+		return $valid;
 	}
 
 	private function _checkEntityName($entityName)
@@ -334,10 +428,25 @@ class SAPSFQueryModel extends SAPSFClientModel
 		return preg_match('/^[a-zA-Z0-9\s\?\(\)]+$/', $filterString) === 1;
 	}
 
+	private function _checkLogicalOperator($logicalOperator)
+	{
+		return preg_match('/^[a-z]{2}$/', $logicalOperator);
+	}
+
+	private function _checkLogicalConnectionOperator($logicalOperator)
+	{
+		return preg_match('/^(or|and)$/', $logicalOperator);
+	}
+
 	private function _encodeForOdata($str)
 	{
 		//replace apostroph with two apostrophs for escaping
 		return urlencode(str_replace("'", "''", $str));
+	}
+
+	private function _encodeFilterValue($val)
+	{
+		return is_numeric($val) ? $val : "'" . $this->_encodeForOdata($val) . "'";
 	}
 
     private function _hasError()
