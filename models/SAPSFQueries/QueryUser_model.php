@@ -36,7 +36,7 @@ class QueryUser_model extends SAPSFQueryModel
 		$this->_setEntity('User');
 		$this->_setSelects(array('userId', 'empId', 'department', 'nationality', 'email', 'firstName', 'lastName'));
 		//$this->_setOrderBys(array(array('name' => 'lastName', 'order' => 'desc'),array('name' => 'firstName')));
-		$this->_setOrderBys(array('lastName desc', 'firstName'));
+		$this->_setOrderBys(array('lastName', 'firstName'));
 		return $this->_query();
 	}
 }

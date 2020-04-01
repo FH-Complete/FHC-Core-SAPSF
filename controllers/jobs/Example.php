@@ -31,7 +31,11 @@ class Example extends JOB_Controller
 		$queryResult = $this->QueryUserModel->getAll();
 
 		// If groups are present
-		if (hasData($queryResult))
+		if (isError($queryResult))
+		{
+			$this->logError('Error: '.getError($queryResult));
+		}
+		elseif (hasData($queryResult))
 		{
 			$this->logInfo('Result: '.getData($queryResult));
 		}

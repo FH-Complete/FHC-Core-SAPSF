@@ -23,6 +23,10 @@ class SAPSFQueryModel extends SAPSFClientModel
 	const FORMATOPTION = 'format';
     const FILTERVALUE_PLACEHOLDER = '?';
 
+
+	// --------------------------------------------------------------------------------------------
+	// Public methods
+
 	/**
 	 * Set the properties to perform SOAP calls
 	 */
@@ -32,28 +36,24 @@ class SAPSFQueryModel extends SAPSFClientModel
 		$this->_initialiseProperties();
 	}
 
-    protected function _query(/*$odataQueryString = ''*/)
+	// --------------------------------------------------------------------------------------------
+	// Protected methods
+
+    protected function _query()
     {
-    	/*if (is_string($odataQueryString) && !isEmptyString($odataQueryString))
-		{
-			$this->_setOdataQueryString($odataQueryString);
-		}
-    	else
-		{*/
     	$this->_setFormat();
 		$this->_generateQueryString();
 		if ($this->_hasError())
 		{
 			return error($this->_errors);
 		}
-		var_dump($this->_odataQueryString);
-		//}
+
     	return $this->_call($this->_odataQueryString, SAPSFClientLib::HTTP_GET_METHOD);
     }
 
     protected function _setEntity($entityName, $entityValue = null)
     {
-    	if (is_string($entityName) && $this->_checkMainUriPropertyName($entityName))
+    	if (is_string($entityName) && $this->_checkEntityName($entityName))
 		{
     		$this->_entity = array();
 			$entityValue = is_string($entityValue) ? $entityValue : null;
@@ -191,6 +191,9 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_setError('Invalid orderby properties provided');
     }
 
+	// --------------------------------------------------------------------------------------------
+	// Private methods
+
 	private function _initialiseProperties()
 	{
 		$this->_entity = array();
@@ -305,19 +308,25 @@ class SAPSFQueryModel extends SAPSFClientModel
     }
 
 	private function _setOdataQueryString($odataQueryString)
-	{//TODO: check validity?
+	{
 		$this->_setFormat();
 		$this->_odataQueryString = $odataQueryString;
 	}
 
-	private function _checkMainUriPropertyName($propertyName)
+	private function _checkEntityName($entityName)
 	{
-		return preg_match('/^[a-zA-Z0-9_]+$/', $propertyName) === 1;
+		return preg_match('/^[a-zA-Z0-9_]+$/', $entityName) === 1;
 	}
 
-    private function _checkQueryOptionName($propertyName)
+	private function _checkMainUriPropertyName($propertyName)
 	{
-		return preg_match('/^[a-zA-Z0-9_\/]+$/', $propertyName) === 1;
+		//can begin with $ if its a special property like $value
+		return preg_match('/^\$?[a-zA-Z0-9_]+$/', $propertyName) === 1;
+	}
+
+    private function _checkQueryOptionName($optionName)
+	{
+		return preg_match('/^[a-zA-Z0-9_\/]+$/', $optionName) === 1;
 	}
 
 	private function _checkFilterString($filterString)

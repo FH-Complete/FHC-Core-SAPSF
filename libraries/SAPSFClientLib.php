@@ -185,8 +185,6 @@ class SAPSFClientLib
             $this->_odataUriPart
         );
 
-        var_dump($uri);
-        //die();
         return $uri;
     }
 
