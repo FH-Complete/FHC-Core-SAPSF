@@ -1,7 +1,7 @@
 {
 	"name": "FHC-Core-SAPSF",
-	"description": "SAP Extension",
-	"version": "2",
+	"description": "SAP Success Factors Extension",
+	"version": "1",
 	"license": "GPLv3",
 	"url": "https://github.com/FH-Complete/FHC-Core-SAPSF",
 	"core_version": "3.3"
