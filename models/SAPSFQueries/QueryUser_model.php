@@ -3,14 +3,12 @@
 require_once 'SAPSFQueryModel.php';
 
 /**
- * This implements all the calls for:
- * API set name SAPCoreAPI
- * Service name QueryAccounts
+ * This implements all the calls for querying data from SAP success factors
  */
 class QueryUser_model extends SAPSFQueryModel
 {
 	/**
-	 * Set the properties to perform SOAP calls
+	 * Set the properties to perform REST calls
 	 */
 	public function __construct()
 	{
@@ -21,6 +19,9 @@ class QueryUser_model extends SAPSFQueryModel
     // Public methods
 
 	/**
+	 * Gets user with specific usr id
+	 * @param $userId
+	 * @return object userdata
 	 */
 	public function getByUserId($userId)
 	{
@@ -31,6 +32,10 @@ class QueryUser_model extends SAPSFQueryModel
 		return $this->_query();
 	}
 
+	/**
+	 * Gets all users present in SAPSF
+	 * @return object userdata
+	 */
 	public function getAll()
 	{
 		$this->_setEntity('User');

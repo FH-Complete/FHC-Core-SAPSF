@@ -3,34 +3,35 @@
 require_once APPPATH.'models/extensions/FHC-Core-SAPSF/SAPSFClientModel.php';
 
 /**
- * This implements the basic parameters to call all the API in SAPCoreAPI
+ * This implements the functionality for executing queries using the SAPSF API
  */
 class SAPSFQueryModel extends SAPSFClientModel
 {
-	private $_entity;//Main entity queried, e.g. User
-    private $_mainUriProperties;//Properties of the entity.
-    //Is part of the Odata url separated by / before the ? markingoptions section.
-    //Can be navigation properties leading to another entity or simple properties.
-    private $_queryOptions; //params after the ? in the url
-    private $_odataQueryString; //whole query string
+	private $_entity; // Main entity queried, e.g. User
+    private $_mainUriProperties; // Properties of the entity.
+    // Is part of the Odata url separated by / before the ? marking the options section.
+    // Can be navigation properties leading to another entity or simple properties.
+    private $_queryOptions; // params after the ? in the url
+    private $_odataQueryString; // whole query string
 
 	private $_hasError;
 	private $_errors;
 
+	// query option names
 	const FILTEROPTION = 'filter';
 	const SELECTOPTION = 'select';
 	const ORDERBYOPTION = 'orderby';
 	const FORMATOPTION = 'format';
 
-	const DEFAULT_FILTER_CONNECTIONOPERATOR = 'and';
-    const FILTERVALUE_PLACEHOLDER = '?';
+	const DEFAULT_FILTER_CONNECTIONOPERATOR = 'and'; // default connector if multiple filters provided
+    const FILTERVALUE_PLACEHOLDER = '?'; // placeholder for replacement of filter values in url
 
 
 	// --------------------------------------------------------------------------------------------
 	// Public methods
 
 	/**
-	 * Set the properties to perform SOAP calls
+	 * Set the properties to perform REST calls
 	 */
 	public function __construct()
 	{
@@ -41,38 +42,87 @@ class SAPSFQueryModel extends SAPSFClientModel
 	// --------------------------------------------------------------------------------------------
 	// Protected methods
 
-    protected function _query()
+	/**
+	 * Initialises a GET call to the api with the url generated based on this models properties.
+	 * @return object call result
+	 */
+	protected function _query()
     {
+    	$result = null;
     	$this->_setFormat();
 		$this->_generateQueryString();
+
 		if ($this->_hasError())
 		{
-			return error(implode("; ", $this->_errors));
+			$result = error(implode("; ", $this->_errors));
+		}
+		else
+		{
+			$result = $this->_call($this->_odataQueryString, SAPSFClientLib::HTTP_GET_METHOD);
 		}
 
-		$queryString = $this->_odataQueryString;
-		//reset properties
+		// reset properties
 		$this->_initialiseProperties();
 
-    	return $this->_call($queryString, SAPSFClientLib::HTTP_GET_METHOD);
+    	return $result;
     }
 
-    protected function _setEntity($entityName, $entityValue = null)
+	/**
+	 * Sets main Entity queried, optionally a key predicate value (like primary key).
+	 * @param string $entityName
+	 * @param string|array $keyPredicateValue if associative array, composite key value is set
+	 */
+    protected function _setEntity($entityName, $keyPredicateValue = null)
     {
-    	if (is_string($entityName) && $this->_checkEntityName($entityName))
+    	if ($this->_checkEntityName($entityName))
 		{
+			// only one entity for each query
     		$this->_entity = array();
-			$entityValue = is_string($entityValue) ? $entityValue : null;
-        	$this->_entity['name'] = $entityName;
-        	$this->_entity['value'] = $entityValue;
+
+    		$this->_entity['name'] = $entityName;
+    		if (isset($keyPredicateValue))
+			{
+				if (is_string($keyPredicateValue))
+				{
+					$this->_entity['value'] = $keyPredicateValue;
+				}
+				elseif (is_array($keyPredicateValue)) // composite key
+				{
+					if (count($keyPredicateValue) >= 2)
+					{
+						$valid = true;
+						foreach ($keyPredicateValue as $name => $value)
+						{
+							if (!$this->_checkQueryOptionName($name) || !is_string($value))
+							{
+								$valid = false;
+								$this->_setError('Invalid key pedicate provided: (' . $name . ') => ' . $value);
+							}
+						}
+
+						if ($valid)
+							$this->_entity['value'] = $keyPredicateValue;
+					}
+					else
+						$this->_setError('Composite key predicate must have at least two values.');
+				}
+				else
+					$this->_setError('Invalid key pedicate value provided.');
+			}
 		}
     	else
 			$this->_setError('Invalid entity name provided: '.$entityName);
     }
 
+	/**
+	 * Sets main uri property,a property of the Entity separated by /.
+	 * Can be a navigation or simple property.
+	 * @param string $propertyName
+	 * @param string $propertyValue
+	 */
 	protected function _setMainUriProperty($propertyName, $propertyValue = null)
 	{
-		if (is_string($propertyName) && $this->_checkMainUriPropertyName($propertyName))
+		if ($this->_checkMainUriPropertyName($propertyName))
 		{
 			$propertyValue = is_string($propertyValue) ? $propertyValue : null;
 			$property = array('name' => $propertyName, 'value' => $propertyValue);
@@ -82,6 +132,10 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_setError('Invalid uri property name provided: '.$propertyName);
 	}
 
+	/**
+	 * Sets multiple uri main properties.
+	 * @param array $queryProperties must consist of arrays with ['name'] and ['value'] keys
+	 */
 	protected function _setMainUriProperties($queryProperties)
 	{
 		if (is_array($queryProperties))
@@ -91,7 +145,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 				if (isset($queryProperty['name']) && is_string($queryProperty['name']))
 				{
 					$value = isset($queryProperty['value']) && is_string($queryProperty['value']) ? $queryProperty['value'] : null;
-					$this->_setMainUriProperty([$queryProperty['name']], $value);
+					$this->_setMainUriProperty($queryProperty['name'], $value);
 				}
 				else
 					$this->_setError('Invalid main uri property provided.');
@@ -101,37 +155,41 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_setError('Invalid main uri properties array. Array must contain subarrays with [name] and optionally [value] properties.');
 	}
 
-    protected function _setFilterString($filterString, $filterValues = array())
-    {
-    	if (is_string($filterString) && $this->_checkFilterString($filterString) && is_array($filterValues))
+	/**
+	 * Sets a single select option.
+	 * @param string $selectProperty
+	 */
+	protected function _setSelect($selectProperty)
+	{
+		if ($this->_checkQueryOptionName($selectProperty))
+			$this->_setQueryOption(self::SELECTOPTION, $selectProperty);
+		else
+			$this->_setError('Invalid select property provided: '.$selectProperty);
+	}
+
+	/**
+	 * Sets multiple select options.
+	 * @param array $selectProperties
+	 */
+	protected function _setSelects($selectProperties)
+	{
+		if (is_array($selectProperties))
 		{
-			$resultFilterString = $filterString;
-			foreach ($filterValues as $val)
+			foreach ($selectProperties as $selectProperty)
 			{
-				$pos = strpos($filterString, self::FILTERVALUE_PLACEHOLDER);
-				if (!$pos)
-				{
-					$this->_setError('Property placeholders number in filter string do not match provided filter Values.');
-					return;
-				}
-
-				if (is_string($val) || is_numeric($val))
-				{
-					$val = $this->_encodeFilterValue($val);
-				}
-				else
-				{
-					$this->_setError('Invalid filter value provided');
-					return;
-				}
-				$resultFilterString = substr_replace($filterString, $val, $pos, 1);
+				$this->_setSelect($selectProperty);
 			}
-			$this->_setQueryOption(self::FILTEROPTION, $resultFilterString);
 		}
-    	else
-    		$this->_setError('Invalid filter string or invalid filter values provided. Filter values in the string should be replaced by ? and it shouldn\'t contain any unallowed special characters.');
-    }
+		else
+			$this->_setError('Invalid select properties provided');
+	}
 
+	/**
+	 * Sets a single filter option.
+	 * @param string $filterName
+	 * @param string $filterValue
+	 * @param string $logicalOperator
+	 */
     protected function _setFilter($filterName, $filterValue, $logicalOperator = 'eq')
     {
     	if ($this->_checkFilter($filterName, $logicalOperator))
@@ -140,6 +198,11 @@ class SAPSFQueryModel extends SAPSFClientModel
 		}
     }
 
+	/**
+	 * Sets multiple filter options.
+	 * @param array $filterProperties must consist of arrays with ['name'] and ['value'] and ['operator']  keys
+	 * @param string $logicalConnectionOperator connection between the filters (and/or)
+	 */
 	protected function _setFilters($filterProperties, $logicalConnectionOperator = self::DEFAULT_FILTER_CONNECTIONOPERATOR)
 	{
 		if (is_array($filterProperties))
@@ -173,27 +236,47 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_setError('Invalid filter properties provided');
 	}
 
-    protected function _setSelect($selectProperty)
-    {
-    	if (is_string($selectProperty) && $this->_checkQueryOptionName($selectProperty))
-			$this->_setQueryOption(self::SELECTOPTION, $selectProperty);
-    	else
-    		$this->_setError('Invalid select property provided: '.$selectProperty);
-    }
-
-	protected function _setSelects($selectProperties)
+	/**
+	 * Sets a custom filter string (for more complex queries).
+	 * @param string $filterString must contain placeholder characters to be replaced with filter values
+	 * @param array $filterValues
+	 */
+	protected function _setFilterString($filterString, $filterValues = array())
 	{
-		if (is_array($selectProperties))
+		if ($this->_checkFilterString($filterString) && is_array($filterValues))
 		{
-			foreach ($selectProperties as $selectProperty)
+			$resultFilterString = $filterString;
+			foreach ($filterValues as $val)
 			{
-				$this->_setSelect($selectProperty);
+				$pos = strpos($filterString, self::FILTERVALUE_PLACEHOLDER);
+				if (!$pos)
+				{
+					$this->_setError('Property placeholders number in filter string do not match provided filter Values.');
+					return;
+				}
+
+				if (is_string($val) || is_numeric($val))
+				{
+					$val = $this->_encodeFilterValue($val);
+				}
+				else
+				{
+					$this->_setError('Invalid filter value provided');
+					return;
+				}
+				$resultFilterString = substr_replace($filterString, $val, $pos, 1);
 			}
+			$this->_setQueryOption(self::FILTEROPTION, $resultFilterString);
 		}
 		else
-			$this->_setError('Invalid select properties provided');
+			$this->_setError('Invalid filter string or invalid filter values provided. Filter values in the string should be replaced by ? and it shouldn\'t contain any unallowed special characters.');
 	}
 
+	/**
+	 * Sets single order by option.
+	 * @param string $orderbyProperty
+	 * @param string $order sort order
+	 */
 	protected function _setOrderBy($orderbyProperty, $order = 'asc')
 	{
 		if (is_string($orderbyProperty) && $this->_checkQueryOptionName($orderbyProperty))
@@ -205,6 +288,10 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_setError('Invalid orderby property provided: '.$orderbyProperty);
 	}
 
+	/**
+	 * Sets multiple order by options.
+	 * @param array $orderbyProperties must consist of arrays with ['name'] and optionally ['order']  keys
+	 */
 	protected function _setOrderBys($orderbyProperties)
     {
     	if (is_array($orderbyProperties))
@@ -236,6 +323,9 @@ class SAPSFQueryModel extends SAPSFClientModel
 	// --------------------------------------------------------------------------------------------
 	// Private methods
 
+	/**
+	 * (re)sets the properties to their initial state.
+	 */
 	private function _initialiseProperties()
 	{
 		$this->_entity = array();
@@ -246,12 +336,20 @@ class SAPSFQueryModel extends SAPSFClientModel
 		$this->_errors = array();
 	}
 
+	/**
+	 * Set data format option.
+	 */
 	private function _setFormat()
 	{
 		if (!isset($this->_queryOptions[self::FORMATOPTION]))
 			$this->_setQueryOption(self::FORMATOPTION, SAPSFClientModel::DATAFORMAT);
 	}
 
+	/**
+	 * Set a query option
+	 * @param string $name
+	 * @param mixed $value
+	 */
 	private function _setQueryOption($name, $value)
 	{
 		if (!isset($this->_queryOptions[$name]))
@@ -259,14 +357,35 @@ class SAPSFQueryModel extends SAPSFClientModel
 		$this->_queryOptions[$name][] = $value;
 	}
 
-    private function _generateQueryString()
+	/**
+	 * Generates the query string for the query call out of the set Entity, mainuriproperties and queryoptions.
+	 * Takes care about url encoding.
+	 */
+	private function _generateQueryString()
     {
     	$queryString = '';
 		if (isset($this->_entity) && isset($this->_entity['name']) && !isEmptyArray($this->_entity))
 		{
 			$queryString .= $this->_entity['name'];
 			if (isset($this->_entity['value']))
-				$queryString .= "('" . $this->_encodeForOdata($this->_entity['value']) . "')";
+			{
+				$entityvalue = $this->_entity['value'];
+				if (is_string($entityvalue))
+					$queryString .= "('" . $this->_encodeForOdata($entityvalue) . "')";
+				elseif (is_array($entityvalue))
+				{
+					$queryString .= '(';
+					$first = true;
+					foreach ($entityvalue as $predname => $predvalue)
+					{
+						if (!$first)
+							$queryString .= ',';
+						$queryString .= $predname . "='" . $this->_encodeForOdata($predvalue) . "'";
+						$first = false;
+					}
+					$queryString .= ')';
+				}
+			}
 
 			if (!isEmptyArray($this->_mainUriProperties))
 			{
@@ -299,12 +418,12 @@ class SAPSFQueryModel extends SAPSFClientModel
 							$first = true;
 							foreach ($queryOptions as $selectOption)
 							{
-									if ($first)
-										$queryString .= '$' . self::SELECTOPTION . '=';
-									else
-										$queryString .= ',';
-									$queryString .= $selectOption;
-									$first = false;
+								if ($first)
+									$queryString .= '$' . self::SELECTOPTION . '=';
+								else
+									$queryString .= ',';
+								$queryString .= $selectOption;
+								$first = false;
 							}
 						break;
 						case self::FILTEROPTION:
@@ -382,17 +501,58 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_setError('Entity not set');
     }
 
+	/**
+	 * Sets the odata query string property.
+	 * @param string $odataQueryString
+	 */
 	private function _setOdataQueryString($odataQueryString)
 	{
 		$this->_setFormat();
 		$this->_odataQueryString = $odataQueryString;
 	}
 
+	/**
+	 * Checks an entity name for its validity.
+	 * @param string $entityName
+	 * @return bool
+	 */
+	private function _checkEntityName($entityName)
+	{
+		return is_string($entityName) && preg_match('/^[a-zA-Z0-9_]+$/', $entityName) === 1;
+	}
+
+	/**
+	 * Checks a main uri property name for its validity.
+	 * @param string $propertyName
+	 * @return bool
+	 */
+	private function _checkMainUriPropertyName($propertyName)
+	{
+		//can begin with $ if its a special property like $value
+		return is_string($propertyName) && preg_match('/^\$?[a-zA-Z0-9_]+$/', $propertyName) === 1;
+	}
+
+	/**
+	 * Checks a query option name for its validity.
+	 * @param string $optionName
+	 * @return bool
+	 */
+    private function _checkQueryOptionName($optionName)
+	{
+		//can have a / if it's a navigation property
+		return is_string($optionName) && preg_match('/^[a-zA-Z0-9_\/]+$/', $optionName) === 1;
+	}
+
+	/**
+	 * Checks a filter for its validity.
+	 * @param string $filterName
+	 * @param string $logicalOperator
+	 * @return bool
+	 */
 	private function _checkFilter($filterName, $logicalOperator)
 	{
 		$valid = true;
 
-		//var_dump($this->_checkQueryOptionName($filterName));
 		if (!is_string($filterName) || !$this->_checkQueryOptionName($filterName))
 		{
 			$this->_setError('Invalid filter property provided: '.$filterName);
@@ -407,53 +567,70 @@ class SAPSFQueryModel extends SAPSFClientModel
 		return $valid;
 	}
 
-	private function _checkEntityName($entityName)
-	{
-		return preg_match('/^[a-zA-Z0-9_]+$/', $entityName) === 1;
-	}
-
-	private function _checkMainUriPropertyName($propertyName)
-	{
-		//can begin with $ if its a special property like $value
-		return preg_match('/^\$?[a-zA-Z0-9_]+$/', $propertyName) === 1;
-	}
-
-    private function _checkQueryOptionName($optionName)
-	{
-		return preg_match('/^[a-zA-Z0-9_\/]+$/', $optionName) === 1;
-	}
-
+	/**
+	 * Checks a filter string for its validity.
+	 * @param string $filterString
+	 * @return bool
+	 */
 	private function _checkFilterString($filterString)
 	{
-		return preg_match('/^[a-zA-Z0-9\s\?\(\)]+$/', $filterString) === 1;
+		return is_string($filterString) && preg_match('/^[a-zA-Z0-9\s?()]+$/', $filterString) === 1;
 	}
 
+	/**
+	 * Checks a logical operator for its validity.
+	 * @param string $logicalOperator
+	 * @return bool
+	 */
 	private function _checkLogicalOperator($logicalOperator)
 	{
-		return preg_match('/^[a-z]{2}$/', $logicalOperator);
+		return is_string($logicalOperator) && preg_match('/^[a-z]{2}$/', $logicalOperator);
 	}
 
+	/**
+	 * Checks a logical connection operator for its validity.
+	 * @param string $logicalOperator
+	 * @return bool
+	 */
 	private function _checkLogicalConnectionOperator($logicalOperator)
 	{
-		return preg_match('/^(or|and)$/', $logicalOperator);
+		return is_string($logicalOperator) && preg_match('/^(or|and)$/', $logicalOperator);
 	}
 
+	/**
+	 * Encodes a string for odata querying.
+	 * @param string $str
+	 * @return string
+	 */
 	private function _encodeForOdata($str)
 	{
 		//replace apostroph with two apostrophs for escaping
 		return urlencode(str_replace("'", "''", $str));
 	}
 
+	/**
+	 * Encodes a filter option value for odata querying.
+	 * @param string $val
+	 * @return int|string
+	 */
 	private function _encodeFilterValue($val)
 	{
 		return is_numeric($val) ? $val : "'" . $this->_encodeForOdata($val) . "'";
 	}
 
+	/**
+	 * Checks if an error has occured during querying.
+	 * @return bool
+	 */
     private function _hasError()
 	{
 		return $this->_hasError;
 	}
 
+	/**
+	 * Sets an error.
+	 * @param string $errormsg
+	 */
     private function _setError($errormsg)
 	{
 		$this->_errors[] = 'QUERYBUILD_ERROR: '.$errormsg;

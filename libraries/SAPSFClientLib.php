@@ -5,7 +5,7 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 require_once 'vendor/nategood/httpful/bootstrap.php';
 
 /**
- *
+ * Handles REST calls to SAPSF client API
  */
 class SAPSFClientLib
 {
@@ -28,15 +28,13 @@ class SAPSFClientLib
 
 	const ERROR_STR = '%s: %s'; // Error message format
 
-	// Non blocking errors
-	//const USER_ALREADY_EXISTS_WARNING =	'WAR0001';
     private $_configArray;		// contains the connection parameters configuration array
 
 	private $_authorisationString;		// http header value string for authorisation
 
     private $_httpMethod;			// http method used to call this server
-    private $_callParametersArray;
-    private $_odataUriPart;
+    private $_callParametersArray;	// contains parameters for POST request
+    private $_odataUriPart;			// odata-specific stringpart appended to the url, containing properties and getparameters
 
 	private $_error;				// true if an error occurred
 	private $_errorMessage;			// contains the error message
@@ -53,7 +51,7 @@ class SAPSFClientLib
     {
 		$this->_ci =& get_instance(); // get code igniter instance
 
-		$this->_ci->config->load('extensions/FHC-Core-SAPSF/SAPSFClient'); // Loads FHC-SAP configuration
+		$this->_ci->config->load('extensions/FHC-Core-SAPSF/SAPSFClient'); // Loads FHC-SAPSF configuration
 
 		$this->_setPropertiesDefault(); // properties initialization
         $this->_setConnection(); // sets the connection parameters
@@ -189,7 +187,7 @@ class SAPSFClientLib
     }
 
 	/**
-	 * Performs a remote SOAP web service call with the given name and parameters
+	 * Performs a remote REST web service call with the given name and parameters
 	 */
 	private function _callRemoteService($uri)
 	{
@@ -229,6 +227,10 @@ class SAPSFClientLib
         return $response;
 	}
 
+	/**
+	 * Performs a remote call using the GET HTTP method
+	 * NOTE: parameters in a HTTP GET call are placed into the URI
+	 */
     private function _callGET($uri)
     {
         //TODO: implement session reuse and pagination
@@ -237,6 +239,9 @@ class SAPSFClientLib
             ->send();
     }
 
+	/**
+	 * Performs a remote call using the POST HTTP method
+	 */
     private function _callPOST($uri)
     {
         return \Httpful\Request::post($uri)
@@ -245,7 +250,6 @@ class SAPSFClientLib
             ->sendsType(\Httpful\Mime::FORM)
             ->send();
     }
-
 
     /**
      * Returns true if the HTTP method used to call this server is GET
@@ -276,7 +280,6 @@ class SAPSFClientLib
      */
     private function _checkResponse($response)
     {
-
 		$checkResponse = null;
 		$this->_hasData = false;
 		$genericErrorText = 'Error occured';

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Implements the SAP SOAP client basic funcitonalities
+ * Implements the SAP SF client basic funcitonalities
  */
 abstract class SAPSFClientModel extends CI_Model
 {
@@ -20,7 +20,11 @@ abstract class SAPSFClientModel extends CI_Model
 	// Protected methods
 
 	/**
-	 * Generic SAPSF call. It checks also for specific SAPSF blocking and non-blocking errors
+	 * Generic SAPSF call. It checks also for specific SAPSF errors
+	 * @param $odataUriPart specific uri part contining odata parameters
+	 * @param $httpMethod
+	 * @param array $callParametersArray
+	 * @return call result (success of error)
 	 */
 	protected function _call($odataUriPart, $httpMethod, $callParametersArray = array())
 	{
@@ -30,7 +34,6 @@ abstract class SAPSFClientModel extends CI_Model
 			$httpMethod,
 			$callParametersArray
 		);
-
 
 		// If an error occurred
 		if ($this->sapsfclientlib->isError())
@@ -51,6 +54,9 @@ abstract class SAPSFClientModel extends CI_Model
 	// --------------------------------------------------------------------------------------------
 	// Private methods
 
+	/**
+	 * Gets data in a SAP SF HTTP response.
+	 */
 	private function _getSFData($response)
 	{
 		$data = null;
