@@ -187,12 +187,12 @@ class SAPSFQueryModel extends SAPSFClientModel
 	/**
 	 * Sets a single filter option.
 	 * @param string $filterName
-	 * @param string $filterValue
+	 * @param string|array $filterValue if array, logical operator 'in' is used with multiple values
 	 * @param string $logicalOperator
 	 */
     protected function _setFilter($filterName, $filterValue, $logicalOperator = 'eq')
     {
-    	if ($this->_checkFilter($filterName, $logicalOperator))
+    	if ($this->_checkFilter($filterName, $filterValue, $logicalOperator))
 		{
         	$this->_setQueryOption(self::FILTEROPTION, array('filters' => array(array('name' => $filterName, 'value' => $filterValue, 'operator' => $logicalOperator))));
 		}
@@ -216,11 +216,11 @@ class SAPSFQueryModel extends SAPSFClientModel
 					{
 						if (isset($filterProperty['name']) && isset($filterProperty['value']) && isset($filterProperty['operator']))
 						{
-							if ($this->_checkFilter($filterProperty['name'], $filterProperty['operator']))
+							if ($this->_checkFilter($filterProperty['name'], $filterProperty['value'], $filterProperty['operator']))
 								$filters['filters'][] = array('name' => $filterProperty['name'], 'value' => $filterProperty['value'], 'operator' => $filterProperty['operator']);
 						}
 						else
-							$this->_setError('Filtername, value or operator not provided. Array must contain [name], [value] and [operator] (or/and) properties.');
+							$this->_setError('Filtername, value or operator not provided. Array must contain [name], [value] and [operator] properties.');
 					}
 					else
 					{
@@ -279,7 +279,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 	 */
 	protected function _setOrderBy($orderbyProperty, $order = 'asc')
 	{
-		if (is_string($orderbyProperty) && $this->_checkQueryOptionName($orderbyProperty))
+		if ($this->_checkQueryOptionName($orderbyProperty))
 		{
 			$order = is_string($order) ? $order : 'asc';
 			$this->_setQueryOption(self::ORDERBYOPTION, array('name' => $orderbyProperty, 'order' => $order));
@@ -445,7 +445,20 @@ class SAPSFQueryModel extends SAPSFClientModel
 										{
 											if (!$firstfil)
 												$fiStr .= ' ' . $filter['connectionOperator'] . ' ';
-											$fiStr .= $fil['name'] . ' '. $fil['operator'] . ' ' . $this->_encodeFilterValue($fil['value']);
+											$fiStr .= $fil['name'] . ' '. $fil['operator'] . ' ';
+
+											if (is_array($fil['value']))
+											{
+												foreach ($fil['value'] as $idx => $val)
+												{
+													$fiStr .= $this->_encodeFilterValue($val);
+													if ($idx !== count($fil['value']) - 1)
+														$fiStr .= ',';
+												}
+											}
+											else
+												$fiStr .= $this->_encodeFilterValue($fil['value']);
+
 											$firstfil = false;
 										}
 										$filteroptions[] = $fiStr;
@@ -495,6 +508,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 					$firstQueryOptions = false;
 				}
 			}
+			var_dump($queryString);
 			$this->_setOdataQueryString($queryString);
 		}
 		else
@@ -549,18 +563,28 @@ class SAPSFQueryModel extends SAPSFClientModel
 	 * @param string $logicalOperator
 	 * @return bool
 	 */
-	private function _checkFilter($filterName, $logicalOperator)
+	private function _checkFilter($filterName, $filterValue, $logicalOperator)
 	{
 		$valid = true;
 
-		if (!is_string($filterName) || !$this->_checkQueryOptionName($filterName))
+		if (!$this->_checkQueryOptionName($filterName))
 		{
 			$this->_setError('Invalid filter property provided: '.$filterName);
 			$valid = false;
 		}
-		elseif (!is_string($logicalOperator) || !$this->_checkLogicalOperator($logicalOperator))
+		elseif (!$this->_checkLogicalOperator($logicalOperator))
 		{
 			$this->_setError('Invalid filter logical operator provided: '.$logicalOperator);
+			$valid = false;
+		}
+		elseif ((!is_string($filterValue) && !is_array($filterValue)))
+		{
+			$this->_setError('Invalid filter value');
+			$valid = false;
+		}
+		elseif ((is_array($filterValue) && $logicalOperator !== 'in') || (!is_array($filterValue) && $logicalOperator === 'in'))
+		{
+			$this->_setError('Logical operator \'in\' requires filter given as array');
 			$valid = false;
 		}
 
