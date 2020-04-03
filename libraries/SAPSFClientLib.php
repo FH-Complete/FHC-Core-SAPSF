@@ -36,9 +36,11 @@ class SAPSFClientLib
     private $_callParametersArray;	// contains parameters for POST request
     private $_odataUriPart;			// odata-specific stringpart appended to the url, containing properties and getparameters
 
+	private $_sessionCookie;
+	private $_xcsrfToken;
+
 	private $_error;				// true if an error occurred
 	private $_errorMessage;			// contains the error message
-
 
 	private $_hasData;				// indicates if there are data in the response or not
 
@@ -149,6 +151,8 @@ class SAPSFClientLib
 		$this->_httpMethod = '';
 		$this->_callParametersArray = array();
         $this->_odataUriPart = '';
+        $this->_xcsrfToken = '';
+        $this->_sessionCookie = '';
 		$this->_error = false;
 		$this->_errorMessage = '';
 		$this->_hasData = false;
@@ -224,6 +228,8 @@ class SAPSFClientLib
             $this->_error(self::PARSE_ERROR, sprintf(self::ERROR_STR, $e->getCode(), $e->getMessage()));
         }
 
+        // set session header params for session reuse
+        $this->_setSessionReuse($response);
         return $response;
 	}
 
@@ -233,23 +239,46 @@ class SAPSFClientLib
 	 */
     private function _callGET($uri)
     {
-        //TODO: implement session reuse and pagination
-        return \Httpful\Request::get($uri)
-            ->addHeader('Authorization', $this->_authorisationString)
-            ->send();
+    	$request = \Httpful\Request::get($uri);
+    	$this->_addHeaders($request);
+        return $request->send();
     }
+
+	/**
+	 * Adds HTTP headers to a request
+	 */
+    private function _addHeaders(&$request)
+	{
+		$request->addHeader('Authorization', $this->_authorisationString);
+		if (!isEmptyString($this->_sessionCookie) && !isEmptyString($this->_xcsrfToken))
+		{
+			$request->addHeader('Cookie', $this->_sessionCookie);
+			$request->addHeader('X-CSRF-Token', $this->_xcsrfToken);
+		}
+	}
 
 	/**
 	 * Performs a remote call using the POST HTTP method
 	 */
     private function _callPOST($uri)
     {
-        return \Httpful\Request::post($uri)
-            ->addHeader('Authorization', $this->_authorisationString)
-            ->body(http_build_query($this->_callParametersArray))
+		$request = \Httpful\Request::post($uri);
+		$this->_addHeaders($request);
+        return $request->body(http_build_query($this->_callParametersArray))
             ->sendsType(\Httpful\Mime::FORM)
             ->send();
     }
+
+	/**
+	 * Sets cookie and X-CSRF token for session reuse
+	 */
+    private function _setSessionReuse($response)
+	{
+		if (isEmptyString($this->_sessionCookie) && isset($response->headers['set-cookie']) &&
+			isEmptyString($this->_xcsrfToken) && isset($response->headers['x-csrf-token']))
+			$this->_sessionCookie = substr($response->headers['set-cookie'], 0, strpos($response->headers['set-cookie'], '; Path'));
+			$this->_xcsrfToken = $response->headers['x-csrf-token'];
+	}
 
     /**
      * Returns true if the HTTP method used to call this server is GET

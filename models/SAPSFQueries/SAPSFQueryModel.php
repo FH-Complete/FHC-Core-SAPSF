@@ -508,7 +508,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 					$firstQueryOptions = false;
 				}
 			}
-			var_dump($queryString);
 			$this->_setOdataQueryString($queryString);
 		}
 		else
