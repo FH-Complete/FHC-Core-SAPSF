@@ -276,8 +276,10 @@ class SAPSFClientLib
 	{
 		if (isEmptyString($this->_sessionCookie) && isset($response->headers['set-cookie']) &&
 			isEmptyString($this->_xcsrfToken) && isset($response->headers['x-csrf-token']))
+		{
 			$this->_sessionCookie = substr($response->headers['set-cookie'], 0, strpos($response->headers['set-cookie'], '; Path'));
 			$this->_xcsrfToken = $response->headers['x-csrf-token'];
+		}
 	}
 
     /**
