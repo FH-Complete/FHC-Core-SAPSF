@@ -638,7 +638,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 	 */
 	private function _encodeFilterValue($val)
 	{
-		return is_numeric($val) ? $val : "'" . $this->_encodeForOdata($val) . "'";
+		return is_integer($val) ? $val : "'" . $this->_encodeForOdata($val) . "'";
 	}
 
 	/**

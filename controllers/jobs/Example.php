@@ -15,7 +15,7 @@ class Example extends JOB_Controller
 		parent::__construct();
 
 		// Loads QueryUserModel
-        $this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUser_model', 'QueryUserModel');
+        $this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

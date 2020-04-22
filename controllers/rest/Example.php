@@ -14,7 +14,7 @@ class Example extends API_Controller
 	{
 		parent::__construct(array('Example' => 'basis/person:rw'));
 		// Loads QueryAccountsModel
-		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUser_model', 'QueryUserModel');
+		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 	}
 
 	/**
