@@ -1,7 +1,7 @@
 <?php
 
 /**
- * config file containing mapping of fieldnames from fhcomplete and mobility online
+ * config file containing mapping of fieldnames from fhcomplete and SAP Success Factors
  * array structure:
  * ['fieldmappings']['mobilityonlineobject']['fhctable'] = array('fhcfieldname' => 'mobilityonlinefieldname')
  */

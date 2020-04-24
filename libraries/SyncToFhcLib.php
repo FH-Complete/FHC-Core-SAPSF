@@ -13,6 +13,9 @@ class SyncToFhcLib
 	protected $_conffieldmappings;
 	protected $_confvaluedefaults;
 
+	/**
+	 * SyncToFhcLib constructor.
+	 */
 	public function __construct()
 	{
 		$this->ci =& get_instance();
@@ -34,7 +37,7 @@ class SyncToFhcLib
 	 * @param $objtype
 	 * @return StdClass object with properties boolean for has Error and array with errormessages
 	 */
-	protected function fhcObjHasError($fhcobj, $objtype)
+	protected function _fhcObjHasError($fhcobj, $objtype, $fhcobjid)
 	{
 		$hasError = new StdClass();
 		$hasError->error = false;
@@ -80,12 +83,12 @@ class SyncToFhcLib
 											$wrongdatatype = true;
 										}
 										break;
-/*									case 'date':
+									case 'date':
 										if (!$this->_validateDate($value))
 										{
 											$wrongdatatype = true;
 										}
-										break;*/
+										break;
 									case 'base64':
 										if (!base64_encode(base64_decode($value, true)) === $value)
 											$wrongdatatype = true;
@@ -146,7 +149,7 @@ class SyncToFhcLib
 					{
 						$fieldname = isset($params['name']) ? $params['name'] : ucfirst($field);
 
-						$hasError->errorMessages[] = ucfirst($table).": $fieldname ".$errortext;
+						$hasError->errorMessages[] = "id ".$fhcobjid.": ".ucfirst($table).": $fieldname ".$errortext;
 						$hasError->error = true;
 					}
 				}
@@ -161,6 +164,12 @@ class SyncToFhcLib
 		return $hasError;
 	}
 
+	/**
+	 * Converts unix timestamp date from SAPSF to fhc datetime format
+	 * @param $unixstr
+	 * @return string fhc datetime
+	 * @throws Exception
+	 */
 	protected function _convertDateToFhc($unixstr)
 	{
 		// extract milliseconds from string
@@ -169,12 +178,20 @@ class SyncToFhcLib
 		$seconds = $millisec / 1000;
 		$datetime = new DateTime("@$seconds");
 
-		$date_time_format = $datetime->format('Y-m-d H:i:s');
-		$fhc_date = new DateTime($date_time_format, new DateTimeZone(self::FROMTIMEZONE));
+		$date_time_format = $datetime->format('Y-m-d');
+
+		try
+		{
+			$fhc_date = new DateTime($date_time_format, new DateTimeZone(self::FROMTIMEZONE));
+		}
+		catch (Exception $e)
+		{
+			return $unixstr;
+		}
 
 		// Date time with specific timezone
 		$fhc_date->setTimezone(new DateTimeZone(self::TOTIMEZONE));
-		return $fhc_date->format('Y-m-d H:i:s');
+		return $fhc_date->format('Y-m-d');
 	}
 
 	/**
@@ -188,5 +205,17 @@ class SyncToFhcLib
 		$arr[$idx] = date('Y-m-d H:i:s', time());
 		$idx = $modtype . 'von';
 		$arr[$idx] = self::IMPORTUSER;
+	}
+
+	/**
+	 * Checks if given date exists and is valid.
+	 * @param $date
+	 * @param string $format
+	 * @return bool
+	 */
+	private function _validateDate($date, $format = 'Y-m-d')
+	{
+		$d = DateTime::createFromFormat($format, $date);
+		return $d && $d->format($format) === $date;
 	}
 }

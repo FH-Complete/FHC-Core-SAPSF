@@ -9,6 +9,7 @@ require_once('include/functions.inc.php');
 class SyncEmployeesLib extends SyncToFhcLib
 {
 	const OBJTYPE = 'employee';
+	const SAPSF_EMPLOYEES_CREATE = 'SAPSFEmployeesCreate';
 
 	private $_convertfunctions = array(
 		'person' => array(
@@ -16,6 +17,9 @@ class SyncEmployeesLib extends SyncToFhcLib
 		)
 	);
 
+	/**
+	 * SyncEmployeesLib constructor.
+	 */
 	public function __construct()
 	{
 		parent::__construct();
@@ -29,6 +33,11 @@ class SyncEmployeesLib extends SyncToFhcLib
 		$this->ci->load->model('codex/Nation_model', 'NationModel');
 	}
 
+	/**
+	 * Starts employee sync. Converts given employee data to fhc format and saves the employee.
+	 * @param $employees
+	 * @return object
+	 */
 	public function syncEmployeesWithFhc($employees)
 	{
 		$results = array();
@@ -48,6 +57,11 @@ class SyncEmployeesLib extends SyncToFhcLib
 		return success($results);
 	}
 
+	/**
+	 * Converts employee from SAPSF to mitarbeiter to save in the fhc database.
+	 * @param $employee
+	 * @return array converted employee
+	 */
 	private function _convertEmployeeToFhc($employee)
 	{
 		$fhctables = array('person', 'mitarbeiter', 'benutzer', 'kontakttel');
@@ -67,10 +81,13 @@ class SyncEmployeesLib extends SyncToFhcLib
 			{
 				foreach ($this->_conffieldmappings[self::OBJTYPE][$fhctable] as $sffield => $fhcfield)
 				{
-					$value = $employee->{$sffield};
-					if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
-						$value = $this->{$this->_convertfunctions[$fhctable][$fhcfield]}($value);
-					$fhcemployee[$fhctable][$fhcfield] = $value;
+					if (isset($employee->{$sffield}) && !isEmptyString($employee->{$sffield}))
+					{
+						$value = $employee->{$sffield};
+						if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
+							$value = $this->{$this->_convertfunctions[$fhctable][$fhcfield]}($value);
+						$fhcemployee[$fhctable][$fhcfield] = $value;
+					}
 				}
 			}
 		}
@@ -78,9 +95,15 @@ class SyncEmployeesLib extends SyncToFhcLib
 		return $fhcemployee;
 	}
 
+	/**
+	 * Saves Mitarbeiter in fhc database.
+	 * @param $maobj
+	 * @return mixed
+	 */
 	private function _saveMitarbeiter($maobj)
 	{
-		$errors = $this->fhcObjHasError($maobj, self::OBJTYPE);
+		$uid = isset($maobj['benutzer']['uid']) ? $maobj['benutzer']['uid'] : '';
+		$errors = $this->_fhcObjHasError($maobj, self::OBJTYPE, $uid);
 
 		if ($errors->error)
 		{

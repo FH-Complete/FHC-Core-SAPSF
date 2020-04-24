@@ -23,7 +23,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 	const ORDERBYOPTION = 'orderby';
 	const FORMATOPTION = 'format';
 
-	const DEFAULT_FILTER_CONNECTIONOPERATOR = 'and'; // default connector if multiple filters provided
+	const DEFAULT_FILTER_CONNECTIONOPERATOR = 'and'; // default connector for multiple filters
     const FILTERVALUE_PLACEHOLDER = '?'; // placeholder for replacement of filter values in url
 
 
@@ -31,7 +31,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 	// Public methods
 
 	/**
-	 * Set the properties to perform REST calls
+	 * Initialises properties
 	 */
 	public function __construct()
 	{
@@ -320,6 +320,16 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_setError('Invalid orderby properties provided');
     }
 
+	/**
+	 * Sets filter so that only employees modified after a certain date are retrieved from sapsf.
+	 * @param $lastModifiedDateTime
+	 */
+	protected function _setLastModifiedDateTime($lastModifiedDateTime)
+	{
+		if (isset($lastModifiedDateTime))
+			$this->_setFilterString("lastModifiedDateTime gt datetime?", array($lastModifiedDateTime));
+	}
+
 	// --------------------------------------------------------------------------------------------
 	// Private methods
 
@@ -410,7 +420,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 					if (isEmptyArray($queryOptions))
 						continue;
 
-					$queryString .= ($firstQueryOptions) ? '?' : '&';
+					$queryString .= $firstQueryOptions ? '?' : '&';
 
 					switch($optionname)
 					{
@@ -520,7 +530,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 	 */
 	private function _setOdataQueryString($odataQueryString)
 	{
-		$this->_setFormat();
 		$this->_odataQueryString = $odataQueryString;
 	}
 

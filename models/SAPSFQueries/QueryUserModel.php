@@ -8,7 +8,7 @@ require_once 'SAPSFQueryModel.php';
 class QueryUserModel extends SAPSFQueryModel
 {
 	/**
-	 * Set the properties to perform REST calls
+	 * QueryUserModel constructor.
 	 */
 	public function __construct()
 	{
@@ -19,33 +19,38 @@ class QueryUserModel extends SAPSFQueryModel
     // Public methods
 
 	/**
-	 * Gets user with specific usr id
+	 * Gets user with specific usr id.
 	 * @param $userId
 	 * @param $selects array fields to retrieve for this user
+	 * @param string $lastModifiedDateTime date when user was last modified
 	 * @return object userdata
 	 */
-	public function getByUserId($userId, $selects = array())
+	public function getByUserId($userId, $selects = array(), $lastModifiedDateTime = null)
 	{
 		//$this->_setEntity('User', $userId);
 		$this->_setSelects($selects);
 		$this->_setEntity('User');
 		$this->_setFilter('userId', $userId);
+		$this->_setLastModifiedDateTime($lastModifiedDateTime);
 		//$this->_setFilterString('userId like ?', array('bison'));
 
 		return $this->_query();
 	}
 
 	/**
-	 * Gets all users present in SAPSF
+	 * Gets all users present in SAPSF.
 	 * @param array $selects fields to retrieve for each user
+	 * @param string $lastModifiedDateTime date when users ware last modified
 	 * @return object userdata
 	 */
-	public function getAll($selects = array())
+	public function getAll($selects = array(), $lastModifiedDateTime = null)
 	{
 		$this->_setEntity('User');
 		$this->_setSelects($selects);
 		//$this->_setOrderBys(array(array('name' => 'lastName', 'order' => 'desc'),array('name' => 'firstName')));
 		$this->_setOrderBys(array('lastName', 'firstName'));
+		$this->_setLastModifiedDateTime($lastModifiedDateTime);
+
 		return $this->_query();
 	}
 }
