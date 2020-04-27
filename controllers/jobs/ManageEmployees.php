@@ -22,11 +22,19 @@ class ManageEmployees  extends JQW_Controller
 	 */
 	public function syncEmployees()
 	{
+		// add new job to workerqueue
+		$startJob = new stdClass();
+		$startJob->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_NEW;
+		$startJob->{jobsqueuelib::PROPERTY_CREATIONTIME} = date('Y-m-d H:i:s');
+		$startJob->{jobsqueuelib::PROPERTY_START_TIME} = date('Y-m-d H:i:s');
+		$jobresults = $this->addNewJobsToQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($startJob));
+		$jobresult = getData($jobresults)[0];
+
 		$this->logInfo('Start employee data synchronization with SAP Success Factors');
 
 		// only sny employees changed after last sync
 		$this->JobsQueueModel->addOrder('creationtime', 'DESC');
-		$lastJobs = $this->JobsQueueModel->loadWhere(array('status' => 'done', 'type' => SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE));
+		$lastJobs = $this->JobsQueueModel->loadWhere(array('status' => jobsqueuelib::STATUS_DONE, 'type' => SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE));
 		if (isError($lastJobs))
 		{
 			$this->logError('An error occurred while getting last employee sync job', getError($lastJobs));
@@ -64,6 +72,8 @@ class ManageEmployees  extends JQW_Controller
 			}
 			else
 			{
+				$syncedemployees = array();
+
 				$results = $this->syncemployeeslib->syncEmployeesWithFhc($employees);
 
 				if (hasData($results))
@@ -76,13 +86,36 @@ class ManageEmployees  extends JQW_Controller
 						{
 							$this->logError(getError($result));
 						}
+						elseif (hasData($result))
+						{
+							$employeeid = getData($result);
+							if (is_string($employeeid))
+							{
+								$syncedemployees[] = $employeeid;
+							}
+						}
 					}
+
+					if (!isEmptyArray($syncedemployees))
+						$this->logInfo('SAP Success Factors employees successfully synced: ' . implode($syncedemployees, ', '));
+
 				}
 				else
 					$this->logInfo('No employee data synced with SAP Success Factors');
 			}
 		}
 
+
+		// update job, set it to done, write synced employees as output.
+		$jobresult->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($syncedemployees);
+		$jobresult->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
+		$jobresult->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
+		$this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($jobresult));
+
+		if (isError($lastJobs))
+		{
+			$this->logError('An error occurred while updating sync job', getError($lastJobs));
+		}
 
 		$this->logInfo('End employee data synchronization with SAP Success Factors');
 	}
