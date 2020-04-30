@@ -13,60 +13,77 @@ class ManageAlias  extends JQW_Controller
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncToFhcLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesLib');
 		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFEditOperations/SAPSFEditUserModel', 'EditUserModel');
+		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 		$this->load->model('person/Benutzer_model', 'BenutzerModel');
 		$this->load->model('resource/Mitarbeiter_model', 'MitarbeiterModel');
 	}
 
-	public function syncAlias($uids)
+	public function syncAlias()
 	{
+		$this->logInfo('Start mail alias data synchronization with SAP Success Factors');
 		// add new job to queue TODO remove, done by the scheduler!
-		$startJob = new stdClass();
+/*		$startJob = new stdClass();
 		$startJob->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_NEW;
 		$startJob->{jobsqueuelib::PROPERTY_CREATIONTIME} = date('Y-m-d H:i:s');
 		$startJob->{jobsqueuelib::PROPERTY_START_TIME} = date('Y-m-d H:i:s');
-		$jobresults = $this->addNewJobsToQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($startJob));
-		$jobresult = getData($jobresults)[0];
+		$jobresults = $this->addNewJobsToQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_ALIAS, array($startJob));
+		$jobresult = getData($jobresults)[0];*/
+
+		$lastJobs = $this->getLastJobs(SyncEmployeesLib::SAPSF_EMPLOYEES_ALIAS);
 
 		//$uids = array('bison', 'oesi', 'karpenko');
 
-		$this->logInfo('Start mail alias data synchronization with SAP Success Factors');
-
-		$aliasforsapsf = array();
-		if (is_array($uids))
+		if (isError($lastJobs))
 		{
-			foreach ($uids as $uid)
+			$this->logError('An error occurred while updating users data in SAP', getError($lastJobs));
+		}
+		elseif (hasData($lastJobs))
+		{
+			// get all input uids of jobs
+			$lastJobsData = getData($lastJobs);
+			$uids = $this->_mergeEmployeesArray($lastJobsData);
+
+			// if no uids passed, all employee aliases are synced
+			if (isEmptyArray($uids))
 			{
-				$this->BenutzerModel->addSelect('alias');
-				$aliasres = $this->BenutzerModel->loadWhere(array('uid' => $uid));
-				$hasAlias = false;
+				$mitarbeiter = $this->MitarbeiterModel->getPersonal(true, null, null);
 
-				if (hasData($aliasres))
+				if (hasData($mitarbeiter))
 				{
-					$aliasres = getData($aliasres);
-					$aliasres = $aliasres[0]->alias;
-					if (!isEmptyString($aliasres))
-					{
-						// if there is a non-empty alias in fhc, it is used
-						$aliasforsapsf[$uid] = $aliasres;
-						$hasAlias = true;
-					}
-				}
+					$mitarbeiter = getData($mitarbeiter);
 
-				if (!$hasAlias)
-				{
-					// no non-empty alias found -> generate
-					$genAlias = $this->BenutzerModel->generateAlias($uid);
-					if (hasData($genAlias))
-					{
-						$genAlias = getData($genAlias);
+					// only update employees which are in sapsf too
+					$conffieldmappings = $this->config->item('fieldmappings');
+					$sapsfUidName = array_keys($conffieldmappings['employee']['benutzer'], 'uid');
+					$sapsfemployees = $this->QueryUserModel->getAll(array($sapsfUidName[0]));
 
-						if (!isEmptyString($genAlias))
+					if (hasData($sapsfemployees))
+					{
+						$sapsfemployees = getData($sapsfemployees);
+						foreach ($mitarbeiter as $ma)
 						{
-							// set alias in fhcomplete
-							$this->BenutzerModel->update(array('uid' => $uid), array('alias' => $genAlias));
-							$aliasforsapsf[$uid] = $genAlias;
+							foreach ($sapsfemployees as $sapsfemployee)
+							{
+								if ($sapsfemployee->{$sapsfUidName[0]} == $ma->uid)
+								{
+									$uids[] = $ma->uid;
+									break;
+								}
+							}
 						}
 					}
+				}
+			}
+
+			// aliases to be synced with sapsf
+			$aliasforsapsf = array();
+
+			foreach ($uids as $uid)
+			{
+				$alias = $this->_manageAliasForUid($uid);
+				if (!isEmptyString($uid))
+				{
+					$aliasforsapsf[$uid] = $alias;
 				}
 			}
 
@@ -93,11 +110,26 @@ class ManageAlias  extends JQW_Controller
 				}
 				else
 				{
-					// update job, set it to done, write synced aliases as output.
-					$jobresult->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($aliasforsapsf);
-					$jobresult->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
-					$jobresult->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
-					$this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_ALIAS, array($jobresult));
+					// update jobs, set them to done, write synced aliases as output.
+					foreach ($lastJobsData as $job)
+					{
+/*						$joboutput = array();
+						$decodedInput = json_decode($job->input);
+						if ($decodedInput != null)
+						{
+							foreach ($decodedInput as $el)
+							{
+								if (isset($aliasforsapsf[$el->uid]))
+									$joboutput[] = $aliasforsapsf[$el->uid];
+							}
+						}
+
+						$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($joboutput);*/
+						$job->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
+						$job->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
+						$updatedJobs[] = $job;
+					}
+					$this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_ALIAS, $updatedJobs);
 				}
 			}
 		}
@@ -105,19 +137,68 @@ class ManageAlias  extends JQW_Controller
 		$this->logInfo('End mail alias data synchronization with SAP Success Factors');
 	}
 
-	public function syncAllAlias()
-	{
-		$uids = array();
-		$mitarbeiter = $this->MitarbeiterModel->getPersonal(true, null, null);
+	//------------------------------------------------------------------------------------------------------------------
+	// Private methods
 
-		if (hasData($mitarbeiter))
+	/**
+	 *
+	 */
+	private function _mergeEmployeesArray($jobs)
+	{
+		$mergedEmployeesArray = array();
+
+		if (count($jobs) == 0) return $mergedEmployeesArray;
+
+		foreach ($jobs as $job)
 		{
-			$mitarbeiter = getData($mitarbeiter);
-			foreach ($mitarbeiter as $ma)
+			$decodedInput = json_decode($job->input);
+			if ($decodedInput != null)
 			{
-				$uids[] = $ma->uid;
+				foreach ($decodedInput as $el)
+				{
+					if (!in_array($el, $mergedEmployeesArray))
+						$mergedEmployeesArray[] = $el->uid;
+				}
 			}
 		}
-		$this->syncAlias($uids);
+		return $mergedEmployeesArray;
+	}
+
+	private function _manageAliasForUid($uid)
+	{
+		$alias = '';
+		$this->BenutzerModel->addSelect('alias');
+		$aliasres = $this->BenutzerModel->loadWhere(array('uid' => $uid));
+		$hasAlias = false;
+
+		if (hasData($aliasres))
+		{
+			$aliasres = getData($aliasres);
+			$aliasres = $aliasres[0]->alias;
+			if (!isEmptyString($aliasres))
+			{
+				// if there is a non-empty alias in fhc, it is used
+				$alias = $aliasres;
+				$hasAlias = true;
+			}
+		}
+
+		if (!$hasAlias)
+		{
+			// no non-empty alias found -> generate
+			$genAlias = $this->BenutzerModel->generateAlias($uid);
+			if (hasData($genAlias))
+			{
+				$genAlias = getData($genAlias);
+
+				if (!isEmptyString($genAlias))
+				{
+					// set alias in fhcomplete
+					$this->BenutzerModel->update(array('uid' => $uid), array('alias' => $genAlias));
+					$alias = $genAlias;
+				}
+			}
+		}
+		return $alias;
 	}
 }
