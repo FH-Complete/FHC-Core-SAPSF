@@ -5,6 +5,9 @@
  */
 abstract class SAPSFClientModel extends CI_Model
 {
+	protected $_hasError;
+	protected $_errors;
+
     const DATAFORMAT = 'json';
 	// --------------------------------------------------------------------------------------------
 	// Public methods
@@ -21,17 +24,19 @@ abstract class SAPSFClientModel extends CI_Model
 
 	/**
 	 * Generic SAPSF call. It checks also for specific SAPSF errors
-	 * @param $odataUriPart specific uri part contining odata parameters
-	 * @param $httpMethod
+	 * @param string $odataUriPart specific uri part contining odata parameters
+	 * @param string $httpMethod
+	 * @param array $additionalHeaders additional HTTP headers
 	 * @param array $callParametersArray
-	 * @return call result (success of error)
+	 * @return object call result (success or error)
 	 */
-	protected function _call($odataUriPart, $httpMethod, $callParametersArray = array())
+	protected function _call($odataUriPart, $httpMethod, $additionalHeaders = array(), $callParametersArray = array())
 	{
 		// Call the SAPSF webservice with the given parameters
 		$wsResult = $this->sapsfclientlib->call(
 			$odataUriPart,
 			$httpMethod,
+			$additionalHeaders,
 			$callParametersArray
 		);
 
@@ -49,6 +54,58 @@ abstract class SAPSFClientModel extends CI_Model
 		$this->sapsfclientlib->resetToDefault(); // reset to the default values
 
 		return $wsResult;
+	}
+
+
+	/**
+	 * Checks an entity name for its validity.
+	 * @param string $entityName
+	 * @return bool
+	 */
+	protected function _checkEntityName($entityName)
+	{
+		return is_string($entityName) && preg_match('/^[a-zA-Z0-9_]+$/', $entityName) === 1;
+	}
+
+	/**
+	 * Checks a query option name for its validity.
+	 * @param string $optionName
+	 * @return bool
+	 */
+	protected function _checkQueryOptionName($optionName)
+	{
+		//can have a / if it's a navigation property
+		return is_string($optionName) && preg_match('/^[a-zA-Z0-9_\/]+$/', $optionName) === 1;
+	}
+
+	/**
+	 * Encodes a string for odata querying.
+	 * @param string $str
+	 * @return string
+	 */
+	protected function _encodeForOdata($str)
+	{
+		//replace apostroph with two apostrophs for escaping
+		return urlencode(str_replace("'", "''", $str));
+	}
+
+	/**
+	 * Sets an error.
+	 * @param string $errormsg
+	 */
+	protected function _setError($errormsg)
+	{
+		$this->_errors[] = 'CLIENTERROR: '.$errormsg;
+		$this->_hasError = true;
+	}
+
+	/**
+	 * Checks if an error has occured during querying.
+	 * @return bool
+	 */
+	protected function _hasError()
+	{
+		return $this->_hasError;
 	}
 
 	// --------------------------------------------------------------------------------------------

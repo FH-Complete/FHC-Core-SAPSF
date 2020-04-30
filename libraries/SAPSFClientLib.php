@@ -23,17 +23,20 @@ class SAPSFClientLib
 	// Blocking errors
 	const CONNECTION_ERROR = 'CONNECTION_ERROR';
 	const PARSE_ERROR = 'PARSE_ERROR';
+	const WRONG_HTTP_METHOD = 'WRONG_HTTP_METHOD';
+	const WRONG_HEADERS = 'WRONG_HTTP_HEADERS';
 	const WRONG_WS_PARAMETERS = 'WRONG_WS_PARAMETERS';
 	const INVALID_HTTP_RESPONSE = 'INVALID_RESPONSE';
 
 	const ERROR_STR = '%s: %s'; // Error message format
 
-    private $_configArray;		// contains the connection parameters configuration array
+	private $_configArray;		// contains the connection parameters configuration array
 
 	private $_authorisationString;		// http header value string for authorisation
 
     private $_httpMethod;			// http method used to call this server
     private $_callParametersArray;	// contains parameters for POST request
+    private $_additionalHeadersArray;	// contains additional HTTP headers for request
     private $_odataUriPart;			// odata-specific stringpart appended to the url, containing properties and getparameters
 
 	private $_sessionCookie;
@@ -65,7 +68,7 @@ class SAPSFClientLib
     /**
      * Performs a call to a remote web service
      */
-    public function call($odataUriPart, $httpMethod = SAPSFClientLib::HTTP_GET_METHOD, $callParametersArray = array())
+    public function call($odataUriPart, $httpMethod = SAPSFClientLib::HTTP_GET_METHOD, $additionalHeadersArray = array(), $callParametersArray = array())
     {
         if ($odataUriPart != null && trim($odataUriPart) != '')
         {
@@ -82,10 +85,16 @@ class SAPSFClientLib
         }
         else
         {
-            $this->_error(self::WRONG_WS_PARAMETERS, 'Wrong http method');
+            $this->_error(self::WRONG_HTTP_METHOD, 'Wrong http method');
         }
 
-		// Checks that the SOAP webservice parameters are present in an array
+		// Checks that the additional HTTP headers are present in an array
+		if (is_array($additionalHeadersArray))
+			$this->_additionalHeadersArray = $additionalHeadersArray;
+		else
+			$this->_error(self::WRONG_HEADERS, 'Wrong headers');
+
+		// Checks that the REST webservice parameters are present in an array
         if (is_array($callParametersArray))
             $this->_callParametersArray = $callParametersArray;
         else
@@ -255,6 +264,14 @@ class SAPSFClientLib
 			$request->addHeader('Cookie', $this->_sessionCookie);
 			$request->addHeader('X-CSRF-Token', $this->_xcsrfToken);
 		}
+
+		if (!isEmptyArray($this->_additionalHeadersArray))
+		{
+			foreach ($this->_additionalHeadersArray as $headerkey => $headervalue)
+			{
+				$request->addHeader($headerkey , $headervalue);
+			}
+		}
 	}
 
 	/**
@@ -264,8 +281,8 @@ class SAPSFClientLib
     {
 		$request = \Httpful\Request::post($uri);
 		$this->_addHeaders($request);
-        return $request->body(http_build_query($this->_callParametersArray))
-            ->sendsType(\Httpful\Mime::FORM)
+        return $request->body(json_encode($this->_callParametersArray))
+            ->sendsJson()
             ->send();
     }
 

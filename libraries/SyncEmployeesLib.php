@@ -10,6 +10,7 @@ class SyncEmployeesLib extends SyncToFhcLib
 {
 	const OBJTYPE = 'employee';
 	const SAPSF_EMPLOYEES_CREATE = 'SAPSFEmployeesCreate';
+	const SAPSF_EMPLOYEES_ALIAS = 'SAPSFEmployeesAlias';
 
 	private $_convertfunctions = array(
 		'person' => array(

@@ -14,9 +14,6 @@ class SAPSFQueryModel extends SAPSFClientModel
     private $_queryOptions; // params after the ? in the url
     private $_odataQueryString; // whole query string
 
-	private $_hasError;
-	private $_errors;
-
 	// query option names
 	const FILTEROPTION = 'filter';
 	const SELECTOPTION = 'select';
@@ -31,7 +28,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 	// Public methods
 
 	/**
-	 * Initialises properties
+	 * Initialises properties.
 	 */
 	public function __construct()
 	{
@@ -534,16 +531,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 	}
 
 	/**
-	 * Checks an entity name for its validity.
-	 * @param string $entityName
-	 * @return bool
-	 */
-	private function _checkEntityName($entityName)
-	{
-		return is_string($entityName) && preg_match('/^[a-zA-Z0-9_]+$/', $entityName) === 1;
-	}
-
-	/**
 	 * Checks a main uri property name for its validity.
 	 * @param string $propertyName
 	 * @return bool
@@ -552,17 +539,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 	{
 		//can begin with $ if its a special property like $value
 		return is_string($propertyName) && preg_match('/^\$?[a-zA-Z0-9_]+$/', $propertyName) === 1;
-	}
-
-	/**
-	 * Checks a query option name for its validity.
-	 * @param string $optionName
-	 * @return bool
-	 */
-    private function _checkQueryOptionName($optionName)
-	{
-		//can have a / if it's a navigation property
-		return is_string($optionName) && preg_match('/^[a-zA-Z0-9_\/]+$/', $optionName) === 1;
 	}
 
 	/**
@@ -630,17 +606,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 	}
 
 	/**
-	 * Encodes a string for odata querying.
-	 * @param string $str
-	 * @return string
-	 */
-	private function _encodeForOdata($str)
-	{
-		//replace apostroph with two apostrophs for escaping
-		return urlencode(str_replace("'", "''", $str));
-	}
-
-	/**
 	 * Encodes a filter option value for odata querying.
 	 * @param string $val
 	 * @return int|string
@@ -648,24 +613,5 @@ class SAPSFQueryModel extends SAPSFClientModel
 	private function _encodeFilterValue($val)
 	{
 		return is_integer($val) ? $val : "'" . $this->_encodeForOdata($val) . "'";
-	}
-
-	/**
-	 * Checks if an error has occured during querying.
-	 * @return bool
-	 */
-    private function _hasError()
-	{
-		return $this->_hasError;
-	}
-
-	/**
-	 * Sets an error.
-	 * @param string $errormsg
-	 */
-    private function _setError($errormsg)
-	{
-		$this->_errors[] = 'QUERYBUILD_ERROR: '.$errormsg;
-		$this->_hasError = true;
 	}
 }

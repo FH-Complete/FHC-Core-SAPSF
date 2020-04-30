@@ -32,6 +32,31 @@ class SyncToFhcLib
 	}
 
 	/**
+	 * Converts an fhc db timestamp to date format in sapsf as passend in query url,
+	 * like lastModifiedDateTime Y-m-dTH:i:s
+	 * @param $timestamp
+	 * @return string
+	 */
+	public function _convertDateToSAPSF($timestamp)
+	{
+		date_default_timezone_set(synctofhclib::TOTIMEZONE);
+
+		try
+		{
+			$datetime = new DateTime($timestamp);
+		}
+		catch (Exception $e)
+		{
+			return $timestamp;
+		}
+
+		$sftimezone = new DateTimeZone(synctofhclib::FROMTIMEZONE);
+		$datetime->setTimezone($sftimezone);
+		$timestamptz = $datetime->format('Y-m-d H:i:s');
+		return str_replace(' ', 'T', $timestamptz);
+	}
+
+	/**
 	 * Checks if fhcomplete object has errors, e.g. missing fields, thus cannot be inserted in db.
 	 * @param $fhcobj
 	 * @param $objtype

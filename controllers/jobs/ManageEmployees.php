@@ -11,7 +11,6 @@ class ManageEmployees  extends JQW_Controller
 	{
 		parent::__construct();
 
-		// Loads SyncEmployeesLib
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncToFhcLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesLib');
 		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
@@ -22,7 +21,7 @@ class ManageEmployees  extends JQW_Controller
 	 */
 	public function syncEmployees()
 	{
-		// add new job to workerqueue
+		// add new job to queue TODO remove, done by the scheduler!
 		$startJob = new stdClass();
 		$startJob->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_NEW;
 		$startJob->{jobsqueuelib::PROPERTY_CREATIONTIME} = date('Y-m-d H:i:s');
@@ -46,7 +45,7 @@ class ManageEmployees  extends JQW_Controller
 			{
 				$jobs = getData($lastJobs);
 				$lastjobtime = $jobs[0]->starttime;
-				$lastModifiedDateTime = $this->_convertToLastModifiedDateTime($lastjobtime);
+				$lastModifiedDateTime = $this->synctofhclib->_convertDateToSAPSF($lastjobtime);
 			}
 
 			$conffieldmappings = $this->config->item('fieldmappings');
@@ -91,13 +90,22 @@ class ManageEmployees  extends JQW_Controller
 							$employeeid = getData($result);
 							if (is_string($employeeid))
 							{
-								$syncedemployees[] = $employeeid;
+								$employee = new stdClass();
+								$employee->uid = $employeeid;
+								$syncedemployees[] = $employee;
 							}
 						}
 					}
 
 					if (!isEmptyArray($syncedemployees))
-						$this->logInfo('SAP Success Factors employees successfully synced: ' . implode($syncedemployees, ', '));
+					{
+						$this->logInfo('SAP Success Factors employees successfully synced');
+						// update job, set it to done, write synced employees as output.
+						$jobresult->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($syncedemployees);
+						$jobresult->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
+						$jobresult->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
+						$this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($jobresult));
+					}
 
 				}
 				else
@@ -105,42 +113,11 @@ class ManageEmployees  extends JQW_Controller
 			}
 		}
 
-
-		// update job, set it to done, write synced employees as output.
-		$jobresult->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($syncedemployees);
-		$jobresult->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
-		$jobresult->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
-		$this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($jobresult));
-
 		if (isError($lastJobs))
 		{
 			$this->logError('An error occurred while updating sync job', getError($lastJobs));
 		}
 
 		$this->logInfo('End employee data synchronization with SAP Success Factors');
-	}
-
-	/**
-	 * Converts an fhc db timestamp to LastModifieDdatetime params format in sapsf
-	 * @param $timestamp
-	 * @return string
-	 */
-	private function _convertToLastModifiedDateTime($timestamp)
-	{
-		date_default_timezone_set(synctofhclib::TOTIMEZONE);
-
-		try
-		{
-			$datetime = new DateTime($timestamp);
-		}
-		catch (Exception $e)
-		{
-			return $timestamp;
-		}
-
-		$sftimezone = new DateTimeZone(synctofhclib::FROMTIMEZONE);
-		$datetime->setTimezone($sftimezone);
-		$timestamptz = $datetime->format('Y-m-d H:i:s');
-		return str_replace(' ', 'T', $timestamptz);
 	}
 }
