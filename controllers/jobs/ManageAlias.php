@@ -18,6 +18,10 @@ class ManageAlias  extends JQW_Controller
 		$this->load->model('resource/Mitarbeiter_model', 'MitarbeiterModel');
 	}
 
+	/**
+	 * Initiates alias synchronisation. Alias is synced from fhcomplete to SAPSF.
+	 * Uids for which to sync alias are jobinput. No uids-> all employees are synced.
+	 */
 	public function syncAlias()
 	{
 		$this->logInfo('Start mail alias data synchronization with SAP Success Factors');
@@ -26,12 +30,9 @@ class ManageAlias  extends JQW_Controller
 		$startJob->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_NEW;
 		$startJob->{jobsqueuelib::PROPERTY_CREATIONTIME} = date('Y-m-d H:i:s');
 		$startJob->{jobsqueuelib::PROPERTY_START_TIME} = date('Y-m-d H:i:s');
-		$jobresults = $this->addNewJobsToQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_ALIAS, array($startJob));
-		$jobresult = getData($jobresults)[0];*/
+		$jobresults = $this->addNewJobsToQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_ALIAS, array($startJob));*/
 
 		$lastJobs = $this->getLastJobs(SyncEmployeesLib::SAPSF_EMPLOYEES_ALIAS);
-
-		//$uids = array('bison', 'oesi', 'karpenko');
 
 		if (isError($lastJobs))
 		{
@@ -77,11 +78,12 @@ class ManageAlias  extends JQW_Controller
 
 			// aliases to be synced with sapsf
 			$aliasforsapsf = array();
+			$syncedAliases = array();
 
 			foreach ($uids as $uid)
 			{
 				$alias = $this->_manageAliasForUid($uid);
-				if (!isEmptyString($uid))
+				if (!isEmptyString($alias))
 				{
 					$aliasforsapsf[$uid] = $alias;
 				}
@@ -89,20 +91,30 @@ class ManageAlias  extends JQW_Controller
 
 			$noAliases = count($aliasforsapsf);
 
-			if ($noAliases === 0)
+			if ($noAliases < 1)
 				$this->logInfo('No aliases of employees found for update');
 			else
 			{
-				if ($noAliases === 1)
+				$result = $this->EditUserModel->updateEmails($aliasforsapsf);
+				if (hasData($result))
 				{
-					foreach ($aliasforsapsf as $key => $item)
+					foreach (getData($result) as $arr)
 					{
-						$result = $this->EditUserModel->updateEmail($key, $item);
-						break;
+						if (hasData($arr))
+						{
+							foreach (getData($arr) as $item)
+							{
+								if (isSuccess($item))
+								{
+									$key = getData($item);
+									$syncedAliases[$key] = $aliasforsapsf[$key];
+								}
+								else
+									$this->logError('An error occurred while updating users data in SAPSF', getError($arr));
+							}
+						}
 					}
 				}
-				elseif ($noAliases > 1)
-					$result = $this->EditUserModel->updateEmails($aliasforsapsf);
 
 				if (isError($result))
 				{
@@ -113,18 +125,25 @@ class ManageAlias  extends JQW_Controller
 					// update jobs, set them to done, write synced aliases as output.
 					foreach ($lastJobsData as $job)
 					{
-/*						$joboutput = array();
+						$joboutput = array();
 						$decodedInput = json_decode($job->input);
 						if ($decodedInput != null)
 						{
 							foreach ($decodedInput as $el)
 							{
-								if (isset($aliasforsapsf[$el->uid]))
-									$joboutput[] = $aliasforsapsf[$el->uid];
+								if (isset($syncedAliases[$el->uid]))
+								{
+									$outputObj = new stdClass();
+									$outputObj->uid = $el->uid;
+									$outputObj->alias = $aliasforsapsf[$el->uid];
+									$joboutput[] = $outputObj;
+								}
 							}
 						}
+						else
+							$joboutput = $syncedAliases;
 
-						$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($joboutput);*/
+						$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($joboutput);
 						$job->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
 						$job->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
 						$updatedJobs[] = $job;
@@ -133,6 +152,8 @@ class ManageAlias  extends JQW_Controller
 				}
 			}
 		}
+		else
+			$this->logInfo('SAPSF alias sync: No new jobs found to process');
 
 		$this->logInfo('End mail alias data synchronization with SAP Success Factors');
 	}
@@ -141,7 +162,7 @@ class ManageAlias  extends JQW_Controller
 	// Private methods
 
 	/**
-	 *
+	 * Helper function for merging job employee input of multiple jobs
 	 */
 	private function _mergeEmployeesArray($jobs)
 	{
@@ -164,6 +185,14 @@ class ManageAlias  extends JQW_Controller
 		return $mergedEmployeesArray;
 	}
 
+	/**
+	 * Takes care of actions concerting alias for a user.
+	 * - If non-empty alias exists, it is returned.
+	 * - If alias is not present, it is generated.
+	 * - if alias is generated, it is updated in fhcomplete.
+	 * @param string $uid
+	 * @return string alias for the uid or empty string
+	 */
 	private function _manageAliasForUid($uid)
 	{
 		$alias = '';

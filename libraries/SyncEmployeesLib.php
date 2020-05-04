@@ -1,7 +1,7 @@
 <?php
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
-require_once('include/functions.inc.php');
+require_once('include/functions.inc.php');// needed for activation key generation
 
 /**
  * This library contains the logic used to perform data synchronization between FHC and SAP Success Factors
@@ -34,6 +34,9 @@ class SyncEmployeesLib extends SyncToFhcLib
 		$this->ci->load->model('codex/Nation_model', 'NationModel');
 	}
 
+	// --------------------------------------------------------------------------------------------
+	// Public methods
+
 	/**
 	 * Starts employee sync. Converts given employee data to fhc format and saves the employee.
 	 * @param $employees
@@ -57,6 +60,9 @@ class SyncEmployeesLib extends SyncToFhcLib
 
 		return success($results);
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	// Private methods
 
 	/**
 	 * Converts employee from SAPSF to mitarbeiter to save in the fhc database.

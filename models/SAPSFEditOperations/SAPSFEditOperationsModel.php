@@ -2,6 +2,9 @@
 
 require_once APPPATH.'models/extensions/FHC-Core-SAPSF/SAPSFClientModel.php';
 
+/**
+ * Contains generic functionality for editing SAPSF data.
+ */
 class SAPSFEditOperationsModel extends SAPSFClientModel
 {
 	private $_entities;
@@ -19,6 +22,9 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 		parent::__construct();
 		$this->_inititaliseProperties();
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	// Protected methods
 
 	/**
 	 * Sets main Entity queried and a key predicate value (like primary key).
@@ -86,11 +92,20 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 		}
 	}
 
+	/**
+	 * Calls a single merge, i.e. updates a single record.
+	 * Not all enitity parameters have to be provided (type is MERGE).
+	 * @return object
+	 */
 	protected function _callMerge()
 	{
 		return $this->_callEdit(array(self::MERGE_HEADER_NAME => self::MERGE_HEADER_VALUE));
 	}
 
+	/**
+	 * Update of multiple entities in one call.
+	 * @return object
+	 */
 	protected function _callUpsert()
 	{
 		$result = null;
@@ -119,17 +134,12 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 				}
 			}
 
-			if (count($data) > self::MAX_REQUEST_NUMBER)
-			{
-				$chunks = array_chunk($data, self::MAX_REQUEST_NUMBER);
-				foreach ($chunks as $chunk)
-				{
-					$responses[] = $this->_call($uripart, SAPSFClientLib::HTTP_POST_METHOD, array(), $chunk);
-				}
-			}
-			else
-				$responses[] = $this->_call($uripart, SAPSFClientLib::HTTP_POST_METHOD, array(), $data);
+			$chunks = count($data) > self::MAX_REQUEST_NUMBER ? array_chunk($data, self::MAX_REQUEST_NUMBER) : array($data);
 
+			foreach ($chunks as $chunk)
+			{
+				$responses[] = $this->_transformUpsertResponse($this->_call($uripart, SAPSFClientLib::HTTP_POST_METHOD, array(), $chunk));
+			}
 			$result = success($responses);
 		}
 		// reset entities after call
@@ -138,6 +148,14 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 		return $result;
 	}
 
+	// --------------------------------------------------------------------------------------------
+	// Private methods
+
+	/**
+	 * Call of update for single record.
+	 * @param array $additionalHeaders http headers to pass
+	 * @return object|null
+	 */
 	private function _callEdit($additionalHeaders = array())
 	{
 		$result = null;
@@ -163,6 +181,11 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 		return $result;
 	}
 
+	/**
+	 * Generates entity string from entity object which can be appended to the odata update url.
+	 * @param array $entity must have name and value
+	 * @return string
+	 */
 	private function _getEntityString($entity)
 	{
 		$entityString = '';
@@ -190,6 +213,11 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 		return $entityString;
 	}
 
+	/**
+	 * Checks if postdata passed is valid.
+	 * @param $updateData
+	 * @return bool
+	 */
 	private function _checkUpdateArray($updateData)
 	{
 		if (is_array($updateData))
@@ -203,16 +231,51 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 		return true;
 	}
 
+	/**
+	 * Transforms response from upsert api call so it can be processed.
+	 * @param $response
+	 * @return object object with success/error objects for each performed upsert operation.
+	 */
+	private function _transformUpsertResponse($response)
+	{
+		if (hasData($response))
+		{
+			$transformedResponse = array();
+			$upsertResponse = getData($response);
+			foreach ($upsertResponse as $item)
+			{
+				if (isset($item->editStatus) && $item->editStatus !== 'error')
+					$transformedResponse[] = success($item->key);
+				else
+					$transformedResponse[] = error($item->message);
+			}
+			return success($transformedResponse);
+		}
+		else
+			return $response;
+	}
+
+	/**
+	 * Gets all errors as an error object with concatinated string.
+	 * @return object
+	 */
 	private function _getErrors()
 	{
 		return error(implode("; ", $this->_errors));
 	}
 
+	/**
+	 * Returns url string for setting the return data format.
+	 * @return string
+	 */
 	private function _getFormatParamString()
 	{
 		return '?$format='. self::DATAFORMAT;
 	}
 
+	/**
+	 * (Re-)sets initial properties of this class.
+	 */
 	private function _inititaliseProperties()
 	{
 		$this->_entities = array();

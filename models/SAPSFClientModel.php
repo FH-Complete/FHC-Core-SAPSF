@@ -9,8 +9,6 @@ abstract class SAPSFClientModel extends CI_Model
 	protected $_errors;
 
     const DATAFORMAT = 'json';
-	// --------------------------------------------------------------------------------------------
-	// Public methods
 
     public function __construct()
     {
@@ -47,7 +45,7 @@ abstract class SAPSFClientModel extends CI_Model
         }
 		else
 		{
-			$data = $this->sapsfclientlib->hasData() ? $this->_getSFData($wsResult) : $wsResult;
+			$data = $this->_getSFData($wsResult);
 			$wsResult = success($data);
 		}
 
@@ -112,7 +110,7 @@ abstract class SAPSFClientModel extends CI_Model
 	// Private methods
 
 	/**
-	 * Gets data in a SAP SF HTTP response.
+	 * Gets data from a SAPSF HTTP response.
 	 */
 	private function _getSFData($response)
 	{
@@ -130,7 +128,11 @@ abstract class SAPSFClientModel extends CI_Model
 				else
 					$data = $responsebody->d;
 			}
+			else
+				$data = $responsebody;
 		}
+		else
+			$this->_setError("Response has no body");
 
 		return $data;
 	}

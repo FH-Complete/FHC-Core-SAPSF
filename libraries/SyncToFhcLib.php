@@ -6,9 +6,9 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  */
 class SyncToFhcLib
 {
-	const FROMTIMEZONE = 'UTC';
-	const TOTIMEZONE = 'Europe/Vienna';
-	const IMPORTUSER = 'SAPSF';
+	const FROMTIMEZONE = 'UTC'; // timezone on remote server
+	const TOTIMEZONE = 'Europe/Vienna'; // local timezone
+	const IMPORTUSER = 'SAPSF'; // user for insertion/update
 
 	protected $_conffieldmappings;
 	protected $_confvaluedefaults;
@@ -30,6 +30,9 @@ class SyncToFhcLib
 
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
 	}
+
+	// --------------------------------------------------------------------------------------------
+	// Public methods
 
 	/**
 	 * Converts an fhc db timestamp to date format in sapsf as passend in query url,
@@ -55,6 +58,9 @@ class SyncToFhcLib
 		$timestamptz = $datetime->format('Y-m-d H:i:s');
 		return str_replace(' ', 'T', $timestamptz);
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	// Protected methods
 
 	/**
 	 * Checks if fhcomplete object has errors, e.g. missing fields, thus cannot be inserted in db.
@@ -231,6 +237,9 @@ class SyncToFhcLib
 		$idx = $modtype . 'von';
 		$arr[$idx] = self::IMPORTUSER;
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	// Private methods
 
 	/**
 	 * Checks if given date exists and is valid.

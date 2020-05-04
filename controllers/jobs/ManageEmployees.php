@@ -106,7 +106,6 @@ class ManageEmployees  extends JQW_Controller
 						$jobresult->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
 						$this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($jobresult));
 					}
-
 				}
 				else
 					$this->logInfo('No employee data synced with SAP Success Factors');
