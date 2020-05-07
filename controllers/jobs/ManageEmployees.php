@@ -97,18 +97,14 @@ class ManageEmployees  extends JQW_Controller
 						}
 					}
 
-					if (!isEmptyArray($syncedemployees))
+					// update job, set it to done, write synced employees as output.
+					$jobresult->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($syncedemployees);
+					$jobresult->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
+					$jobresult->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
+					$updatejobsres = $this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($jobresult));
+					if (isError($updatejobsres))
 					{
-						$this->logInfo('SAP Success Factors employees successfully synced');
-						// update job, set it to done, write synced employees as output.
-						$jobresult->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($syncedemployees);
-						$jobresult->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
-						$jobresult->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
-						$updatejobsres = $this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($jobresult));
-						if (isError($updatejobsres))
-						{
-							$this->logError('An error occurred while updating sync job', getError($updatejobsres));
-						}
+						$this->logError('An error occurred while updating sync job', getError($updatejobsres));
 					}
 				}
 				else
