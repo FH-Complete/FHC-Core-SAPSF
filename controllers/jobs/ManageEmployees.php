@@ -104,17 +104,16 @@ class ManageEmployees  extends JQW_Controller
 						$jobresult->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($syncedemployees);
 						$jobresult->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
 						$jobresult->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
-						$this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($jobresult));
+						$updatejobsres = $this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($jobresult));
+						if (isError($updatejobsres))
+						{
+							$this->logError('An error occurred while updating sync job', getError($updatejobsres));
+						}
 					}
 				}
 				else
 					$this->logInfo('No employee data synced with SAP Success Factors');
 			}
-		}
-
-		if (isError($lastJobs))
-		{
-			$this->logError('An error occurred while updating sync job', getError($lastJobs));
 		}
 
 		$this->logInfo('End employee data synchronization with SAP Success Factors');
