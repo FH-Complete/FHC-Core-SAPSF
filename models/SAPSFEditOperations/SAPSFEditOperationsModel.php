@@ -30,6 +30,7 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 	 * Sets main Entity queried and a key predicate value (like primary key).
 	 * @param string $entityName
 	 * @param string|array $keyPredicateValue if associative array, composite key value is set
+	 * @param array $updateData data to be updated
 	 */
 	protected function _setEntity($entityName, $keyPredicateValue, $updateData)
 	{
