@@ -6,26 +6,32 @@
  * ['fieldmappings']['mobilityonlineobject']['fhctable'] = array('fhcfieldname' => 'mobilityonlinefieldname')
  */
 
-$config['fieldmappings']['employee']['person'] = array(
+$config['fieldmappings']['fromsapsf']['employee']['person'] = array(
 	'firstName' => 'vorname',
 	'lastName' => 'nachname',
 	'nationality' => 'staatsbuergerschaft',
 	'dateOfBirth' => 'gebdatum'
 );
 
-$config['fieldmappings']['employee']['mitarbeiter'] = array(
+$config['fieldmappings']['fromsapsf']['employee']['mitarbeiter'] = array(
 	'userId' => 'mitarbeiter_uid',
 	'empId' => 'personalnummer'
 );
 
-$config['fieldmappings']['employee']['benutzer'] = array(
+$config['fieldmappings']['fromsapsf']['employee']['benutzer'] = array(
 	'userId' => 'uid'
 );
 
-/*$config['fieldmappings']['employee']['kontaktmail'] = array(
-	'email' => 'kontakt'
+$config['fieldmappings']['tosapsf']['kontakttel']['employee'] = array(
+	'firmentelefon' => 'businessPhone'
+);
+
+$config['fieldmappings']['tosapsf']['benutzer']['employee'] = array(
+	'uid' => 'email' // email is generated from alias, which is derived from the uid
+);
+
+/*$config['fieldmappings']['tosapsf']['person']['employee'] = array(
+	'ort_kurzbz' => 'buero'
 );*/
 
-$config['fieldmappings']['employee']['kontakttel'] = array(
-	'businessPhone' => 'kontakt'
-);
+

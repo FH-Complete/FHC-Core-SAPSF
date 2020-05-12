@@ -12,7 +12,7 @@ class ManageEmployees  extends JQW_Controller
 		parent::__construct();
 
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncToFhcLib');
-		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesLib');
+		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
 		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 	}
 
@@ -26,14 +26,14 @@ class ManageEmployees  extends JQW_Controller
 		$startJob->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_NEW;
 		$startJob->{jobsqueuelib::PROPERTY_CREATIONTIME} = date('Y-m-d H:i:s');
 		$startJob->{jobsqueuelib::PROPERTY_START_TIME} = date('Y-m-d H:i:s');
-		$jobresults = $this->addNewJobsToQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($startJob));
+		$jobresults = $this->addNewJobsToQueue(SyncEmployeesFromSAPSFLib::SAPSF_EMPLOYEES_FROM_SAPSF, array($startJob));
 		$jobresult = getData($jobresults)[0];
 
-		$this->logInfo('Start employee data synchronization with SAP Success Factors');
+		$this->logInfo('Start employee data synchronization from SAP Success Factors');
 
 		// only sny employees changed after last sync
 		$this->JobsQueueModel->addOrder('creationtime', 'DESC');
-		$lastJobs = $this->JobsQueueModel->loadWhere(array('status' => jobsqueuelib::STATUS_DONE, 'type' => SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE));
+		$lastJobs = $this->JobsQueueModel->loadWhere(array('status' => jobsqueuelib::STATUS_DONE, 'type' => SyncEmployeesFromSAPSFLib::SAPSF_EMPLOYEES_FROM_SAPSF));
 		if (isError($lastJobs))
 		{
 			$this->logError('An error occurred while getting last employee sync job', getError($lastJobs));
@@ -51,7 +51,7 @@ class ManageEmployees  extends JQW_Controller
 			$conffieldmappings = $this->config->item('fieldmappings');
 
 			$selects = array();
-			foreach ($conffieldmappings[syncemployeeslib::OBJTYPE] as $mappingset)
+			foreach ($conffieldmappings['fromsapsf'][SyncEmployeesFromSAPSFLib::OBJTYPE] as $mappingset)
 			{
 				foreach ($mappingset as $sapsfkey => $fhcvalue)
 				{
@@ -73,7 +73,7 @@ class ManageEmployees  extends JQW_Controller
 			{
 				$syncedemployees = array();
 
-				$results = $this->syncemployeeslib->syncEmployeesWithFhc($employees);
+				$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employees);
 
 				if (hasData($results))
 				{
@@ -101,17 +101,17 @@ class ManageEmployees  extends JQW_Controller
 					$jobresult->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($syncedemployees);
 					$jobresult->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
 					$jobresult->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
-					$updatejobsres = $this->updateJobsQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_CREATE, array($jobresult));
+					$updatejobsres = $this->updateJobsQueue(SyncEmployeesFromSAPSFLib::SAPSF_EMPLOYEES_FROM_SAPSF, array($jobresult));
 					if (isError($updatejobsres))
 					{
-						$this->logError('An error occurred while updating sync job', getError($updatejobsres));
+						$this->logError('An error occurred while updating syncfromsapsfjob', getError($updatejobsres));
 					}
 				}
 				else
-					$this->logInfo('No employee data synced with SAP Success Factors');
+					$this->logInfo('No employee data synced from SAP Success Factors');
 			}
 		}
 
-		$this->logInfo('End employee data synchronization with SAP Success Factors');
+		$this->logInfo('End employee data synchronization from SAP Success Factors');
 	}
 }

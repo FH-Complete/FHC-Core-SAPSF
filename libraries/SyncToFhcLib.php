@@ -25,6 +25,7 @@ class SyncToFhcLib
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/fields');
 
 		$this->_conffieldmappings = $this->ci->config->item('fieldmappings');
+		$this->_conffieldmappings = $this->_conffieldmappings['fromsapsf'];
 		$this->_confvaluedefaults = $this->ci->config->item('fhcdefaults');
 		$this->_fhcconffields = $this->ci->config->item('fhcfields');
 

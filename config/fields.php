@@ -48,3 +48,7 @@ $config['fhcfields']['employee'] = array(
 	)
 );
 
+$config['sapsffields']['employee'] = array(
+	'uid' => 'userId'
+);
+

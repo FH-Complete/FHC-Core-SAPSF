@@ -8,6 +8,8 @@ class FhcDbModel extends DB_Model
 	public function __construct()
 	{
 		parent::__construct();
+
+		$this->load->model('person/Benutzer_model', 'BenutzerModel');
 	}
 
 	/**
@@ -15,7 +17,7 @@ class FhcDbModel extends DB_Model
 	 * @param $table
 	 * @param $field
 	 * @param $value
-	 * @return mixed
+	 * @return object
 	 */
 	public function valueExists($table, $field, $value)
 	{
@@ -49,5 +51,89 @@ class FhcDbModel extends DB_Model
 				return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Takes care of actions concerting alias for a user.
+	 * - If non-empty alias exists, it is returned.
+	 * - If alias is not present, it is generated.
+	 * - if alias is generated, it is updated in fhcomplete.
+	 * @param string $uid
+	 * @return string alias for the uid or empty string
+	 */
+	public function manageAliasForUid($uid)
+	{
+		$alias = '';
+		$this->BenutzerModel->addSelect('alias');
+		$aliasres = $this->BenutzerModel->loadWhere(array('uid' => $uid));
+		$hasAlias = false;
+
+		if (hasData($aliasres))
+		{
+			$aliasres = getData($aliasres);
+			$aliasres = $aliasres[0]->alias;
+			if (!isEmptyString($aliasres))
+			{
+				// if there is a non-empty alias in fhc, it is used
+				$alias = $aliasres;
+				$hasAlias = true;
+			}
+		}
+
+		if (!$hasAlias)
+		{
+			// no non-empty alias found -> generate
+			$genAlias = $this->BenutzerModel->generateAlias($uid);
+			if (hasData($genAlias))
+			{
+				$genAlias = getData($genAlias);
+
+				if (!isEmptyString($genAlias))
+				{
+					// set alias in fhcomplete
+					$this->BenutzerModel->update(array('uid' => $uid), array('alias' => $genAlias));
+					$alias = $genAlias;
+				}
+			}
+		} 
+		return $alias;
+	}
+
+	/**
+	 * Gets Mitarbeiter with Firmentelefon
+	 * @param array $uids filter by uids
+	 * @return object
+	 */
+	public function getMitarbeiter($uids = null)
+	{
+		$this->load->model('ressource/Mitarbeiter_model', 'MitarbeiterModel');
+		$this->load->model('person/Kontakt_model', 'KontaktModel');
+
+		$mitarbeiterres = array();
+		$mitarbeiter = $this->MitarbeiterModel->getPersonal(true, null, null);
+
+		if (hasData($mitarbeiter))
+		{
+			$mitarbeiter = getData($mitarbeiter);
+			$allma = isEmptyArray($uids);
+			foreach ($mitarbeiter as $idx => $ma)
+			{
+				if ($allma || in_array($ma->uid, $uids))
+				{
+					$telefon = $this->KontaktModel->getFirmentelefon($ma->uid);
+
+					if (hasData($telefon))
+					{
+						$telefonno = getData($telefon);
+						//var_dump($telefonno);
+						$ma->firmentelefon = str_replace(' ', '', $telefonno[0]);
+					}
+
+					$mitarbeiterres[] = $ma;
+				}
+			}
+		}
+
+		return success($mitarbeiterres);
 	}
 }

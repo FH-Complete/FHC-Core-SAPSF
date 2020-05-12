@@ -6,11 +6,10 @@ require_once('include/functions.inc.php');// needed for activation key generatio
 /**
  * This library contains the logic used to perform data synchronization between FHC and SAP Success Factors
  */
-class SyncEmployeesLib extends SyncToFhcLib
+class SyncEmployeesFromSAPSFLib extends SyncToFhcLib
 {
 	const OBJTYPE = 'employee';
-	const SAPSF_EMPLOYEES_CREATE = 'SAPSFEmployeesCreate';
-	const SAPSF_EMPLOYEES_ALIAS = 'SAPSFEmployeesAlias';
+	const SAPSF_EMPLOYEES_FROM_SAPSF = 'SyncEmployeesFromSAPSF';
 
 	private $_convertfunctions = array(
 		'person' => array(
@@ -19,7 +18,7 @@ class SyncEmployeesLib extends SyncToFhcLib
 	);
 
 	/**
-	 * SyncEmployeesLib constructor.
+	 * SyncEmployeesFromSAPSFLib constructor.
 	 */
 	public function __construct()
 	{
@@ -71,7 +70,7 @@ class SyncEmployeesLib extends SyncToFhcLib
 	 */
 	private function _convertEmployeeToFhc($employee)
 	{
-		$fhctables = array('person', 'mitarbeiter', 'benutzer', 'kontakttel');
+		$fhctables = array('person', 'mitarbeiter', 'benutzer');
 		$fhcemployee = array();
 
 		foreach ($fhctables as $fhctable)
@@ -88,7 +87,7 @@ class SyncEmployeesLib extends SyncToFhcLib
 			{
 				foreach ($this->_conffieldmappings[self::OBJTYPE][$fhctable] as $sffield => $fhcfield)
 				{
-					if (isset($employee->{$sffield}) && !isEmptyString($employee->{$sffield}))
+					if (isset($employee->{$sffield}) /*&& !isEmptyString($employee->{$sffield})*/)//TODO what if update to empty?
 					{
 						$value = $employee->{$sffield};
 						if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
@@ -105,7 +104,7 @@ class SyncEmployeesLib extends SyncToFhcLib
 	/**
 	 * Saves Mitarbeiter in fhc database.
 	 * @param $maobj
-	 * @return mixed
+	 * @return object
 	 */
 	private function _saveMitarbeiter($maobj)
 	{
