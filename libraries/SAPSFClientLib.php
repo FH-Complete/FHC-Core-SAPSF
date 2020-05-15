@@ -145,6 +145,8 @@ class SAPSFClientLib
         $this->_error = false;
 		$this->_errorMessage = '';
 		$this->_hasData = false;
+		$this->_additionalHeadersArray = array();
+		$this->_callParametersArray = array();
 	}
 
     // --------------------------------------------------------------------------------------------
@@ -159,6 +161,7 @@ class SAPSFClientLib
 		$this->_authorisationString = '';
 		$this->_httpMethod = '';
 		$this->_callParametersArray = array();
+		$this->_additionalHeadersArray = array();
         $this->_odataUriPart = '';
         $this->_xcsrfToken = '';
         $this->_sessionCookie = '';

@@ -2,7 +2,7 @@
 
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
-class ManageEmployees  extends JQW_Controller
+class SyncEmployeesFromSAPSF  extends JQW_Controller
 {
 	/**
 	 * Controller initialization

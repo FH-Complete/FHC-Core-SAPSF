@@ -1,4 +1,5 @@
 <?php
+
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 class SyncEmployeesToSapsf  extends JQW_Controller
@@ -56,7 +57,6 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 				$conffields = $this->config->item('sapsffields');
 				$sapsfUidName = $conffields[SyncEmployeesToSAPSFLib::OBJTYPE]['uid'];
 				$sapsfemployees = $this->QueryUserModel->getAll(array($sapsfUidName));
-
 
 				if (hasData($sapsfemployees))
 				{

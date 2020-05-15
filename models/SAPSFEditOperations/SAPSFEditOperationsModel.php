@@ -121,10 +121,12 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 		{
 			$responses = array();
 			$data = array();
+			$mainurientities = array(); // still add entities to uri even if upsert - faster
 
-			$uripart = self::UPSERT . $this->_getFormatParamString();
 			foreach ($this->_entities as $entity)
 			{
+				if (!in_array($entity['name'], $mainurientities))
+					$mainurientities[] = $entity['name'];
 				$entitystr = $this->_getEntityString($entity);
 				//[{"__metadata":{"uri":"User('karpenko')"},"email":"bla3@bla.com"},{"__metadata":{"uri":"User('bison')"},"email":"bla4@bla.com"}]
 				if (!isEmptyString($entitystr))
@@ -134,6 +136,7 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 					$data[] = $element;
 				}
 			}
+			$uripart = implode(',', $mainurientities) . '/' . self::UPSERT . $this->_getFormatParamString();
 
 			$chunks = count($data) > self::MAX_REQUEST_NUMBER ? array_chunk($data, self::MAX_REQUEST_NUMBER) : array($data);
 
