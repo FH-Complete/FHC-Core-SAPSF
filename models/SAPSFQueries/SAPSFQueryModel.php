@@ -17,12 +17,15 @@ class SAPSFQueryModel extends SAPSFClientModel
 	// query option names
 	const FILTEROPTION = 'filter';
 	const SELECTOPTION = 'select';
+	const EXPANDOPTION = 'expand';
 	const ORDERBYOPTION = 'orderby';
 	const FORMATOPTION = 'format';
 
 	const DEFAULT_FILTER_CONNECTIONOPERATOR = 'and'; // default connector for multiple filters
     const FILTERVALUE_PLACEHOLDER = '?'; // placeholder for replacement of filter values in url
 
+	private $_supported_connectionoperators = array('and','or');
+	private $_supported_logicaloperators = array('eq', 'ne', 'gt', 'ge', 'lt', 'le');
 
 	// --------------------------------------------------------------------------------------------
 	// Public methods
@@ -90,10 +93,10 @@ class SAPSFQueryModel extends SAPSFClientModel
 						$valid = true;
 						foreach ($keyPredicateValue as $name => $value)
 						{
-							if (!$this->_checkQueryOptionName($name) || !is_string($value))
+							if (!$this->_checkQueryOptionName($name))
 							{
 								$valid = false;
-								$this->_setError('Invalid key pedicate provided: (' . $name . ') => ' . $value);
+								$this->_setError('Invalid key pedicate provided' .  (is_string($name) && is_string($value) ? ": ($name) => $value" : ""));
 							}
 						}
 
@@ -158,10 +161,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 	 */
 	protected function _setSelect($selectProperty)
 	{
-		if ($this->_checkQueryOptionName($selectProperty))
-			$this->_setQueryOption(self::SELECTOPTION, $selectProperty);
-		else
-			$this->_setError('Invalid select property provided: '.$selectProperty);
+		$this->_setQueryOption(self::SELECTOPTION, $selectProperty);
 	}
 
 	/**
@@ -180,6 +180,33 @@ class SAPSFQueryModel extends SAPSFClientModel
 		else
 			$this->_setError('Invalid select properties provided');
 	}
+
+	/**
+	 * Sets a single expand option.
+	 * @param string $expandProperty
+	 */
+	protected function _setExpand($expandProperty)
+	{
+		$this->_setQueryOption(self::EXPANDOPTION, $expandProperty);
+	}
+
+	/**
+	 * Sets multiple expand options.
+	 * @param array $expandProperties
+	 */
+	protected function _setExpands($expandProperties)
+	{
+		if (is_array($expandProperties))
+		{
+			foreach ($expandProperties as $expandProperty)
+			{
+				$this->_setExpand($expandProperty);
+			}
+		}
+		else
+			$this->_setError('Invalid expand properties provided');
+	}
+
 
 	/**
 	 * Sets a single filter option.
@@ -276,13 +303,8 @@ class SAPSFQueryModel extends SAPSFClientModel
 	 */
 	protected function _setOrderBy($orderbyProperty, $order = 'asc')
 	{
-		if ($this->_checkQueryOptionName($orderbyProperty))
-		{
-			$order = is_string($order) ? $order : 'asc';
-			$this->_setQueryOption(self::ORDERBYOPTION, array('name' => $orderbyProperty, 'order' => $order));
-		}
-		else
-			$this->_setError('Invalid orderby property provided: '.$orderbyProperty);
+		$order = is_string($order) ? $order : 'asc';
+		$this->_setQueryOption(self::ORDERBYOPTION, array('name' => $orderbyProperty, 'order' => $order));
 	}
 
 	/**
@@ -359,9 +381,11 @@ class SAPSFQueryModel extends SAPSFClientModel
 	 */
 	private function _setQueryOption($name, $value)
 	{
-		if (!isset($this->_queryOptions[$name]))
-			$this->_queryOptions[$name] = array();
-		$this->_queryOptions[$name][] = $value;
+		if ($this->_checkQueryOptionName($name))
+			$this->_queryOptions[$name][] = $value;
+		else
+			$this->_setError('Invalid query option name provided' . is_string($name) ? ": $name" : "");
+
 	}
 
 	/**
@@ -373,26 +397,7 @@ class SAPSFQueryModel extends SAPSFClientModel
     	$queryString = '';
 		if (isset($this->_entity) && isset($this->_entity['name']) && !isEmptyArray($this->_entity))
 		{
-			$queryString .= $this->_entity['name'];
-			if (isset($this->_entity['value']))
-			{
-				$entityvalue = $this->_entity['value'];
-				if (is_string($entityvalue))
-					$queryString .= "('" . $this->_encodeForOdata($entityvalue) . "')";
-				elseif (is_array($entityvalue))
-				{
-					$queryString .= '(';
-					$first = true;
-					foreach ($entityvalue as $predname => $predvalue)
-					{
-						if (!$first)
-							$queryString .= ',';
-						$queryString .= $predname . "='" . $this->_encodeForOdata($predvalue) . "'";
-						$first = false;
-					}
-					$queryString .= ')';
-				}
-			}
+			$queryString .= $this->_getEntityString($this->_entity);
 
 			if (!isEmptyArray($this->_mainUriProperties))
 			{
@@ -403,7 +408,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 						$queryString .= '/' . $mainUriProperty['name'];
 						if (isset($mainUriProperty['value']))
 						{
-							$queryString .= "('" . $this->_encodeForOdata($mainUriProperty['value']) . "')";
+							$queryString .= "(" . $this->_prepareEntityValueForOdata($mainUriProperty['value']) . ")";
 						}
 					}
 				}
@@ -433,6 +438,18 @@ class SAPSFQueryModel extends SAPSFClientModel
 								$first = false;
 							}
 						break;
+						case self::EXPANDOPTION:
+							$first = true;
+							foreach ($queryOptions as $expandOption)
+							{
+								if ($first)
+									$queryString .= '$' . self::EXPANDOPTION . '=';
+								else
+									$queryString .= ',';
+								$queryString .= $expandOption;
+								$first = false;
+							}
+							break;
 						case self::FILTEROPTION:
 							$filteroptions = array();
 							foreach ($queryOptions as $filter)
@@ -592,17 +609,17 @@ class SAPSFQueryModel extends SAPSFClientModel
 	 */
 	private function _checkLogicalOperator($logicalOperator)
 	{
-		return is_string($logicalOperator) && preg_match('/^[a-z]{2}$/', $logicalOperator);
+		return is_string($logicalOperator) && in_array($logicalOperator, $this->_supported_logicaloperators);
 	}
 
 	/**
 	 * Checks a logical connection operator for its validity.
-	 * @param string $logicalOperator
+	 * @param string $connectionOperator
 	 * @return bool
 	 */
-	private function _checkLogicalConnectionOperator($logicalOperator)
+	private function _checkLogicalConnectionOperator($connectionOperator)
 	{
-		return is_string($logicalOperator) && preg_match('/^(or|and)$/', $logicalOperator);
+		return is_string($connectionOperator) && in_array($this->_supported_connectionoperators);
 	}
 
 	/**

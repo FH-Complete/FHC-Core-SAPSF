@@ -4,7 +4,7 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 /**
  * Contains general logic for syncing from SAPSF to FHC
  */
-class SyncToFhcLib
+class SyncFromSAPSFLib
 {
 	const FROMTIMEZONE = 'UTC'; // timezone on remote server
 	const TOTIMEZONE = 'Europe/Vienna'; // local timezone
@@ -14,7 +14,7 @@ class SyncToFhcLib
 	protected $_confvaluedefaults;
 
 	/**
-	 * SyncToFhcLib constructor.
+	 * SyncFromSAPSFLib constructor.
 	 */
 	public function __construct()
 	{
@@ -38,12 +38,12 @@ class SyncToFhcLib
 	/**
 	 * Converts an fhc db timestamp to date format in sapsf as passend in query url,
 	 * like lastModifiedDateTime Y-m-dTH:i:s
-	 * @param $timestamp
+	 * @param string $timestamp fhc timestamp
 	 * @return string
 	 */
 	public function _convertDateToSAPSF($timestamp)
 	{
-		date_default_timezone_set(synctofhclib::TOTIMEZONE);
+		date_default_timezone_set(SyncFromSAPSFLib::TOTIMEZONE);
 
 		try
 		{
@@ -54,7 +54,7 @@ class SyncToFhcLib
 			return $timestamp;
 		}
 
-		$sftimezone = new DateTimeZone(synctofhclib::FROMTIMEZONE);
+		$sftimezone = new DateTimeZone(SyncFromSAPSFLib::FROMTIMEZONE);
 		$datetime->setTimezone($sftimezone);
 		$timestamptz = $datetime->format('Y-m-d H:i:s');
 		return str_replace(' ', 'T', $timestamptz);

@@ -125,7 +125,6 @@ class FhcDbModel extends DB_Model
 					if (hasData($telefon))
 					{
 						$telefonno = getData($telefon);
-						//var_dump($telefonno);
 						$ma->firmentelefon = str_replace(' ', '', $telefonno[0]);
 					}
 

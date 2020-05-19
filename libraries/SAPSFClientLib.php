@@ -17,6 +17,8 @@ class SAPSFClientLib
 
     const HTTP_GET_METHOD = 'GET'; // http get method name
     const HTTP_POST_METHOD = 'POST'; // http post method name
+	const COOKIE_PARAM = 'set-cookie';
+	const TOKEN_PARAM = 'x-csrf-token';
     //const HTTP_DELETE_METHOD = 'DELETE'; // http deletemethod name
     const URI_TEMPLATE = '%s://%s/%s/%s'; // URI format
 
@@ -294,11 +296,11 @@ class SAPSFClientLib
 	 */
     private function _setSessionReuse($response)
 	{
-		if (isEmptyString($this->_sessionCookie) && isset($response->headers['set-cookie']) &&
-			isEmptyString($this->_xcsrfToken) && isset($response->headers['x-csrf-token']))
+		if (isEmptyString($this->_sessionCookie) && isset($response->headers[self::COOKIE_PARAM]) &&
+			isEmptyString($this->_xcsrfToken) && isset($response->headers[self::TOKEN_PARAM]))
 		{
-			$this->_sessionCookie = substr($response->headers['set-cookie'], 0, strpos($response->headers['set-cookie'], '; Path'));
-			$this->_xcsrfToken = $response->headers['x-csrf-token'];
+			$this->_sessionCookie = substr($response->headers[self::COOKIE_PARAM], 0, strpos($response->headers[self::COOKIE_PARAM], '; Path'));
+			$this->_xcsrfToken = $response->headers[self::TOKEN_PARAM];
 		}
 	}
 

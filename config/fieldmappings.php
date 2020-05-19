@@ -22,16 +22,15 @@ $config['fieldmappings']['fromsapsf']['employee']['benutzer'] = array(
 	'userId' => 'uid'
 );
 
-$config['fieldmappings']['tosapsf']['kontakttel']['employee'] = array(
-	'firmentelefon' => 'businessPhone'
+$config['fieldmappings']['tosapsf']['kontakttel']['User'] = array(
+	'firmentelefon' => 'businessPhone',
+	'uid' => 'userId'
 );
 
-$config['fieldmappings']['tosapsf']['benutzer']['employee'] = array(
-	'uid' => 'email' // email is generated from alias, which is derived from the uid
+$config['fieldmappings']['tosapsf']['benutzer']['PerEmail'] = array(
+	'uid' => 'emailAddress' // email is generated from alias, which is derived from the uid
 );
 
-/*$config['fieldmappings']['tosapsf']['person']['employee'] = array(
-	'ort_kurzbz' => 'buero'
-);*/
-
-
+$config['fieldmappings']['tosapsf']['mitarbeiter']['PerPersonal'] = array(
+	'ort_kurzbz' => 'customString4' // email is generated from alias, which is derived from the uid
+);

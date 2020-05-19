@@ -7,13 +7,27 @@ require_once 'SyncToSAPSFLib.php';
 class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 {
 	const SAPSF_EMPLOYEES_TO_SAPSF = 'SyncEmployeesToSAPSF';
-	const OBJTYPE = 'employee';
+
+	const PREDICATE_INDEX = 'sapsf_predicates';
+	const DATA_INDEX = 'data';
+
+	const OBJTYPE = 'User';
+	const MAILTYPE = 'PerEmail';
+	const PERSONALINFOTYPE = 'PerPersonal';
+
+	const PERSON_NAV = 'personKeyNav';
+	const PERSONAL_INFO_NAV = 'empInfo/personNav/personalInfoNav';
+
 	const EMAIL_POSTFIX = '@technikum-wien.at';
 
 	private $_convertfunctions = array(
 		'benutzer' => array(
 			'uid' => '_convertToAlias'
 		)
+	);
+
+	private $_sapsfdatenames = array(
+		'startDate'
 	);
 
 	/**
@@ -31,35 +45,146 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 		$this->ci->load->model('person/kontakt_model', 'KontaktModel');
 		$this->ci->load->model('codex/Nation_model', 'NationModel');
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
+		$this->ci->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 	}
 
 	// --------------------------------------------------------------------------------------------
 	// Public methods
 
 	/**
+	 * GEts employees from fhcomplete
+	 * @param array $uids
+	 * @return mixed
+	 */
+	public function getEmployeesForSync($uids)
+	{
+		// if no uids passed, all employee aliases are synced
+		$mitarbeiterToSync = array();
+		$mitarbeiter = $this->ci->FhcDbModel->getMitarbeiter($uids);
+
+		if (hasData($mitarbeiter))
+		{
+			$mitarbeiter = getData($mitarbeiter);
+
+			// only update employees which are in sapsf too
+			$sapsfUidName = $this->_predicates[self::OBJTYPE][0];
+			$sapsfPersonIdName = $this->_predicates[self::MAILTYPE][0];
+			$sapsfstartDateName = $this->_predicates[self::PERSONALINFOTYPE][1];
+			$sapsfemployees = $this->ci->QueryUserModel->getAll(
+				array($sapsfUidName, self::PERSON_NAV.'/' . $sapsfPersonIdName, self::PERSONAL_INFO_NAV . '/' . $sapsfstartDateName),
+				array(self::PERSON_NAV, self::PERSONAL_INFO_NAV)
+			);
+
+			if (isError($sapsfemployees))
+				return $sapsfemployees;
+			elseif (hasData($sapsfemployees))
+			{
+				$sapsfemployees = getData($sapsfemployees);
+				foreach ($mitarbeiter as $ma)
+				{
+					foreach ($sapsfemployees as $sapsfemployee)
+					{
+						if ($sapsfemployee->{$sapsfUidName} == $ma->uid)
+						{
+							$matosync = $this->_convertEmployeeToSapsf($ma);
+
+							// check if any of the predicate keys can be found in queried sapsf employees. If yes, add them
+							foreach ($sapsfemployee as $prop => $value)
+							{
+								if (is_object($value))
+								{
+									foreach ($value as $valprop => $valval)
+									{
+										foreach ($matosync as $entity => $mats)
+										{
+											foreach ($mats as $fhctbl => $data)
+											{
+												foreach ($matosync[$entity][$fhctbl][self::PREDICATE_INDEX] as $valprop => $valval)
+												{
+													$foundValue = $this->_recursive_object_search($valprop, $value);
+													if ($foundValue)
+													{
+														if (in_array($valprop, $this->_sapsfdatenames))
+															$foundValue = $this->_convertSAPSFTimestampToDateTime($foundValue);
+														$matosync[$entity][$fhctbl][self::PREDICATE_INDEX][$valprop] = $foundValue;
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+
+							if (!isEmptyArray($matosync))
+								$mitarbeiterToSync[$ma->uid] = $matosync;
+
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		return success($mitarbeiterToSync);
+	}
+
+	/**
 	 * Converts employee from SAPSF to mitarbeiter to save in the fhc database.
 	 * @param $employee
 	 * @return array converted employee
 	 */
-	public function convertEmployeeToSapsf($employee)
+	private function _convertEmployeeToSapsf($employee)
 	{
-		$fhctables = array('benutzer', 'kontakttel');
+		$fhctables = array('benutzer', 'person', 'mitarbeiter', 'kontakttel');
 		$sapsfemployee = array();
 
 		foreach ($fhctables as $fhctable)
 		{
-			if (isset($this->_conffieldmappings[$fhctable][self::OBJTYPE]))
+			if (isset($this->_confvaluedefaults[$fhctable]))
 			{
-				foreach ($this->_conffieldmappings[$fhctable][self::OBJTYPE] as $fhcfield => $sffield)
+				foreach ($this->_confvaluedefaults[$fhctable] as $sapsfentity => $confvaluedefaults)
 				{
-					if (isset($employee->{$fhcfield}))
+					foreach ($confvaluedefaults as $sffield => $sfvalue)
 					{
-						$value = $employee->{$fhcfield};
-						if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
-							$value = $this->{$this->_convertfunctions[$fhctable][$fhcfield]}($value);
+						$sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield] = $sfvalue;
+					}
+				}
+			}
 
-						if (!isEmptyString($value))// data should not get lost in SAPSF if empty field
-							$sapsfemployee[$sffield] = $value;
+			if (isset($this->_conffieldmappings[$fhctable]))
+			{
+				foreach ($this->_conffieldmappings[$fhctable] as $sapsfentity => $conffieldmappings)
+				{
+					foreach ($conffieldmappings as $fhcfield => $sffield)
+					{
+						if (isset($employee->{$fhcfield}))
+						{
+							$value = $employee->{$fhcfield};
+							if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
+								$value = $this->{$this->_convertfunctions[$fhctable][$fhcfield]}($value);
+
+
+							if (!isEmptyString($value))// data should not get lost in SAPSF if empty field
+								$sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield] = $value;
+						}
+					}
+				}
+			}
+
+			// add predicates which are used for unique identification for update
+			foreach ($this->_predicates as $sapsfentity => $sffieldnames)
+			{
+				if (isset($sapsfemployee[$sapsfentity][$fhctable]))
+				{
+					foreach ($sffieldnames as $sffield)
+					{
+						if (isset($sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield]))
+						{
+							$sapsfemployee[$sapsfentity][$fhctable][self::PREDICATE_INDEX][$sffield] = $sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield];
+							unset($sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield]); // unset predicate from data - no need for update predicate
+						}
+						else
+							$sapsfemployee[$sapsfentity][$fhctable][self::PREDICATE_INDEX][$sffield] = '';
 					}
 				}
 			}
@@ -81,5 +206,30 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 			$alias = $alias.self::EMAIL_POSTFIX;
 
 		return $alias;
+	}
+
+	/**
+	 * Recursively searches for a value with a certain key in an object or array.
+	 * @param string $needle the key to search for
+	 * @param object|array $haystack
+	 * @return string|bool found value or false
+	 */
+	private function _recursive_object_search($needle, $haystack)
+	{
+		foreach($haystack as $prop => $value)
+		{
+			if (is_object($value) || is_array($value))
+			{
+				$nextKey = $this->_recursive_object_search($needle,$value);
+				if ($nextKey)
+				{
+					return $nextKey;
+				}
+			}
+			else if($prop==$needle) {
+				return $value;
+			}
+		}
+		return false;
 	}
 }

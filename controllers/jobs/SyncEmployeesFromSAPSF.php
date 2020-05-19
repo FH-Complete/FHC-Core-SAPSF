@@ -11,7 +11,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 	{
 		parent::__construct();
 
-		$this->load->library('extensions/FHC-Core-SAPSF/SyncToFhcLib');
+		$this->load->library('extensions/FHC-Core-SAPSF/SyncFromSAPSFLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
 		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 	}
@@ -45,7 +45,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 			{
 				$jobs = getData($lastJobs);
 				$lastjobtime = $jobs[0]->starttime;
-				$lastModifiedDateTime = $this->synctofhclib->_convertDateToSAPSF($lastjobtime);
+				$lastModifiedDateTime = $this->syncfromsapsflib->_convertDateToSAPSF($lastjobtime);
 			}
 
 			$conffieldmappings = $this->config->item('fieldmappings');
@@ -59,7 +59,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 				}
 			}
 
-			$employees = $this->QueryUserModel->getAll($selects, $lastModifiedDateTime);
+			$employees = $this->QueryUserModel->getAll($selects, array(), $lastModifiedDateTime);
 
 			if (isError($employees))
 			{

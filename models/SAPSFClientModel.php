@@ -54,6 +54,40 @@ abstract class SAPSFClientModel extends CI_Model
 		return $wsResult;
 	}
 
+	/**
+	 * Generates entity string from entity object which can be appended to the odata update url.
+	 * @param array $entity must have name and value
+	 * @return string
+	 */
+	protected function _getEntityString($entity)
+	{
+		$entityString = '';
+		if (isset($entity['name']))
+		{
+			$entityString .= $entity['name'];
+			if (isset($entity['value']))
+			{
+				$entityvalue = $entity['value'];
+				if (is_string($entityvalue))
+					$entityString .= "(" . $this->_prepareEntityValueForOdata($entityvalue) . ")";
+				elseif (is_array($entityvalue))
+				{
+					$entityString .= '(';
+					$first = true;
+					foreach ($entityvalue as $predname => $predvalue)
+					{
+						if (!$first)
+							$entityString .= ',';
+						$entityString .= $predname . "=" . $this->_prepareEntityValueForOdata($predvalue);
+						$first = false;
+					}
+					$entityString .= ')';
+				}
+			}
+		}
+
+		return $entityString;
+	}
 
 	/**
 	 * Checks an entity name for its validity.
@@ -74,6 +108,20 @@ abstract class SAPSFClientModel extends CI_Model
 	{
 		//can have a / if it's a navigation property
 		return is_string($optionName) && preg_match('/^[a-zA-Z0-9_\/]+$/', $optionName) === 1;
+	}
+
+	/**
+	 * Prepares a string to be passed to odata.
+	 * @param string $value
+	 * @return string
+	 */
+	protected function _prepareEntityValueForOdata($value)
+	{
+		$preparedVal = '';
+		if ($this->_isOdataDateFormat($value))
+			$preparedVal .= "datetime";
+		$preparedVal .= "'" . $this->_encodeForOdata($value) . "'";
+		return $preparedVal;
 	}
 
 	/**
@@ -135,5 +183,15 @@ abstract class SAPSFClientModel extends CI_Model
 			$this->_setError("Response has no body");
 
 		return $data;
+	}
+
+	/**
+	 * Checks if a string is in odata date format.
+	 * @param string $value
+	 * @return bool
+	 */
+	private function _isOdataDateFormat($value)
+	{
+		return preg_match('/^[0-9]{4}-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]$/', $value) === 1;
 	}
 }

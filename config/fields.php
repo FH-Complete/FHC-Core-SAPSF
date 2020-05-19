@@ -48,7 +48,17 @@ $config['fhcfields']['employee'] = array(
 	)
 );
 
-$config['sapsffields']['employee'] = array(
-	'uid' => 'userId'
+// entity predicate value ~ primary keys for SAPSF
+$config['sapsfpredicates']['User'] = array(
+	'userId'
 );
 
+$config['sapsfpredicates']['PerEmail'] = array(
+	'personIdExternal',
+	'emailType'
+);
+
+$config['sapsfpredicates']['PerPersonal'] = array(
+	'personIdExternal',
+	'startDate'
+);

@@ -11,16 +11,12 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 	{
 		parent::__construct();
 
-		$this->load->library('extensions/FHC-Core-SAPSF/SyncToFhcLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesToSAPSFLib');
 		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFEditOperations/EditUserModel', 'EditUserModel');
-		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
-		$this->load->model('resource/Mitarbeiter_model', 'MitarbeiterModel');
-		$this->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
 	}
 
 	/**
-	 * Initiates alias synchronisation. Alias is synced from fhcomplete to SAPSF.
+	 * Initiates synchronisation from fhcomplete to SAPSF.
 	 * Uids for which to sync alias are jobinput. No uids-> all employees are synced.
 	 */
 	public function syncEmployees()
@@ -44,108 +40,78 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 			// get all input uids of jobs
 			$lastJobsData = getData($lastJobs);
 			$uids = $this->_mergeEmployeesArray($lastJobsData);
-			$mitarbeiterToSync = array();
-
-			// if no uids passed, all employee aliases are synced
-			$mitarbeiter = $this->FhcDbModel->getMitarbeiter($uids);
-
-			if (hasData($mitarbeiter))
-			{
-				$mitarbeiter = getData($mitarbeiter);
-
-				// only update employees which are in sapsf too
-				$conffields = $this->config->item('sapsffields');
-				$sapsfUidName = $conffields[SyncEmployeesToSAPSFLib::OBJTYPE]['uid'];
-				$sapsfemployees = $this->QueryUserModel->getAll(array($sapsfUidName));
-
-				if (hasData($sapsfemployees))
-				{
-					$sapsfemployees = getData($sapsfemployees);
-					foreach ($mitarbeiter as $ma)
-					{
-						foreach ($sapsfemployees as $sapsfemployee)
-						{
-							if ($sapsfemployee->{$sapsfUidName} == $ma->uid)
-							{
-								$matosync = $this->syncemployeestosapsflib->convertEmployeeToSapsf($ma);
-								if (!isEmptyArray($matosync))
-									$mitarbeiterToSync[$ma->uid] = $this->syncemployeestosapsflib->convertEmployeeToSapsf($ma);
-								break;
-							}
-						}
-					}
-				}
-			}
+			$mitarbeiterToSync = $this->syncemployeestosapsflib->getEmployeesForSync($uids);
 
 			// employees to be synced with sapsf
-			$syncedMitarbeiter = array();
-
-			$noMa = count($mitarbeiterToSync);
-
-			if ($noMa < 1)
-				$this->logInfo('No employees found for update');
-			else
+			if (isError($mitarbeiterToSync))
+				$this->logError(getError($mitarbeiterToSync));
+			elseif (hasData($mitarbeiterToSync))
 			{
-				$result = $this->EditUserModel->updateUsers($mitarbeiterToSync);
+				$syncedMitarbeiter = array();
+				$mitarbeiterToSync = getData($mitarbeiterToSync);
+				$results = $this->EditUserModel->updateUsers($mitarbeiterToSync);
 
-				if (hasData($result))
+				foreach ($results as $callresult)
 				{
-					foreach (getData($result) as $arr)
+					if (isError($callresult))
 					{
-						if (hasData($arr))
+						$this->logError(getError($callresult));
+					}
+					elseif (hasData($callresult))
+					{
+						foreach (getData($callresult) as $arr)
 						{
-							foreach (getData($arr) as $item)
+							if (hasData($arr))
 							{
-								if (isSuccess($item))
+								foreach (getData($arr) as $item)
 								{
-									$key = getData($item);
-									$syncedMitarbeiter[$key] = $mitarbeiterToSync[$key];
-								}
-								else
-								{
-									$this->logError("An error occurred while updating users data of SAPSF", getError($item));
+									if (isSuccess($item))
+									{
+										$key = getData($item);
+										if (isset($mitarbeiterToSync[$key]))
+											$syncedMitarbeiter[$key] = $mitarbeiterToSync[$key];
+									}
+									else
+									{
+										$this->logError("An error occurred while updating users data of SAPSF", getError($item));
+									}
 								}
 							}
 						}
 					}
 				}
 
-				if (isError($result))
+				// update jobs, set them to done, write synced aliases as output.
+				foreach ($lastJobsData as $job)
 				{
-					$this->logError(getError($result));
-				}
-				else
-				{
-					// update jobs, set them to done, write synced aliases as output.
-					foreach ($lastJobsData as $job)
+					$joboutput = array();
+					$decodedInput = json_decode($job->input);
+					if ($decodedInput != null)// if there was job input, only output synced mitarbeiter for this input
 					{
-						$joboutput = array();
-						$decodedInput = json_decode($job->input);
-						if ($decodedInput != null)// if there was job input, only output synced mitarbeiter for this input
+						foreach ($decodedInput as $el)
 						{
-							foreach ($decodedInput as $el)
+							if (isset($syncedMitarbeiter[$el->uid]))
 							{
-								if (isset($syncedMitarbeiter[$el->uid]))
-								{
-									$joboutput[] = $syncedMitarbeiter;
-								}
+								$joboutput[] = $syncedMitarbeiter;
 							}
 						}
-						else
-							$joboutput = $syncedMitarbeiter;
+					}
+					else
+						$joboutput = $syncedMitarbeiter;
 
-						$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($joboutput);
-						$job->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
-						$job->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
-						$updatedJobs[] = $job;
-					}
-					$updatejobsres = $this->updateJobsQueue(SyncEmployeesToSAPSFLib::SAPSF_EMPLOYEES_TO_SAPSF, $updatedJobs);
-					if (isError($updatejobsres))
-					{
-						$this->logError('An error occurred while updating synctosapsfjob', getError($updatejobsres));
-					}
+					$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($joboutput);
+					$job->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
+					$job->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
+					$updatedJobs[] = $job;
+				}
+				$updatejobsres = $this->updateJobsQueue(SyncEmployeesToSAPSFLib::SAPSF_EMPLOYEES_TO_SAPSF, $updatedJobs);
+				if (isError($updatejobsres))
+				{
+					$this->logError('An error occurred while updating synctosapsfjob', getError($updatejobsres));
 				}
 			}
+			else
+				$this->logInfo('No employees found for update');
 		}
 		else
 			$this->logInfo('Employees sync to SAPSF: No new jobs found to process');

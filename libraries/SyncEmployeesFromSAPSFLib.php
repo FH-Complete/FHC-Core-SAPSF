@@ -6,7 +6,7 @@ require_once('include/functions.inc.php');// needed for activation key generatio
 /**
  * This library contains the logic used to perform data synchronization between FHC and SAP Success Factors
  */
-class SyncEmployeesFromSAPSFLib extends SyncToFhcLib
+class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 {
 	const OBJTYPE = 'employee';
 	const SAPSF_EMPLOYEES_FROM_SAPSF = 'SyncEmployeesFromSAPSF';

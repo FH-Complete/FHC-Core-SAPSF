@@ -39,31 +39,34 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 		{
 			if (isset($keyPredicateValue))
 			{
-				if (!is_string($keyPredicateValue) && !is_array($keyPredicateValue))
+				if (!is_string($keyPredicateValue) && !is_integer($keyPredicateValue) && !is_bool($keyPredicateValue) && !is_array($keyPredicateValue))
 				{
 					$valid = false;
-					$this->_setError('Invalid key pedicate value provided.');
+					$this->_setError('Invalid key predicate value provided.');
 				}
-				elseif (is_array($keyPredicateValue)) // composite key
+				elseif (is_array($keyPredicateValue))
 				{
-					if (count($keyPredicateValue) >= 2)
+					$numval = count($keyPredicateValue);
+					if ($numval >= 2)// composite key
 					{
 						foreach ($keyPredicateValue as $name => $value)
 						{
-							if (!$this->_checkQueryOptionName($name) || !is_string($value))
+							if (!$this->_checkQueryOptionName($name))
 							{
 								$valid = false;
-								$this->_setError('Invalid key pedicate provided: (' . $name . ') => ' . $value);
+								$this->_setError('Invalid key predicate provided: (' . $name . ') => ' . $value);
 							}
 						}
-
-						if ($valid)
-							$this->_entities['value'] = $keyPredicateValue;
+					}
+					elseif ($numval == 1)
+					{
+						$array = array_reverse($keyPredicateValue);
+						$keyPredicateValue = array_pop($array);
 					}
 					else
 					{
 						$valid = false;
-						$this->_setError('Composite key predicate must have at least two values.');
+						$this->_setError('Empty key predicate provided.');
 					}
 				}
 			}
@@ -116,7 +119,7 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 		}
 
 		if ($this->_hasError())
-			$result =  $this->_getErrors();
+			$result = $this->_getErrors();
 		else
 		{
 			$responses = array();
@@ -146,6 +149,7 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 			}
 			$result = success($responses);
 		}
+
 		// reset entities after call
 		$this->_inititaliseProperties();
 
@@ -186,38 +190,6 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 	}
 
 	/**
-	 * Generates entity string from entity object which can be appended to the odata update url.
-	 * @param array $entity must have name and value
-	 * @return string
-	 */
-	private function _getEntityString($entity)
-	{
-		$entityString = '';
-		if (isset($entity['name']) && isset($entity['value']))
-		{
-			$entityString .= $entity['name'];
-			$entityvalue = $entity['value'];
-			if (is_string($entityvalue))
-				$entityString .= "('" . $this->_encodeForOdata($entityvalue) . "')";
-			elseif (is_array($entityvalue))
-			{
-				$entityString .= '(';
-				$first = true;
-				foreach ($entityvalue as $predname => $predvalue)
-				{
-					if (!$first)
-						$entityString .= ',';
-					$entityString .= $predname . "='" . $this->_encodeForOdata($predvalue) . "'";
-					$first = false;
-				}
-				$entityString .= ')';
-			}
-		}
-
-		return $entityString;
-	}
-
-	/**
 	 * Checks if postdata passed is valid.
 	 * @param $updateData
 	 * @return bool
@@ -228,7 +200,7 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 		{
 			foreach ($updateData as $key => $item)
 			{
-				if (!is_string($key) || !is_string($item))
+				if (!is_string($key) || (!is_string($item) && !is_bool($item) && !is_integer($item)))
 					return false;
 			}
 		}

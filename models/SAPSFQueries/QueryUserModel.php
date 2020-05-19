@@ -40,13 +40,14 @@ class QueryUserModel extends SAPSFQueryModel
 	/**
 	 * Gets all users present in SAPSF.
 	 * @param array $selects fields to retrieve for each user
-	 * @param string $lastModifiedDateTime date when users ware last modified
+	 * @param string $lastModifiedDateTime date when users were last modified
 	 * @return object userdata
 	 */
-	public function getAll($selects = array(), $lastModifiedDateTime = null)
+	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null)
 	{
 		$this->_setEntity('User');
 		$this->_setSelects($selects);
+		$this->_setExpands($expands);
 		//$this->_setOrderBys(array(array('name' => 'lastName', 'order' => 'desc'),array('name' => 'firstName')));
 		$this->_setOrderBys(array('lastName', 'firstName'));
 		$this->_setLastModifiedDateTime($lastModifiedDateTime);
