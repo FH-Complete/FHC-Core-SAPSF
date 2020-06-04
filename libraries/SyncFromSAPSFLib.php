@@ -12,6 +12,8 @@ class SyncFromSAPSFLib
 
 	protected $_conffieldmappings;
 	protected $_confvaluedefaults;
+	protected $_confvaluemappings;
+	protected $_fhcconffields;
 
 	/**
 	 * SyncFromSAPSFLib constructor.
@@ -21,12 +23,16 @@ class SyncFromSAPSFLib
 		$this->ci =& get_instance();
 
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/valuemappings');
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/valuedefaults');
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/fields');
 
 		$this->_conffieldmappings = $this->ci->config->item('fieldmappings');
 		$this->_conffieldmappings = $this->_conffieldmappings['fromsapsf'];
+		$this->_confvaluemappings = $this->ci->config->item('valuemappings');
+		$this->_confvaluemappings = $this->_confvaluemappings['fromsapsf'];
 		$this->_confvaluedefaults = $this->ci->config->item('fhcdefaults');
+		$this->_sapsfvaluedefaults = $this->ci->config->item('sapsfdefaults');
 		$this->_fhcconffields = $this->ci->config->item('fhcfields');
 
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
@@ -41,7 +47,7 @@ class SyncFromSAPSFLib
 	 * @param string $timestamp fhc timestamp
 	 * @return string
 	 */
-	public function _convertDateToSAPSF($timestamp)
+	public function convertDateToSAPSF($timestamp)
 	{
 		date_default_timezone_set(SyncFromSAPSFLib::TOTIMEZONE);
 
@@ -60,6 +66,49 @@ class SyncFromSAPSFLib
 		return str_replace(' ', 'T', $timestamptz);
 	}
 
+	/**
+	 * Gets sapsf navigations properties for a sapsf object from field mappings config.
+	 * @param $sapsfobj
+	 * @return array
+	 */
+	public function getNavPropertiesFromFieldMappings($sapsfobj)
+	{
+		$navproperties = array();
+		foreach ($this->_conffieldmappings[$sapsfobj] as $mappingset)
+		{
+			foreach ($mappingset as $sapsfkey => $fhcvalue)
+			{
+				if (strpos($sapsfkey, '/')) // if navigation property
+				{
+					$navprop = substr($sapsfkey, 0, strrpos($sapsfkey, '/'));
+					if (!in_array($navprop, $navproperties))
+						$navproperties[] = $navprop;
+				}
+			}
+		}
+		return $navproperties;
+	}
+
+	/**
+	 * Gets sapsf non-navigation properties for a sapsf object from field mappings config.
+	 * @param $sapsfobj
+	 * @return array
+	 */
+	public function getPropertiesFromFieldMappings($sapsfobj)
+	{
+		$properties = array();
+		foreach ($this->_conffieldmappings[$sapsfobj] as $mappingset)
+		{
+			foreach ($mappingset as $sapsfkey => $fhcvalue)
+			{
+				if (!strpos($sapsfkey, '/')) // if not navigation property
+				{
+					$properties[] = $sapsfkey;
+				}
+			}
+		}
+		return $properties;
+	}
 	//------------------------------------------------------------------------------------------------------------------
 	// Protected methods
 
@@ -67,6 +116,8 @@ class SyncFromSAPSFLib
 	 * Checks if fhcomplete object has errors, e.g. missing fields, thus cannot be inserted in db.
 	 * @param $fhcobj
 	 * @param $objtype
+	 * @param $fhcobjidname
+	 * @param $fhcobjid
 	 * @return StdClass object with properties boolean for has Error and array with errormessages
 	 */
 	protected function _fhcObjHasError($fhcobj, $objtype, $fhcobjid)
@@ -147,26 +198,42 @@ class SyncFromSAPSFLib
 								$haserror = true;
 								$errortext = 'has wrong data type';
 							}
-							elseif (!$haserror)
-							{
 								// right string length?
-								if (($params['type'] === 'string' || $params['type'] === 'base64') &&
-									!$this->ci->FhcDbModel->checkLength($table, $field, $value))
+							if (!$haserror && ($params['type'] === 'string' || $params['type'] === 'base64'))
+							{
+								$rightlength = $this->ci->FhcDbModel->checkLength($table, $field, $value);;
+
+								if ($rightlength && isset($params['length']) && is_numeric($params['length']))
+									$rightlength = $params['length'] == strlen($value);
+
+								if (!$rightlength)
 								{
 									$haserror = true;
 									$errortext = "is too long ($value)";
 								}
-								// value referenced with foreign key exists?
-								elseif (isset($params['ref']))
-								{
-									$fkfield = isset($params['reffield']) ? $params['reffield'] : $field;
-									$foreignkeyexists = $this->ci->FhcDbModel->valueExists($params['ref'], $fkfield, $value);
+							}
+							// unique constraint violated?
+							if (!$haserror && isset($params['unique']) && $params['unique'] === true && isset($params['pk']))
+							{
+								$exceptions = isset($fhcobj[$table][$params['pk']]) ? array($params['pk'] => $fhcobj[$table][$params['pk']]) : null;
+								$valueexists = $this->ci->FhcDbModel->valueExists($table, $field, $value, $exceptions);
 
-									if (!hasData($foreignkeyexists))
-									{
-										$haserror = true;
-										$errortext = 'has no match in FHC';
-									}
+								if (hasData($valueexists))
+								{
+									$haserror = true;
+									$errortext = "already exists ($value)";
+								}
+							}
+							// value referenced with foreign key exists?
+							if (!$haserror && isset($params['ref']))
+							{
+								$fkfield = isset($params['reffield']) ? $params['reffield'] : $field;
+								$foreignkeyexists = $this->ci->FhcDbModel->valueExists($params['ref'], $fkfield, $value);
+
+								if (!hasData($foreignkeyexists))
+								{
+									$haserror = true;
+									$errortext = 'has no match in FHC';
 								}
 							}
 						}

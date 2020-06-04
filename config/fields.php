@@ -6,18 +6,26 @@
  * "name" is display name for errors
  */
 
-$config['fhcfields']['employee'] = array(
+$config['fhcfields']['User'] = array(
 	'person' => array(
 		'vorname' => array('required' => true),
 		'nachname' => array('required' => true),
-		//'geschlecht' => array('required' => true),
+		'geschlecht' => array('required' => true),
 		'staatsbuergerschaft' =>
 			array('ref' => 'bis.tbl_nation',
 			'reffield' => 'nation_code'),
+		'geburtsnation' =>
+			array('ref' => 'bis.tbl_nation',
+				'reffield' => 'nation_code'),
+
 		//'anrede' => array(),
 		'gebdatum' =>
 			array('name' => 'Geburtsdatum',
 			'type' => 'date'),
+		'svnr' =>
+			array('unique' => true,
+				'pk' => 'person_id',
+				'length' => 10)
 		//'sprache' => array('ref' => 'public.tbl_sprache'),
 		//'anmerkung' => array(),
 		//'foto' => array('type' => 'base64')
@@ -27,7 +35,20 @@ $config['fhcfields']['employee'] = array(
 			array('required' => true),
 		'personalnummer' =>
 			array('required' => true,
-				'type' => 'integer')
+				'unique' => true,
+				'pk' => 'mitarbeiter_uid',
+				'type' => 'integer'),
+		'fixangestellt' =>
+			array('type' => 'boolean'),
+		'lektor' =>
+			array('type' => 'boolean'),
+		'bismelden' =>
+			array('type' => 'boolean'),
+		'stundensatz' =>
+			array('type' => 'integer'),
+		'ausbildungcode' =>
+			array('type' => 'integer',
+				'ref' => 'bis.tbl_ausbildung')
 	),
 	'benutzer' => array('uid' => array('required' => true)),
 /*	'adresse' => array('nation' => array('required' => true,
@@ -38,14 +59,12 @@ $config['fhcfields']['employee'] = array(
 		'strasse' => array('required' => true),
 		'plz' => array('name' => 'Postleitzahl'),
 		'gemeinde' => array()
-	),
+	),*/
 	'kontaktmail' => array('kontakt' => array('required' => true,
 		'name' => 'E-Mail-Adresse')
-	),
-	'kontaktnotfall' => array('kontakt' => array('name' => 'Notfallkontakt')
-	),*/
-	'kontakttel' => array('kontakt' => array('name' => 'Phone number')
 	)
+	/*'kontaktnotfall' => array('kontakt' => array('name' => 'Notfallkontakt')
+	),*/
 );
 
 // entity predicate value ~ primary keys for SAPSF

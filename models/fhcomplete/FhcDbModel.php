@@ -17,12 +17,28 @@ class FhcDbModel extends DB_Model
 	 * @param $table
 	 * @param $field
 	 * @param $value
+	 * @param $exceptions
 	 * @return object
 	 */
-	public function valueExists($table, $field, $value)
+	public function valueExists($table, $field, $value, $exceptions = null)
 	{
-		$query = "SELECT 1 FROM %s WHERE %s = ? LIMIT 1";
-		return $this->execQuery(sprintf($query, $table, $field), array($value));
+		$table = substr($table, 0, strlen(self::TABLE_PREFIX)) === self::TABLE_PREFIX || strstr($table, '.' . self::TABLE_PREFIX) ? $table : self::TABLE_PREFIX . $table;
+		$query = "SELECT 1 FROM %s WHERE %s = ?";
+
+		$fields = array($table, $field);
+		$values = array($value);
+
+		if (isset($exceptions) && is_array($exceptions))
+		{
+			foreach ($exceptions as $key => $value)
+			{
+				$query .= " AND %s <> ?";
+				$fields[] = $key;
+				$values[] = $value;
+			}
+		}
+
+		return $this->execQuery(vsprintf($query, $fields), $values);
 	}
 
 	/**

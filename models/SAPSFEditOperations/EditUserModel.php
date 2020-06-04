@@ -44,6 +44,7 @@ class EditUserModel extends SAPSFEditOperationsModel
 			}
 		}
 
+		// restructure - one upsert only possible for one entity
 		foreach ($entitydata as $entity => $sapsfdata)
 		{
 			foreach ($sapsfdata as $sd)

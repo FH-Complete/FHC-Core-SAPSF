@@ -45,21 +45,13 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 			{
 				$jobs = getData($lastJobs);
 				$lastjobtime = $jobs[0]->starttime;
-				$lastModifiedDateTime = $this->syncfromsapsflib->_convertDateToSAPSF($lastjobtime);
+				$lastModifiedDateTime = $this->syncfromsapsflib->convertDateToSAPSF($lastjobtime);
 			}
 
-			$conffieldmappings = $this->config->item('fieldmappings');
+			$properties = $this->syncfromsapsflib->getPropertiesFromFieldMappings(SyncEmployeesFromSAPSFLib::OBJTYPE);
+			$navproperties = $this->syncfromsapsflib->getNavPropertiesFromFieldMappings(SyncEmployeesFromSAPSFLib::OBJTYPE);
 
-			$selects = array();
-			foreach ($conffieldmappings['fromsapsf'][SyncEmployeesFromSAPSFLib::OBJTYPE] as $mappingset)
-			{
-				foreach ($mappingset as $sapsfkey => $fhcvalue)
-				{
-					$selects[] = $sapsfkey;
-				}
-			}
-
-			$employees = $this->QueryUserModel->getAll($selects, array(), $lastModifiedDateTime);
+			$employees = $this->QueryUserModel->getAll(array_merge($properties, $navproperties), $navproperties, null/*$lastModifiedDateTime*/);
 
 			if (isError($employees))
 			{
