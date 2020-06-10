@@ -88,7 +88,8 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 						{
 							$matosync = $this->_convertEmployeeToSapsf($ma);
 
-							// check if any of the predicate keys can be found in queried sapsf employees. If yes, add them
+							// check if any of the predicate keys can be found in queried sapsf employees.
+							// If yes, add them to employee to sync.
 							foreach ($sapsfemployee as $prop => $value)
 							{
 								if (is_object($value))
@@ -104,7 +105,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 													$foundValue = $this->_recursive_object_search($valprop, $value);
 													if ($foundValue)
 													{
-														if (in_array($valprop, $this->_sapsfdatenames))
+														if (in_array($valprop, $this->_sapsfdatenames)) // if date present, convert it to required format
 															$foundValue = $this->_convertSAPSFTimestampToDateTime($foundValue);
 														$matosync[$entity][$fhctbl][self::PREDICATE_INDEX][$valprop] = $foundValue;
 													}
@@ -181,7 +182,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 						if (isset($sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield]))
 						{
 							$sapsfemployee[$sapsfentity][$fhctable][self::PREDICATE_INDEX][$sffield] = $sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield];
-							unset($sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield]); // unset predicate from data - no need for update predicate
+							unset($sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield]); // unset predicate from data - no need to update predicate
 						}
 						else
 							$sapsfemployee[$sapsfentity][$fhctable][self::PREDICATE_INDEX][$sffield] = '';

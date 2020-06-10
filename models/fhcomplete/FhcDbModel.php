@@ -10,6 +10,7 @@ class FhcDbModel extends DB_Model
 		parent::__construct();
 
 		$this->load->model('person/Benutzer_model', 'BenutzerModel');
+		$this->load->model('codex/Nation_model', 'NationModel');
 	}
 
 	/**
@@ -116,7 +117,7 @@ class FhcDbModel extends DB_Model
 	}
 
 	/**
-	 * Gets Mitarbeiter with Firmentelefon
+	 * Gets Mitarbeiter with Firmentelefon.
 	 * @param array $uids filter by uids
 	 * @return object
 	 */
@@ -141,7 +142,19 @@ class FhcDbModel extends DB_Model
 					if (hasData($telefon))
 					{
 						$telefonno = getData($telefon);
-						$ma->firmentelefon = str_replace(' ', '', $telefonno[0]);
+						$vorwahl = $telefonno['kontakt'];
+						$telefonklappe = $telefonno['telefonklappe'];
+						// parse phone and get parts
+						$telparts = explode(' ', $vorwahl);
+						$counttelparts = count($telparts);
+						if ($counttelparts >= 3)
+						{
+							$ma->firmentelefon_vorwahl = $telparts[0];
+							$ma->firmentelefon_ortsvorwahl = $telparts[1];
+							$ma->firmentelefon_nummer = implode('', array_slice($telparts, 2, $counttelparts));
+							if (!isEmptyString($telefonklappe))
+								$ma->firmentelefon_telefonklappe = $telefonklappe;
+						}
 					}
 
 					$mitarbeiterres[] = $ma;
@@ -150,5 +163,16 @@ class FhcDbModel extends DB_Model
 		}
 
 		return success($mitarbeiterres);
+	}
+
+	/**
+	 * Gets a fhc database nation code for a 3 letters ISO country code.
+	 * @param $isocode
+	 * @return object
+	 */
+	public function getNationByIso3Code($isocode)
+	{
+		$this->NationModel->addSelect('nation_code');
+		return $this->NationModel->loadWhere(array('iso3166_1_a3' => $isocode));
 	}
 }

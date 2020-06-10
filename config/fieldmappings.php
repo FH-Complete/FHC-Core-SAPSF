@@ -6,6 +6,11 @@
  * ['fieldmappings']['mobilityonlineobject']['fhctable'] = array('fhcfieldname' => 'mobilityonlinefieldname')
  */
 
+$config['fieldmappings']['fromsapsf']['User']['kztyp'] = array(
+	'empInfo/personNav/nationalIdNav/cardType' => 'kztyp' // not synced, just needed to get svnr and ersatzkennzeichen
+	// MUST BE PLACED BEFORE PERSON so it's populated before!
+);
+
 $config['fieldmappings']['fromsapsf']['User']['person'] = array(
 	'firstName' => 'vorname',
 	'lastName' => 'nachname',
@@ -17,11 +22,12 @@ $config['fieldmappings']['fromsapsf']['User']['person'] = array(
 	'empInfo/personNav/personalInfoNav/gender' => 'geschlecht',
 	'empInfo/personNav/personalInfoNav/salutationNav/externalCode' => 'anrede',
 	'empInfo/personNav/personalInfoNav/middleName' => 'vornamen',
-	'empInfo/personNav/nationalIdNav/nationalId' => 'svnr'
+	'empInfo/personNav/nationalIdNav/nationalId' => array('svnr', 'ersatzkennzeichen')
 );
 
 $config['fieldmappings']['fromsapsf']['User']['mailtyp'] = array(
-	'empInfo/personNav/emailNav/emailType' => 'emailtyp',
+	'empInfo/personNav/emailNav/emailType' => 'emailtyp' // not synced, just needed to get correct mail to sync
+	// MUST BE PLACED BEFORE KONTAKTMAIL so it's populated before!
 );
 
 $config['fieldmappings']['fromsapsf']['User']['kontaktmail'] = array(
@@ -32,11 +38,12 @@ $config['fieldmappings']['fromsapsf']['User']['kontaktmail'] = array(
 $config['fieldmappings']['fromsapsf']['User']['mitarbeiter'] = array(
 	'userId' => 'mitarbeiter_uid',
 	'empInfo/personNav/customString1' => 'personalnummer',
-/*	'empInfo/jobInfoNav/isFulltimeEmployee' => 'fixangestellt',*/
+	'empInfo/personNav/personalInfoNav/customString2' => 'stundensatz',
 	'empInfo/personNav/personalInfoNav/customString10Nav/externalCode' => 'lektor',
 	'empInfo/personNav/personalInfoNav/customString12Nav/externalCode' => 'bismelden',
 	'empInfo/personNav/personalInfoNav/customString14Nav/externalCode' => 'ausbildungcode',
-	'empInfo/personNav/personalInfoNav/customString2' => 'stundensatz'
+	'empInfo/jobInfoNav/regularTempNav/externalCode' => 'fixangestellt',
+	'empInfo/jobInfoNav/location' => 'standort_id'
 );
 
 $config['fieldmappings']['fromsapsf']['User']['benutzer'] = array(
@@ -48,9 +55,11 @@ $config['fieldmappings']['fromsapsf']['User']['benutzer'] = array(
 	'empInfo/personNav/personalInfoNav/customStringxNav/externalCode' => 'hautpberuf'
 );*/
 
-$config['fieldmappings']['tosapsf']['kontakttel']['User'] = array(
-	'firmentelefon' => 'businessPhone',
-	'uid' => 'userId'
+$config['fieldmappings']['tosapsf']['kontakttel']['PerPhone'] = array(
+	'firmentelefon_nummer' => 'phoneNumber',
+	'firmentelefon_vorwahl' => 'countryCode',
+	'firmentelefon_ortsvorwahl' => 'areaCode',
+	'firmentelefon_telefonklappe' => 'extension'
 );
 
 $config['fieldmappings']['tosapsf']['benutzer']['PerEmail'] = array(

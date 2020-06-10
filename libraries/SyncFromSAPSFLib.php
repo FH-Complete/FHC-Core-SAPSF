@@ -10,6 +10,8 @@ class SyncFromSAPSFLib
 	const TOTIMEZONE = 'Europe/Vienna'; // local timezone
 	const IMPORTUSER = 'SAPSF'; // user for insertion/update
 
+	const UNKNOWN_NATION_CODE = 'XXX';
+
 	protected $_conffieldmappings;
 	protected $_confvaluedefaults;
 	protected $_confvaluemappings;
@@ -67,13 +69,41 @@ class SyncFromSAPSFLib
 	}
 
 	/**
-	 * Gets sapsf navigations properties for a sapsf object from field mappings config.
+	 * Gets sapsf select properties from field mappings config.
 	 * @param $sapsfobj
 	 * @return array
 	 */
-	public function getNavPropertiesFromFieldMappings($sapsfobj)
+	public function getSelectsFromFieldMappings($sapsfobj)
 	{
-		$navproperties = array();
+		$selects = array();
+		foreach ($this->_conffieldmappings[$sapsfobj] as $mappingset)
+		{
+			foreach ($mappingset as $sapsfkey => $fhcvalue)
+			{
+				if (strpos($sapsfkey, '/')) // if navigation property
+				{
+					$select = substr($sapsfkey, 0, strrpos($sapsfkey, '/'));
+				}
+				else
+					$select = $sapsfkey;
+
+				if (!in_array($select, $selects)) // if not navigation property
+				{
+					$selects[] = $select;
+				}
+			}
+		}
+		return $selects;
+	}
+
+	/**
+	 * Gets sapsf expand properties from field mappings config.
+	 * @param $sapsfobj
+	 * @return array
+	 */
+	public function getExpandsFromFieldMappings($sapsfobj)
+	{
+		$expands = array();
 		foreach ($this->_conffieldmappings[$sapsfobj] as $mappingset)
 		{
 			foreach ($mappingset as $sapsfkey => $fhcvalue)
@@ -81,34 +111,31 @@ class SyncFromSAPSFLib
 				if (strpos($sapsfkey, '/')) // if navigation property
 				{
 					$navprop = substr($sapsfkey, 0, strrpos($sapsfkey, '/'));
-					if (!in_array($navprop, $navproperties))
-						$navproperties[] = $navprop;
+					$found = false;
+
+					for ($i = 0; $i < count($expands); $i++)
+					{
+						if (strpos($expands[$i], $navprop) !== false)
+						{
+							$found = true;
+							break;
+						}
+						elseif (strpos($navprop, $expands[$i]) !== false)
+						{
+							$found = true;
+							$expands[$i] = $navprop;
+							break;
+						}
+					}
+
+					if (!$found)
+						$expands[] = $navprop;
 				}
 			}
 		}
-		return $navproperties;
+		return $expands;
 	}
 
-	/**
-	 * Gets sapsf non-navigation properties for a sapsf object from field mappings config.
-	 * @param $sapsfobj
-	 * @return array
-	 */
-	public function getPropertiesFromFieldMappings($sapsfobj)
-	{
-		$properties = array();
-		foreach ($this->_conffieldmappings[$sapsfobj] as $mappingset)
-		{
-			foreach ($mappingset as $sapsfkey => $fhcvalue)
-			{
-				if (!strpos($sapsfkey, '/')) // if not navigation property
-				{
-					$properties[] = $sapsfkey;
-				}
-			}
-		}
-		return $properties;
-	}
 	//------------------------------------------------------------------------------------------------------------------
 	// Protected methods
 
@@ -209,7 +236,7 @@ class SyncFromSAPSFLib
 								if (!$rightlength)
 								{
 									$haserror = true;
-									$errortext = "is too long ($value)";
+									$errortext = "has wrong length ($value)";
 								}
 							}
 							// unique constraint violated?
@@ -291,6 +318,21 @@ class SyncFromSAPSFLib
 		// Date time with specific timezone
 		$fhc_date->setTimezone(new DateTimeZone(self::TOTIMEZONE));
 		return $fhc_date->format('Y-m-d');
+	}
+
+	/**
+	 * Converts an SAPSF nation to fhc format.
+	 * @param $sfnation
+	 * @return string
+	 */
+	protected function _convertNationToFhc($sfnation)
+	{
+		$nation_code = $this->ci->FhcDbModel->getNationByIso3Code($sfnation);
+
+		if (hasData($nation_code))
+			return getData($nation_code)[0]->nation_code;
+		else
+			return self::UNKNOWN_NATION_CODE;// TODO maybe not hardcoded...
 	}
 
 	/**

@@ -15,20 +15,6 @@ $config['valuemappings']['fromsapsf']['User']['person']['anrede'] = array(
 	'Divers' => ''
 );
 
-$nations = array(
-	'AGO' => 'AGL',
-	'ALB' => 'AL',
-	'AUT' => 'A',
-	'BTN' => 'BHU',
-	'DEU' => 'D',
-	'DZA' => 'DZ',
-	'ITA' => 'I',
-	'ROU' => 'R'
-);
-
-$config['valuemappings']['fromsapsf']['User']['person']['geburtsnation'] = $nations;
-$config['valuemappings']['fromsapsf']['User']['person']['staatsbuergerschaft'] = $nations;
-
 $yesnofield = array('N' => false, 'Y' => true);
 
 $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['lektor'] = $yesnofield;
@@ -45,6 +31,19 @@ $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['ausbildungcode'] =
 	'Pflichtschule' => 11,
 	'AkadDiplom' => 6,
 	'Lehrabschluss' => 10
+);
+
+$config['valuemappings']['fromsapsf']['User']['mitarbeiter']['fixangestellt'] = array(
+	'R' => true,
+	'T' => false
+);
+
+$config['valuemappings']['fromsapsf']['User']['mitarbeiter']['standort_id'] = array(
+	'EB' => 5361,
+	'GF06' => 4,
+	'100200' => 3,
+	'HOE' => 3
+	//'GMBH' => 3
 );
 
 /*$config['valuemappings']['fromsapsf']['User']['kontaktmail']['zustellung'] = array(

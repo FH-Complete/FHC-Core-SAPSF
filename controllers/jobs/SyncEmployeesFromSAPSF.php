@@ -48,10 +48,10 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 				$lastModifiedDateTime = $this->syncfromsapsflib->convertDateToSAPSF($lastjobtime);
 			}
 
-			$properties = $this->syncfromsapsflib->getPropertiesFromFieldMappings(SyncEmployeesFromSAPSFLib::OBJTYPE);
-			$navproperties = $this->syncfromsapsflib->getNavPropertiesFromFieldMappings(SyncEmployeesFromSAPSFLib::OBJTYPE);
+			$selects = $this->syncfromsapsflib->getSelectsFromFieldMappings(SyncEmployeesFromSAPSFLib::OBJTYPE);
+			$expands = $this->syncfromsapsflib->getExpandsFromFieldMappings(SyncEmployeesFromSAPSFLib::OBJTYPE);
 
-			$employees = $this->QueryUserModel->getAll(array_merge($properties, $navproperties), $navproperties, null/*$lastModifiedDateTime*/);
+			$employees = $this->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime);
 
 			if (isError($employees))
 			{

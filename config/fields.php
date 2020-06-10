@@ -2,7 +2,7 @@
 /**
  * Fields for sync.
  * If required fields are not present in the object, sync is not possible and it is an error.
- * type (no type given - assuming string), foreign key references (ref) are also checked
+ * type (no type given - assuming string), foreign key references (ref), unique constraints (unique) are also checked
  * "name" is display name for errors
  */
 
@@ -18,14 +18,17 @@ $config['fhcfields']['User'] = array(
 			array('ref' => 'bis.tbl_nation',
 				'reffield' => 'nation_code'),
 
-		//'anrede' => array(),
+		'anrede' => array(),
 		'gebdatum' =>
 			array('name' => 'Geburtsdatum',
 			'type' => 'date'),
 		'svnr' =>
 			array('unique' => true,
 				'pk' => 'person_id',
-				'length' => 10)
+				'length' => 10),
+		'ersatzkennzeichen' =>
+			array('unique' => true,
+				'pk' => 'person_id')
 		//'sprache' => array('ref' => 'public.tbl_sprache'),
 		//'anmerkung' => array(),
 		//'foto' => array('type' => 'base64')
@@ -48,7 +51,10 @@ $config['fhcfields']['User'] = array(
 			array('type' => 'integer'),
 		'ausbildungcode' =>
 			array('type' => 'integer',
-				'ref' => 'bis.tbl_ausbildung')
+				'ref' => 'bis.tbl_ausbildung'),
+		'standort_id' =>
+			array('name' => 'Standort',
+				'type' => 'integer')
 	),
 	'benutzer' => array('uid' => array('required' => true)),
 /*	'adresse' => array('nation' => array('required' => true,
@@ -75,6 +81,11 @@ $config['sapsfpredicates']['User'] = array(
 $config['sapsfpredicates']['PerEmail'] = array(
 	'personIdExternal',
 	'emailType'
+);
+
+$config['sapsfpredicates']['PerPhone'] = array(
+	'personIdExternal',
+	'phoneType'
 );
 
 $config['sapsfpredicates']['PerPersonal'] = array(

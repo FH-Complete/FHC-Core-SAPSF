@@ -16,12 +16,28 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			'gebdatum' => array(
 				'function' => '_convertDateToFhc',
 				'extraParams' => null
+			),
+			'geburtsnation' => array(
+				'function' => '_convertNationToFhc',
+				'extraParams' => null
+			),
+			'staatsbuergerschaft' => array(
+				'function' => '_convertNationToFhc',
+				'extraParams' => null
+			),
+			'svnr' => array(
+				'function' => '_selectKzForFhc',
+				'extraParams' => array('table' => 'kztyp', 'name' => 'kztyp', 'fhcfield' => 'svnr')
+			),
+			'ersatzkennzeichen' => array(
+				'function' => '_selectKzForFhc',
+				'extraParams' => array('table' => 'kztyp', 'name' => 'kztyp', 'fhcfield' => 'ersatzkennzeichen')
 			)
 		),
 		'kontaktmail' => array(
 			'kontakt' => array(
 				'function' => '_selectEmailForFhc',
-				'extraParams' => array(array('table' => 'mailtyp', 'name' => 'emailtyp'))
+				'extraParams' => array('table' => 'mailtyp', 'name' => 'emailtyp')
 			)
 		)
 	);
@@ -208,87 +224,101 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 		foreach ($fhctables as $fhctable)
 		{
+			// prefill with value defaults
 			if (isset($this->_confvaluedefaults[self::OBJTYPE][$fhctable]))
 			{
-				foreach ($this->_confvaluedefaults[self::OBJTYPE][$fhctable] as $fhcfield => $fhcvalue)
+				foreach ($this->_confvaluedefaults[self::OBJTYPE][$fhctable] as $fhcfield => $fhcdefault)
 				{
-					$fhcemployee[$fhctable][$fhcfield] = $fhcvalue;
+					$fhcemployee[$fhctable][$fhcfield] = $fhcdefault;
 				}
 			}
 
-			/*if (isset($this->_conffieldmappings[self::OBJTYPE][$fhctable]))
-			{*/
-			foreach ($this->_conffieldmappings[self::OBJTYPE][$fhctable] as $sffield => $fhcfield)
+			// any property in fieldmappings is synced
+			foreach ($this->_conffieldmappings[self::OBJTYPE][$fhctable] as $sffield => $fhcfields)
 			{
-				if (isset($employee->{$sffield}) /*&& !isEmptyString($employee->{$sffield})*/)//TODO what if update to empty?
-				{
-					$fhcemployee[$fhctable][$fhcfield] = $employee->{$sffield};
-				}
-				elseif (strpos($sffield, '/') )
-				{
-					// if navigation property, navigate to value needed
-					$navfield = substr($sffield, 0, strrpos($sffield, '/'));
-					$field = substr($sffield, strrpos($sffield, '/') + 1, strlen($sffield));
-					$props = explode('/', $navfield);
+				$fhcfields = is_array($fhcfields) ? $fhcfields : array($fhcfields);
 
-					if (isset($employee->{$props[0]}))
+				foreach ($fhcfields as $fhcfield)
+				{
+					$sfvalue = null;
+					if (isset($employee->{$sffield}) /*&& !isEmptyString($employee->{$sffield})*/)
 					{
-						$value = $employee->{$props[0]};
-						for ($i = 1; $i < count($props); $i++)
-						{
-							if (isset($value->{$props[$i]}))
-							{
-								$value = $value->{$props[$i]};
-							}
-							// navigate further if value has results array instead of a finite value
-							elseif (isset($value->results[0]->{$props[$i]}))
-							{
-								$noValues = count($value->results);
-								if ($noValues == 1)
-									$value = $value->results[0]->{$props[$i]};
-							}
-						}
+						$sfvalue = $employee->{$sffield};
+					}
+					elseif (strpos($sffield, '/'))
+					{
+						// if navigation property, navigate to value needed
+						$navfield = substr($sffield, 0, strrpos($sffield, '/'));
+						$field = substr($sffield, strrpos($sffield, '/') + 1, strlen($sffield));
+						$props = explode('/', $navfield);
 
-						if (isset($value->{$field}))
-							$fhcemployee[$fhctable][$fhcfield] = $value->{$field};
-						elseif (isset($value->results[0]->{$field})) // if value has results array
+						if (isset($employee->{$props[0]}))
 						{
-							if (count($value->results) == 1) // take first result
-								$fhcemployee[$fhctable][$fhcfield] = $value->results[0]->{$field};
-							elseif (count($value->results) > 1) // or take all results
+							$value = $employee->{$props[0]};
+							for ($i = 1; $i < count($props); $i++)
 							{
-								foreach ($value->results as $result)
+								if (isset($value->{$props[$i]}))
 								{
-									$fhcemployee[$fhctable][$fhcfield][] = $result->{$field};
+									$value = $value->{$props[$i]};
+								}
+								// navigate further if value has results array instead of a finite value
+								elseif (isset($value->results[0]->{$props[$i]}))
+								{
+									$noValues = count($value->results);
+									if ($noValues == 1)
+										$value = $value->results[0]->{$props[$i]};
+								}
+							}
+
+							if (isset($value->{$field}))
+								$sfvalue = $value->{$field};
+							elseif (isset($value->results[0]->{$field})) // if value has results array
+							{
+								if (count($value->results) == 1) // take first result
+									$sfvalue = $value->results[0]->{$field};
+								elseif (count($value->results) > 1) // or take all results
+								{
+									$sfvalue = array();
+									foreach ($value->results as $result)
+									{
+										$sfvalue[] = $result->{$field};
+									}
 								}
 							}
 						}
 					}
-				}
 
-				if (isset($fhcemployee[$fhctable][$fhcfield]))
-				{
-					$fieldvalue = $fhcemployee[$fhctable][$fhcfield];
 
-					if (isset($this->_confvaluemappings[self::OBJTYPE][$fhctable][$fhcfield][$fieldvalue]))
-						$fhcemployee[$fhctable][$fhcfield] = $this->_confvaluemappings[self::OBJTYPE][$fhctable][$fhcfield][$fieldvalue];
-
-					if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
+					if (isset($sfvalue))
 					{
-						$params = array();
-						if (is_array($this->_convertfunctions[$fhctable][$fhcfield]['extraParams']))
+						if (!isset($fhcemployee[$fhctable][$fhcfield])) // if no default value already set, set the success factors value
+							$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
+
+						// check if there is a valuemapping
+						$mapped = null;
+						if (isset($this->_confvaluemappings[self::OBJTYPE][$fhctable][$fhcfield][$sfvalue]))
 						{
-							foreach ($this->_convertfunctions[$fhctable][$fhcfield]['extraParams'] as $param)
-							{
-								if (isset($fhcemployee[$param['table']][$param['name']]))
-									$params[$param['name']] = $fhcemployee[$param['table']][$param['name']];
-							}
+							$mapped = $this->_confvaluemappings[self::OBJTYPE][$fhctable][$fhcfield][$sfvalue];
+							$fhcemployee[$fhctable][$fhcfield] = $mapped;
 						}
 
-						$fhcemployee[$fhctable][$fhcfield] = $this->{$this->_convertfunctions[$fhctable][$fhcfield]['function']}(
-							$fieldvalue,
-							$params
-						);
+						// check for convertfunctions, execute with passed parameters if found
+						if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
+						{
+							$params = array();
+							if (is_array($this->_convertfunctions[$fhctable][$fhcfield]['extraParams']))
+							{
+								$params = $this->_convertfunctions[$fhctable][$fhcfield]['extraParams'];
+								if (isset($params['table']) && isset($params['name']) && isset($fhcemployee[$params['table']][$params['name']]))
+									$params[$params['name']] = $fhcemployee[$params['table']][$params['name']];
+							}
+
+							$funcval = isset($mapped) ? $mapped : $sfvalue;
+							$fhcemployee[$fhctable][$fhcfield] = $this->{$this->_convertfunctions[$fhctable][$fhcfield]['function']}(
+								$funcval,
+								$params
+							);
+						}
 					}
 				}
 			}
@@ -321,5 +351,33 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			return $mailarr;
 
 		return $mail;
+	}
+
+	/**
+	 * Selects correct email string to be inserted in fhc.
+	 * @param $mailarr contains all mails present in sapsf
+	 * @param $params
+	 * @return string the mail kontakt to insert in fhc
+	 */
+	private function _selectKzForFhc($kzval, $params)
+	{
+		$kz = null;
+		if (is_array($kzval))
+		{
+			for ($i = 0; $i < count($kzval); $i++)
+			{
+				if (isset($params['kztyp'][$i]) && $params['kztyp'][$i] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
+				{
+					$kz = $kzval[$i];
+					break;
+				}
+			}
+		}
+		elseif (isset($params['kztyp']) && $params['kztyp'] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
+		{
+			$kz = $kzval;
+		}
+
+		return $kz;
 	}
 }
