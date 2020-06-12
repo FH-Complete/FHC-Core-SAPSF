@@ -68,9 +68,9 @@ $config['fhcfields']['User'] = array(
 	),*/
 	'kontaktmail' => array('kontakt' => array('required' => true,
 		'name' => 'E-Mail-Adresse')
+	),
+	'kontaktnotfall' => array('kontakt' => array('name' => 'Notfallkontakt')
 	)
-	/*'kontaktnotfall' => array('kontakt' => array('name' => 'Notfallkontakt')
-	),*/
 );
 
 // entity predicate value ~ primary keys for SAPSF

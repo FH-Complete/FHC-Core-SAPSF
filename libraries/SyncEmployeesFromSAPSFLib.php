@@ -89,130 +89,6 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	// Private methods
 
 	/**
-	 * Saves Mitarbeiter in fhc database.
-	 * @param $maobj
-	 * @return object
-	 */
-	private function _saveMitarbeiter($maobj)
-	{
-		$uid = isset($maobj['benutzer']['uid']) ? $maobj['benutzer']['uid'] : '';
-		$person_id = null;
-
-		$this->ci->BenutzerModel->addSelect('uid, person_id');
-		$benutzerexists = $this->ci->BenutzerModel->loadWhere(array('uid' =>$uid));
-
-		if (hasData($benutzerexists))
-		{
-			// set person_id so pk is present and unique values can be checked
-			$person_id = getData($benutzerexists)[0]->person_id;
-			if (isset($maobj['person']))
-				$maobj['person']['person_id'] = $person_id;
-		}
-
-		$errors = $this->_fhcObjHasError($maobj, self::OBJTYPE, $uid);
-		if ($errors->error)
-			return error(implode(", ", $errors->errorMessages));
-
-		$person = $maobj['person'];
-		$mitarbeiter = $maobj['mitarbeiter'];
-		$benutzer = $maobj['benutzer'];
-		$kontaktmail = $maobj['kontaktmail'];
-		$uid = $benutzer['uid'];
-
-		$this->ci->db->trans_begin();
-
-		$this->ci->BenutzerModel->addSelect('uid, person_id');
-		$benutzerexists = $this->ci->BenutzerModel->loadWhere(array('uid' =>$uid));
-
-		if (hasData($benutzerexists))
-		{
-			// if benutzer exists, person must exist -> update person
-			$this->_stamp('update', $person);
-			$this->ci->PersonModel->update($person_id, $person);
-
-			// update email - assuming there is only one!
-			$this->ci->KontaktModel->addSelect('kontakt_id');
-			$this->ci->KontaktModel->addOrder('insertamum', 'kontakt_id');
-			$kontaktmail['person_id'] = $person_id;
-
-			$kontaktmailToUpdate = $this->ci->KontaktModel->loadWhere(array(
-				'kontakttyp' => $kontaktmail['kontakttyp'],
-				'person_id' => $person_id,
-				'zustellung' => true)
-			);
-
-			if (hasData($kontaktmailToUpdate))
-			{
-				$kontakt_id = getData($kontaktmailToUpdate)[0]->kontakt_id;
-				$this->_stamp('update', $kontaktmail);
-				$kontaktmailres = $this->ci->KontaktModel->update($kontakt_id, $kontaktmail);
-			}
-			else
-			{
-				$this->_stamp('insert', $kontaktmail);
-				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
-			}
-
-			$this->_stamp('update', $kontaktmail);
-			$this->ci->PersonModel->update($person_id, $person);
-
-			// Mitarbeiter may not exist even if there is a Benutzer - update only if already exists, otherwise insert
-			$mitarbeiterexists = $this->ci->MitarbeiterModel->load(array('mitarbeiter_uid' => $uid));
-			if (hasData($mitarbeiterexists))
-			{
-				$this->_stamp('update', $mitarbeiter);
-				$mitarbeiterres = $this->ci->MitarbeiterModel->update(array('mitarbeiter_uid' => $uid), $mitarbeiter);
-			}
-			else
-			{
-				$this->_stamp('insert', $mitarbeiter);
-				$mitarbeiterres = $this->ci->MitarbeiterModel->insert($mitarbeiter);
-			}
-		}
-		else
-		{
-			$this->_stamp('insert', $person);
-			$personres = $this->ci->PersonModel->insert($person);
-			if (isSuccess($personres))
-			{
-				$person_id = getData($personres);
-
-				$kontaktmail['person_id'] = $person_id;
-				$this->_stamp('insert', $kontaktmail);
-				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
-
-				$benutzer['person_id'] = $person_id;
-				$benutzer['aktivierungscode'] = generateActivationKey();
-
-				$this->_stamp('insert', $benutzer);
-				$benutzerres = $this->ci->BenutzerModel->insert($benutzer);
-
-				if (isSuccess($benutzerres))
-				{
-					$this->_stamp('insert', $mitarbeiter);
-					$mitarbeiterres = $this->ci->MitarbeiterModel->insert($mitarbeiter);
-				}
-			}
-		}
-
-		// Transaction complete!
-		$this->ci->db->trans_complete();
-
-		// Check if everything went ok during the transaction
-		if ($this->ci->db->trans_status() === false)
-		{
-			$this->output .= "rolling back...";
-			$this->ci->db->trans_rollback();
-			return error("Database error occured while syncing " . $uid);
-		}
-		else
-		{
-			$this->ci->db->trans_commit();
-			return success($uid);
-		}
-	}
-
-	/**
 	 * Converts employee from SAPSF to mitarbeiter to save in the fhc database.
 	 * @param $employee
 	 * @return array converted employee
@@ -288,11 +164,10 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 						}
 					}
 
-
 					if (isset($sfvalue))
 					{
-						if (!isset($fhcemployee[$fhctable][$fhcfield])) // if no default value already set, set the success factors value
-							$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
+						//if (!isset($fhcemployee[$fhctable][$fhcfield])) // if no default value already set, set the success factors value
+						$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
 
 						// check if there is a valuemapping
 						$mapped = null;
@@ -325,6 +200,157 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 
 		return $fhcemployee;
+	}
+
+	/**
+	 * Saves Mitarbeiter in fhc database.
+	 * @param $maobj
+	 * @return object
+	 */
+	private function _saveMitarbeiter($maobj)
+	{
+		$uid = isset($maobj['benutzer']['uid']) ? $maobj['benutzer']['uid'] : '';
+		$person_id = null;
+
+		$this->ci->BenutzerModel->addSelect('uid, person_id');
+		$benutzerexists = $this->ci->BenutzerModel->loadWhere(array('uid' =>$uid));
+
+		if (hasData($benutzerexists))
+		{
+			// set person_id so pk is present and unique values can be checked
+			$person_id = getData($benutzerexists)[0]->person_id;
+			if (isset($maobj['person']))
+				$maobj['person']['person_id'] = $person_id;
+		}
+
+		$errors = $this->_fhcObjHasError($maobj, self::OBJTYPE, $uid);
+		if ($errors->error)
+			return error(implode(", ", $errors->errorMessages));
+
+		$person = $maobj['person'];
+		$mitarbeiter = $maobj['mitarbeiter'];
+		$benutzer = $maobj['benutzer'];
+		$kontaktmail = $maobj['kontaktmail'];
+		$kontaktnotfall = $maobj['kontaktnotfall'];
+		$uid = $benutzer['uid'];
+
+		$this->ci->db->trans_begin();
+
+		$this->ci->BenutzerModel->addSelect('uid, person_id');
+		$benutzerexists = $this->ci->BenutzerModel->loadWhere(array('uid' =>$uid));
+
+		if (hasData($benutzerexists))
+		{
+			// if benutzer exists, person must exist -> update person
+			$this->_stamp('update', $person);
+			$this->ci->PersonModel->update($person_id, $person);
+
+			// update email - assuming there is only one!
+			$this->ci->KontaktModel->addSelect('kontakt_id');
+			$this->ci->KontaktModel->addOrder('insertamum DESC', 'kontakt_id DESC');
+			$kontaktmail['person_id'] = $person_id;
+
+			$kontaktmailToUpdate = $this->ci->KontaktModel->loadWhere(array(
+				'kontakttyp' => $kontaktmail['kontakttyp'],
+				'person_id' => $person_id,
+				'zustellung' => true)
+			);
+
+			if (hasData($kontaktmailToUpdate))
+			{
+				$kontakt_id = getData($kontaktmailToUpdate)[0]->kontakt_id;
+				$this->_stamp('update', $kontaktmail);
+				$kontaktmailres = $this->ci->KontaktModel->update($kontakt_id, $kontaktmail);
+			}
+			else
+			{
+				$this->_stamp('insert', $kontaktmail);
+				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
+			}
+
+			// update kontaktnotfall
+			$kontaktnotfall['person_id'] = $person_id;
+
+			$this->ci->KontaktModel->addSelect('kontakt_id');
+			$this->ci->KontaktModel->addOrder('insertamum DESC', 'kontakt_id DESC');
+			$kontaktnotfallToUpdate = $this->ci->KontaktModel->loadWhere(
+				array(
+					'kontakttyp' => $kontaktnotfall['kontakttyp'],
+					'person_id' => $person_id,
+					'zustellung' => true
+				)
+			);
+
+			if (hasData($kontaktnotfallToUpdate))
+			{
+				$kontakt_id = getData($kontaktnotfallToUpdate)[0]->kontakt_id;
+				$this->_stamp('update', $kontaktnotfall);
+				$kontaktnotfallres = $this->ci->KontaktModel->update($kontakt_id, $kontaktnotfall);
+			}
+			else
+			{
+				$this->_stamp('insert', $kontaktnotfall);
+				$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
+			}
+
+			// Mitarbeiter may not exist even if there is a Benutzer - update only if already exists, otherwise insert
+			$mitarbeiterexists = $this->ci->MitarbeiterModel->load(array('mitarbeiter_uid' => $uid));
+			if (hasData($mitarbeiterexists))
+			{
+				$this->_stamp('update', $mitarbeiter);
+				$mitarbeiterres = $this->ci->MitarbeiterModel->update(array('mitarbeiter_uid' => $uid), $mitarbeiter);
+			}
+			else
+			{
+				$this->_stamp('insert', $mitarbeiter);
+				$mitarbeiterres = $this->ci->MitarbeiterModel->insert($mitarbeiter);
+			}
+		}
+		else // new person
+		{
+			$this->_stamp('insert', $person);
+			$personres = $this->ci->PersonModel->insert($person);
+			if (isSuccess($personres))
+			{
+				$person_id = getData($personres);
+
+				$kontaktmail['person_id'] = $person_id;
+				$this->_stamp('insert', $kontaktmail);
+				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
+
+				$kontaktnotfall['person_id'] = $person_id;
+				$this->_stamp('insert', $kontaktnotfall);
+				$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
+
+				$benutzer['person_id'] = $person_id;
+				$benutzer['aktivierungscode'] = generateActivationKey();
+
+				$this->_stamp('insert', $benutzer);
+				$benutzerres = $this->ci->BenutzerModel->insert($benutzer);
+
+				if (isSuccess($benutzerres))
+				{
+					$this->_stamp('insert', $mitarbeiter);
+					$mitarbeiterres = $this->ci->MitarbeiterModel->insert($mitarbeiter);
+				}
+			}
+		}
+
+		// Transaction complete!
+		$this->ci->db->trans_complete();
+
+		// Check if everything went ok during the transaction
+		if ($this->ci->db->trans_status() === false)
+		{
+			$this->output .= "rolling back...";
+			$this->ci->db->trans_rollback();
+			return error("Database error occured while syncing " . $uid);
+		}
+		else
+		{
+			$this->ci->db->trans_commit();
+			return success($uid);
+		}
 	}
 
 	/**

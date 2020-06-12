@@ -227,7 +227,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 					return $nextKey;
 				}
 			}
-			else if($prop==$needle) {
+			elseif ($prop == $needle) {
 				return $value;
 			}
 		}

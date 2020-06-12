@@ -35,6 +35,11 @@ $config['fieldmappings']['fromsapsf']['User']['kontaktmail'] = array(
 	'empInfo/personNav/emailNav/emailAddress' => 'kontakt'
 );
 
+$config['fieldmappings']['fromsapsf']['User']['kontaktnotfall'] = array(
+	'empInfo/personNav/emergencyContactNav/phone' => 'kontakt',
+	'empInfo/personNav/emergencyContactNav/name' => 'anmerkung'
+);
+
 $config['fieldmappings']['fromsapsf']['User']['mitarbeiter'] = array(
 	'userId' => 'mitarbeiter_uid',
 	'empInfo/personNav/customString1' => 'personalnummer',

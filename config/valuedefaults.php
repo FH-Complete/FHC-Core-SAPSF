@@ -8,6 +8,12 @@ $config['fhcdefaults']['User']['kontaktmail'] = array(
 	'zustellung' => true
 );
 
+$config['fhcdefaults']['User']['kontaktnotfall'] = array(
+	'kontakt' => '',
+	'kontakttyp' => 'notfallkontakt',
+	'zustellung' => true
+);
+
 $config['fhcdefaults']['User']['mitarbeiter'] = array(
 	'standort_id' => 3
 );
