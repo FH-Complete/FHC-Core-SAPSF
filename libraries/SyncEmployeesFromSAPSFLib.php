@@ -247,7 +247,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 			// update email - assuming there is only one!
 			$this->ci->KontaktModel->addSelect('kontakt_id');
-			$this->ci->KontaktModel->addOrder('insertamum DESC', 'kontakt_id DESC');
+			$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
+			$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
 			$kontaktmail['person_id'] = $person_id;
 
 			$kontaktmailToUpdate = $this->ci->KontaktModel->loadWhere(array(
@@ -272,7 +273,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			$kontaktnotfall['person_id'] = $person_id;
 
 			$this->ci->KontaktModel->addSelect('kontakt_id');
-			$this->ci->KontaktModel->addOrder('insertamum DESC', 'kontakt_id DESC');
+			$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
+			$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
 			$kontaktnotfallToUpdate = $this->ci->KontaktModel->loadWhere(
 				array(
 					'kontakttyp' => $kontaktnotfall['kontakttyp'],
@@ -366,7 +368,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		{
 			for ($i = 0; $i < count($mailarr); $i++)
 			{
-				if (isset($params['emailtyp'][$i]) && $params['emailtyp'][$i] == $this->_sapsfvaluedefaults['person']['PerEmail']['emailType'])
+				if (isset($params['emailtyp'][$i]) && $params['emailtyp'][$i] == $this->_sapsfvaluedefaults['kontaktmailprivate']['PerEmail']['emailType'])
 				{
 					$mail = $mailarr[$i];
 					break;

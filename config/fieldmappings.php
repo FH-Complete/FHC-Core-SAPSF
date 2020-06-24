@@ -67,7 +67,7 @@ $config['fieldmappings']['tosapsf']['kontakttel']['PerPhone'] = array(
 	'firmentelefon_telefonklappe' => 'extension'
 );
 
-$config['fieldmappings']['tosapsf']['benutzer']['PerEmail'] = array(
+$config['fieldmappings']['tosapsf']['kontaktmail']['PerEmail'] = array(
 	'uid' => 'emailAddress' // email is generated from alias, which is derived from the uid
 );
 

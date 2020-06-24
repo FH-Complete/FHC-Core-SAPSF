@@ -19,20 +19,21 @@ class QueryUserModel extends SAPSFQueryModel
     // Public methods
 
 	/**
-	 * Gets user with specific usr id.
+	 * Gets user with specific user id.
 	 * @param $userId
 	 * @param $selects array fields to retrieve for this user
+	 * @param array $expands fields to expand
 	 * @param string $lastModifiedDateTime date when user was last modified
 	 * @return object userdata
 	 */
-	public function getByUserId($userId, $selects = array(), $lastModifiedDateTime = null)
+	public function getByUserId($userId, $selects = array(), $expands = array(), $lastModifiedDateTime = null)
 	{
 		//$this->_setEntity('User', $userId);
-		$this->_setSelects($selects);
 		$this->_setEntity('User');
+		$this->_setSelects($selects);
+		$this->_setExpands($expands);
 		$this->_setFilter('userId', $userId);
 		$this->_setLastModifiedDateTime($lastModifiedDateTime);
-		//$this->_setFilterString('userId like ?', array('bison'));
 
 		return $this->_query();
 	}
@@ -40,6 +41,7 @@ class QueryUserModel extends SAPSFQueryModel
 	/**
 	 * Gets all users present in SAPSF.
 	 * @param array $selects fields to retrieve for each user
+	 * @param array $expands fields to expand
 	 * @param string $lastModifiedDateTime date when users were last modified
 	 * @return object userdata
 	 */
@@ -48,7 +50,6 @@ class QueryUserModel extends SAPSFQueryModel
 		$this->_setEntity('User');
 		$this->_setSelects($selects);
 		$this->_setExpands($expands);
-		//$this->_setOrderBys(array(array('name' => 'lastName', 'order' => 'desc'),array('name' => 'firstName')));
 		$this->_setOrderBys(array('lastName', 'firstName'));
 		$this->_setLastModifiedDateTime($lastModifiedDateTime);
 

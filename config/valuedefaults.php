@@ -33,17 +33,20 @@ $config['fhcdefaults']['User']['kztyp'] = array(
 	'staatsbuergerschaft' => 'email'
 );*/
 
-$config['sapsfdefaults']['benutzer']['PerEmail'] = array(
-	'emailType' => 2470,
+// Business Mail
+$config['sapsfdefaults']['kontaktmail']['PerEmail'] = array(
+	'emailType' => 28799,//2470,
 	'isPrimary' => true
 );
 
-$config['sapsfdefaults']['person']['PerEmail'] = array(
-	'emailType' => 1404,
+// Private Mail
+$config['sapsfdefaults']['kontaktmailprivate']['PerEmail'] = array(
+	'emailType' => 28800,
 	'isPrimary' => false
 );
 
+// Business Phone
 $config['sapsfdefaults']['kontakttel']['PerPhone'] = array(
-	'phoneType' => 2354,
+	'phoneType' => 28489,
 	'isPrimary' => true
 );

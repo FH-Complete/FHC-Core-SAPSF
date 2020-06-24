@@ -21,7 +21,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	const EMAIL_POSTFIX = '@technikum-wien.at';
 
 	private $_convertfunctions = array(
-		'benutzer' => array(
+		'kontaktmail' => array(
 			'uid' => '_convertToAlias'
 		)
 	);
@@ -52,7 +52,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	// Public methods
 
 	/**
-	 * GEts employees from fhcomplete
+	 * Gets employees from fhcomplete
 	 * @param array $uids
 	 * @return mixed
 	 */
@@ -130,13 +130,13 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	}
 
 	/**
-	 * Converts employee from SAPSF to mitarbeiter to save in the fhc database.
+	 * Converts employee to save in SAPSF.
 	 * @param $employee
 	 * @return array converted employee
 	 */
 	private function _convertEmployeeToSapsf($employee)
 	{
-		$fhctables = array('benutzer', 'person', 'mitarbeiter', 'kontakttel');
+		$fhctables = array('benutzer', 'person', 'mitarbeiter', 'kontakttel', 'kontaktmail', 'kontaktmailprivate');
 		$sapsfemployee = array();
 
 		foreach ($fhctables as $fhctable)
