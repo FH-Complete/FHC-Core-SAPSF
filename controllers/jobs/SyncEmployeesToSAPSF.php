@@ -13,6 +13,7 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesToSAPSFLib');
 		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFEditOperations/EditUserModel', 'EditUserModel');
+		$this->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
 	}
 
 	/**
@@ -22,12 +23,6 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 	public function syncEmployees()
 	{
 		$this->logInfo('Start employee data synchronization to SAP Success Factors');
-		// add new job to queue TODO remove, done by the scheduler!
-/*		$startJob = new stdClass();
-		$startJob->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_NEW;
-		$startJob->{jobsqueuelib::PROPERTY_CREATIONTIME} = date('Y-m-d H:i:s');
-		$startJob->{jobsqueuelib::PROPERTY_START_TIME} = date('Y-m-d H:i:s');
-		$jobresults = $this->addNewJobsToQueue(SyncEmployeesLib::SAPSF_EMPLOYEES_ALIAS, array($startJob));*/
 
 		$lastJobs = $this->getLastJobs(SyncEmployeesToSAPSFLib::SAPSF_EMPLOYEES_TO_SAPSF);
 
@@ -39,7 +34,8 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 		{
 			// get all input uids of jobs
 			$lastJobsData = getData($lastJobs);
-			$uids = $this->_mergeEmployeesArray($lastJobsData);
+			$syncobj = mergeEmployeesArray($lastJobsData);
+			$uids = $syncobj->uids;
 			$mitarbeiterToSync = $this->syncemployeestosapsflib->getEmployeesForSync($uids);
 
 			// employees to be synced with sapsf
@@ -117,32 +113,5 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 			$this->logInfo('Employees sync to SAPSF: No new jobs found to process');
 
 		$this->logInfo('End employee data synchronization to SAP Success Factors');
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	// Private methods
-
-	/**
-	 * Helper function for merging job employee input of multiple jobs
-	 */
-	private function _mergeEmployeesArray($jobs)
-	{
-		$mergedEmployeesArray = array();
-
-		if (count($jobs) == 0) return $mergedEmployeesArray;
-
-		foreach ($jobs as $job)
-		{
-			$decodedInput = json_decode($job->input);
-			if ($decodedInput != null)
-			{
-				foreach ($decodedInput as $el)
-				{
-					if (!in_array($el->uid, $mergedEmployeesArray))
-						$mergedEmployeesArray[] = $el->uid;
-				}
-			}
-		}
-		return $mergedEmployeesArray;
 	}
 }
