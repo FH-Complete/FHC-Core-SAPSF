@@ -26,14 +26,13 @@ class QueryUserModel extends SAPSFQueryModel
 	 * @param string $lastModifiedDateTime date when user was last modified
 	 * @return object userdata
 	 */
-	public function getByUserId($userId, $selects = array(), $expands = array(), $lastModifiedDateTime = null)
+	public function getByUserId($userId, $selects = array(), $expands = array())
 	{
 		//$this->_setEntity('User', $userId);
 		$this->_setEntity('User');
 		$this->_setSelects($selects);
 		$this->_setExpands($expands);
 		$this->_setFilter('userId', $userId);
-		$this->_setLastModifiedDateTime($lastModifiedDateTime);
 
 		return $this->_query();
 	}
@@ -45,13 +44,22 @@ class QueryUserModel extends SAPSFQueryModel
 	 * @param string $lastModifiedDateTime date when users were last modified
 	 * @return object userdata
 	 */
-	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null)
+	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null)
 	{
 		$this->_setEntity('User');
 		$this->_setSelects($selects);
 		$this->_setExpands($expands);
 		$this->_setOrderBys(array('lastName', 'firstName'));
-		$this->_setLastModifiedDateTime($lastModifiedDateTime);
+		//$this->_setLastModifiedDateTime($lastModifiedDateTime);
+		$lastModFilterStr = '(lastModifiedDateTime gt datetime?';
+		foreach ($lastModifiedDateTimeProps as $prop)
+		{
+			$lastModFilterStr .= ' or ';
+			$lastModFilterStr .= $prop."/lastModifiedDateTime gt datetime?";
+		}
+		$lastModFilterStr .= ')';
+		$lastModifiedDates = array_pad(array(), count($lastModifiedDateTimeProps) + 1, $lastModifiedDateTime);
+		$this->_setFilterString($lastModFilterStr, $lastModifiedDates);
 
 		return $this->_query();
 	}

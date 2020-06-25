@@ -269,7 +269,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 	{
 		if ($this->_checkFilterString($filterString) && is_array($filterValues))
 		{
-			$resultFilterString = $filterString;
 			foreach ($filterValues as $val)
 			{
 				$pos = strpos($filterString, self::FILTERVALUE_PLACEHOLDER);
@@ -288,9 +287,9 @@ class SAPSFQueryModel extends SAPSFClientModel
 					$this->_setError('Invalid filter value provided');
 					return;
 				}
-				$resultFilterString = substr_replace($filterString, $val, $pos, 1);
+				$filterString = substr_replace($filterString, $val, $pos, 1);
 			}
-			$this->_setQueryOption(self::FILTEROPTION, $resultFilterString);
+			$this->_setQueryOption(self::FILTEROPTION, $filterString);
 		}
 		else
 			$this->_setError('Invalid filter string or invalid filter values provided. Filter values in the string should be replaced by ? and it shouldn\'t contain any unallowed special characters.');
@@ -599,7 +598,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 	 */
 	private function _checkFilterString($filterString)
 	{
-		return is_string($filterString) && preg_match('/^[a-zA-Z0-9\s?()]+$/', $filterString) === 1;
+		return is_string($filterString) && preg_match('/^[a-zA-Z0-9\s?()\/]+$/', $filterString) === 1;
 	}
 
 	/**

@@ -16,6 +16,7 @@ class SyncFromSAPSFLib
 	protected $_confvaluedefaults;
 	protected $_confvaluemappings;
 	protected $_fhcconffields;
+	protected $_sapsflastmodifiedfields;
 
 	/**
 	 * SyncFromSAPSFLib constructor.
@@ -36,6 +37,7 @@ class SyncFromSAPSFLib
 		$this->_confvaluedefaults = $this->ci->config->item('fhcdefaults');
 		$this->_sapsfvaluedefaults = $this->ci->config->item('sapsfdefaults');
 		$this->_fhcconffields = $this->ci->config->item('fhcfields');
+		$this->_sapsflastmodifiedfields = $this->ci->config->item('sapsflastmodifiedfields');
 
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
 	}
@@ -134,6 +136,15 @@ class SyncFromSAPSFLib
 			}
 		}
 		return $expands;
+	}
+
+	/**
+	 * Get properties which should be checked for lastModifiedDate from config.
+	 * @return array
+	 */
+	public function getLastModifiedDateTimeProps()
+	{
+		return $this->_sapsflastmodifiedfields;
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

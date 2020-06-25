@@ -92,3 +92,11 @@ $config['sapsfpredicates']['PerPersonal'] = array(
 	'personIdExternal',
 	'startDate'
 );
+
+$config['sapsflastmodifiedfields'] = array(
+	"empInfo/personNav/nationalIdNav",
+	"empInfo/personNav/emailNav",
+	"empInfo/personNav/emergencyContactNav",
+	"empInfo/personNav/personalInfoNav",
+	"empInfo/jobInfoNav"
+);

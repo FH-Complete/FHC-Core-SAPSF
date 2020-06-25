@@ -357,35 +357,38 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 	/**
 	 * Selects correct email string to be inserted in fhc.
-	 * @param $mailarr contains all mails present in sapsf
-	 * @param $params
+	 * @param $mails contains all mails present in sapsf
+	 * @param $params contain emailtyp information
 	 * @return string the mail kontakt to insert in fhc
 	 */
-	private function _selectEmailForFhc($mailarr, $params)
+	private function _selectEmailForFhc($mails, $params)
 	{
+		$mails = is_string($mails) ? array($mails) : $mails;
+		$params['emailtyp'] = is_string($params['emailtyp']) ? array($params['emailtyp']) : $params['emailtyp'];
 		$mail = '';
-		if (is_array($mailarr))
+
+		if (is_array($mails))
 		{
-			for ($i = 0; $i < count($mailarr); $i++)
+			for ($i = 0; $i < count($mails); $i++)
 			{
 				if (isset($params['emailtyp'][$i]) && $params['emailtyp'][$i] == $this->_sapsfvaluedefaults['kontaktmailprivate']['PerEmail']['emailType'])
 				{
-					$mail = $mailarr[$i];
+					$mail = $mails[$i];
 					break;
 				}
 			}
 		}
 		else
-			return $mailarr;
+			return $mails;
 
 		return $mail;
 	}
 
 	/**
-	 * Selects correct email string to be inserted in fhc.
-	 * @param $mailarr contains all mails present in sapsf
-	 * @param $params
-	 * @return string the mail kontakt to insert in fhc
+	 * Selects correct Kennzeichen (svnr, ersatzkennzeichen) to be inserted in fhc.
+	 * @param $kzval contain Kennzeichen
+	 * @param $params contain kztyp information
+	 * @return string the kz to insert in fhc
 	 */
 	private function _selectKzForFhc($kzval, $params)
 	{

@@ -65,12 +65,13 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 
 				$selects = $this->syncfromsapsflib->getSelectsFromFieldMappings(SyncEmployeesFromSAPSFLib::OBJTYPE);
 				$expands = $this->syncfromsapsflib->getExpandsFromFieldMappings(SyncEmployeesFromSAPSFLib::OBJTYPE);
+				$lastmodifiedprops = $this->syncfromsapsflib->getLastModifiedDateTimeProps();
 
 				$uidsToSync = array();
 				$maToSync = array();
 				if ($syncObj->syncAll)
 				{
-					$employees = $this->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime);
+					$employees = $this->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops);
 
 					if (isError($employees))
 					{
