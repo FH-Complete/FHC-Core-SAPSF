@@ -42,6 +42,7 @@ class QueryUserModel extends SAPSFQueryModel
 	 * @param array $selects fields to retrieve for each user
 	 * @param array $expands fields to expand
 	 * @param string $lastModifiedDateTime date when users were last modified
+	 * @param null $lastModifiedDateTimeProps additional properties checked for lastModifiedDateTime
 	 * @return object userdata
 	 */
 	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null)
@@ -50,16 +51,18 @@ class QueryUserModel extends SAPSFQueryModel
 		$this->_setSelects($selects);
 		$this->_setExpands($expands);
 		$this->_setOrderBys(array('lastName', 'firstName'));
-		//$this->_setLastModifiedDateTime($lastModifiedDateTime);
-		$lastModFilterStr = '(lastModifiedDateTime gt datetime?';
-		foreach ($lastModifiedDateTimeProps as $prop)
+		if (!isEmptyArray($lastModifiedDateTimeProps))
 		{
-			$lastModFilterStr .= ' or ';
-			$lastModFilterStr .= $prop."/lastModifiedDateTime gt datetime?";
+			$lastModFilterStr = '(lastModifiedDateTime gt datetime?';
+			foreach ($lastModifiedDateTimeProps as $prop)
+			{
+				$lastModFilterStr .= ' or ';
+				$lastModFilterStr .= $prop . "/lastModifiedDateTime gt datetime?";
+			}
+			$lastModFilterStr .= ')';
+			$lastModifiedDates = array_pad(array(), count($lastModifiedDateTimeProps) + 1, $lastModifiedDateTime);
+			$this->_setFilterString($lastModFilterStr, $lastModifiedDates);
 		}
-		$lastModFilterStr .= ')';
-		$lastModifiedDates = array_pad(array(), count($lastModifiedDateTimeProps) + 1, $lastModifiedDateTime);
-		$this->_setFilterString($lastModFilterStr, $lastModifiedDates);
 
 		return $this->_query();
 	}
