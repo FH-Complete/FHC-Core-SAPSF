@@ -22,13 +22,6 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 	 */
 	public function syncEmployees()
 	{
-		// add new job to queue TODO remove, done by the scheduler!
-/*		$startJob = new stdClass();
-		$startJob->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_NEW;
-		$startJob->{jobsqueuelib::PROPERTY_CREATIONTIME} = date('Y-m-d H:i:s');
-		$startJob->{jobsqueuelib::PROPERTY_START_TIME} = date('Y-m-d H:i:s');
-		$this->addNewJobsToQueue(SyncEmployeesFromSAPSFLib::SAPSF_EMPLOYEES_FROM_SAPSF, array($startJob));*/
-
 		$this->logInfo('Start employee data synchronization from SAP Success Factors');
 
 		// get last new job for input
@@ -41,9 +34,14 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 		{
 			$lastNewJobs = getData($lastNewJobs);
 
-			// only employees changed after last sync
+			// only employees changed after last full sync
 			$this->JobsQueueModel->addOrder('creationtime', 'DESC');
-			$lastDoneJobs = $this->JobsQueueModel->loadWhere(array('status' => jobsqueuelib::STATUS_DONE, 'type' => SyncEmployeesFromSAPSFLib::SAPSF_EMPLOYEES_FROM_SAPSF));
+			$lastDoneJobs = $this->JobsQueueModel->loadWhere(array(
+				'status' => jobsqueuelib::STATUS_DONE,
+				'type' => SyncEmployeesFromSAPSFLib::SAPSF_EMPLOYEES_FROM_SAPSF,
+				'input' => null // input empty -> sync all
+				)
+			);
 
 			if (isError($lastDoneJobs))
 			{
@@ -144,7 +142,16 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 						{
 							$joboutput = array();
 							$decodedInput = json_decode($job->input);
-							if ($decodedInput != null)// if there was job input, only output synced mitarbeiter for this input
+							if ($decodedInput == null)// if there was job input, only output synced mitarbeiter for this input
+							{
+								foreach ($syncedMitarbeiter as $uidkey => $ma)
+								{
+									$maobj = new stdClass();
+									$maobj->uid = $uidkey;
+									$joboutput[] = $maobj;
+								}
+							}
+							else
 							{
 								foreach ($decodedInput as $el)
 								{
@@ -154,15 +161,6 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 										$maobj->uid = $el->uid;
 										$joboutput[] = $maobj;
 									}
-								}
-							}
-							else
-							{
-								foreach ($syncedMitarbeiter as $uidkey => $ma)
-								{
-									$maobj = new stdClass();
-									$maobj->uid = $uidkey;
-									$joboutput[] = $maobj;
 								}
 							}
 

@@ -127,7 +127,7 @@ class FhcDbModel extends DB_Model
 		$this->load->model('person/Kontakt_model', 'KontaktModel');
 
 		$mitarbeiterres = array();
-		$mitarbeiter = $this->MitarbeiterModel->getPersonal(true, null, null);
+		$mitarbeiter = $this->MitarbeiterModel->getPersonal(true, null, null, true);
 
 		if (hasData($mitarbeiter))
 		{

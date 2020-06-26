@@ -64,8 +64,9 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 									if (isSuccess($item))
 									{
 										$key = getData($item);
-										if (isset($mitarbeiterToSync[$key]))
-											$syncedMitarbeiter[$key] = $mitarbeiterToSync[$key];
+										$resobj = new stdClass();
+										$resobj->key = $key;
+										$syncedMitarbeiter[] = $resobj;
 									}
 									else
 									{
@@ -78,24 +79,10 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 				}
 
 				// update jobs, set them to done, write synced aliases as output.
+				$updatedJobs = array();
 				foreach ($lastJobsData as $job)
 				{
-					$joboutput = array();
-					$decodedInput = json_decode($job->input);
-					if ($decodedInput != null)// if there was job input, only output synced mitarbeiter for this input
-					{
-						foreach ($decodedInput as $el)
-						{
-							if (isset($syncedMitarbeiter[$el->uid]))
-							{
-								$joboutput[] = $syncedMitarbeiter;
-							}
-						}
-					}
-					else
-						$joboutput = $syncedMitarbeiter;
-
-					$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($joboutput);
+					$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($syncedMitarbeiter);
 					$job->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
 					$job->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
 					$updatedJobs[] = $job;

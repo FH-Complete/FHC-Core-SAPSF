@@ -51,14 +51,22 @@ class QueryUserModel extends SAPSFQueryModel
 		$this->_setSelects($selects);
 		$this->_setExpands($expands);
 		$this->_setOrderBys(array('lastName', 'firstName'));
-		if (!isEmptyArray($lastModifiedDateTimeProps))
+
+		if (isset($lastModifiedDateTime))
 		{
 			$lastModFilterStr = '(lastModifiedDateTime gt datetime?';
-			foreach ($lastModifiedDateTimeProps as $prop)
+
+			if (isset($lastModifiedDateTimeProps))
 			{
-				$lastModFilterStr .= ' or ';
-				$lastModFilterStr .= $prop . "/lastModifiedDateTime gt datetime?";
+				foreach ($lastModifiedDateTimeProps as $prop)
+				{
+					$lastModFilterStr .= ' or ';
+					$lastModFilterStr .= $prop . "/lastModifiedDateTime gt datetime?";
+				}
 			}
+			else
+				$lastModifiedDateTimeProps = array();
+
 			$lastModFilterStr .= ')';
 			$lastModifiedDates = array_pad(array(), count($lastModifiedDateTimeProps) + 1, $lastModifiedDateTime);
 			$this->_setFilterString($lastModFilterStr, $lastModifiedDates);
