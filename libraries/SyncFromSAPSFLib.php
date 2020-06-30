@@ -48,7 +48,7 @@ class SyncFromSAPSFLib
 	/**
 	 * Converts an fhc db timestamp to date format in sapsf as passend in query url,
 	 * like lastModifiedDateTime Y-m-dTH:i:s
-	 * @param string $timestamp fhc timestamp
+	 * @param string $timestamp fhc timestamp Y-m-d
 	 * @return string
 	 */
 	public function convertDateToSAPSF($timestamp)
@@ -179,7 +179,7 @@ class SyncFromSAPSFLib
 					{
 						$value = $fhcobj[$table][$field];
 
-						if ($required && !is_numeric($value) && isEmptyString($value))
+						if ($required && (!isset($value) || $value === ''))
 						{
 							$haserror = true;
 							$errortext = 'is missing';
@@ -237,19 +237,25 @@ class SyncFromSAPSFLib
 								$errortext = 'has wrong data type';
 							}
 								// right string length?
+							$rightlength = true;
 							if (!$haserror && ($params['type'] === 'string' || $params['type'] === 'base64'))
 							{
-								$rightlength = $this->ci->FhcDbModel->checkLength($table, $field, $value);;
+								$rightlength = $this->ci->FhcDbModel->checkStrLength($table, $field, $value);;
 
 								if ($rightlength && isset($params['length']) && is_numeric($params['length']))
 									$rightlength = $params['length'] == strlen($value);
-
-								if (!$rightlength)
-								{
-									$haserror = true;
-									$errortext = "has wrong length ($value)";
-								}
 							}
+							elseif ($params['type'] === 'integer' && is_integer($value))
+							{
+								$rightlength = $this->ci->FhcDbModel->checkIntLength($value);
+							}
+
+							if (!$rightlength)
+							{
+								$haserror = true;
+								$errortext = "has wrong length ($value)";
+							}
+
 							// unique constraint violated?
 							if (!$haserror && isset($params['unique']) && $params['unique'] === true && isset($params['pk']))
 							{

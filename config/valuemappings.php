@@ -17,6 +17,7 @@ $config['valuemappings']['fromsapsf']['User']['person']['anrede'] = array(
 
 $yesnofield = array('N' => false, 'Y' => true);
 
+$config['valuemappings']['fromsapsf']['User']['benutzer']['aktiv'] = $yesnofield;
 $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['lektor'] = $yesnofield;
 $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['bismelden'] = $yesnofield;
 $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['ausbildungcode'] = array(

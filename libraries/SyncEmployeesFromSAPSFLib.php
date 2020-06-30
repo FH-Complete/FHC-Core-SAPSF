@@ -164,36 +164,34 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 						}
 					}
 
-					if (isset($sfvalue))
-					{
-						//if (!isset($fhcemployee[$fhctable][$fhcfield])) // if no default value already set, set the success factors value
+					// set sapsf value unless it is null and there is a default
+					if (isset($sfvalue) || !isset($fhcemployee[$fhctable][$fhcfield]))
 						$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
 
-						// check if there is a valuemapping
-						$mapped = null;
-						if (isset($this->_confvaluemappings[self::OBJTYPE][$fhctable][$fhcfield][$sfvalue]))
+					// check if there is a valuemapping
+					$mapped = null;
+					if (isset($this->_confvaluemappings[self::OBJTYPE][$fhctable][$fhcfield][$sfvalue]))
+					{
+						$mapped = $this->_confvaluemappings[self::OBJTYPE][$fhctable][$fhcfield][$sfvalue];
+						$fhcemployee[$fhctable][$fhcfield] = $mapped;
+					}
+
+					// check for convertfunctions, execute with passed parameters if found
+					if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
+					{
+						$params = array();
+						if (is_array($this->_convertfunctions[$fhctable][$fhcfield]['extraParams']))
 						{
-							$mapped = $this->_confvaluemappings[self::OBJTYPE][$fhctable][$fhcfield][$sfvalue];
-							$fhcemployee[$fhctable][$fhcfield] = $mapped;
+							$params = $this->_convertfunctions[$fhctable][$fhcfield]['extraParams'];
+							if (isset($params['table']) && isset($params['name']) && isset($fhcemployee[$params['table']][$params['name']]))
+								$params[$params['name']] = $fhcemployee[$params['table']][$params['name']];
 						}
 
-						// check for convertfunctions, execute with passed parameters if found
-						if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
-						{
-							$params = array();
-							if (is_array($this->_convertfunctions[$fhctable][$fhcfield]['extraParams']))
-							{
-								$params = $this->_convertfunctions[$fhctable][$fhcfield]['extraParams'];
-								if (isset($params['table']) && isset($params['name']) && isset($fhcemployee[$params['table']][$params['name']]))
-									$params[$params['name']] = $fhcemployee[$params['table']][$params['name']];
-							}
-
-							$funcval = isset($mapped) ? $mapped : $sfvalue;
-							$fhcemployee[$fhctable][$fhcfield] = $this->{$this->_convertfunctions[$fhctable][$fhcfield]['function']}(
-								$funcval,
-								$params
-							);
-						}
+						$funcval = isset($mapped) ? $mapped : $sfvalue;
+						$fhcemployee[$fhctable][$fhcfield] = $this->{$this->_convertfunctions[$fhctable][$fhcfield]['function']}(
+							$funcval,
+							$params
+						);
 					}
 				}
 			}
@@ -241,6 +239,11 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 		if (hasData($benutzerexists))
 		{
+			// update benutzer
+			unset($benutzer['uid']); // avoiding update error
+			$this->_stamp('update', $benutzer);
+			$this->ci->BenutzerModel->update(array('uid' => $uid), $benutzer);
+
 			// if benutzer exists, person must exist -> update person
 			$this->_stamp('update', $person);
 			$this->ci->PersonModel->update($person_id, $person);
@@ -299,7 +302,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			$mitarbeiterexists = $this->ci->MitarbeiterModel->load(array('mitarbeiter_uid' => $uid));
 			if (hasData($mitarbeiterexists))
 			{
-				$this->_stamp('update', $mitarbeiter);
+				//$this->_stamp('update', $mitarbeiter); no stamp so it is not marked as new for ToSAPSFSync
 				$mitarbeiterres = $this->ci->MitarbeiterModel->update(array('mitarbeiter_uid' => $uid), $mitarbeiter);
 			}
 			else
@@ -320,10 +323,12 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				$this->_stamp('insert', $kontaktmail);
 				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
 
-				$kontaktnotfall['person_id'] = $person_id;
-				$this->_stamp('insert', $kontaktnotfall);
-				$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
-
+				if (!isEmptyString($kontaktnotfall['kontakt']))
+				{
+					$kontaktnotfall['person_id'] = $person_id;
+					$this->_stamp('insert', $kontaktnotfall);
+					$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
+				}
 				$benutzer['person_id'] = $person_id;
 				$benutzer['aktivierungscode'] = generateActivationKey();
 

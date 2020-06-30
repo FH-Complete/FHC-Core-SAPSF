@@ -52,7 +52,8 @@ $config['fieldmappings']['fromsapsf']['User']['mitarbeiter'] = array(
 );
 
 $config['fieldmappings']['fromsapsf']['User']['benutzer'] = array(
-	'userId' => 'uid'
+	'userId' => 'uid',
+	'empInfo/personNav/personalInfoNav/customString2Nav/externalCode' => 'aktiv'
 );
 
 /*$config['fieldmappings']['fromsapsf']['User']['bisverwendung'] = array(

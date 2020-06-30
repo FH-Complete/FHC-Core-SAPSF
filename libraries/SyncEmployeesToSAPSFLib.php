@@ -14,20 +14,22 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	const OBJTYPE = 'User';
 	const MAILTYPE = 'PerEmail';
 	const PERSONALINFOTYPE = 'PerPersonal';
+	const PHONETYPE = 'PerPhone';
 
-	const PERSON_NAV = 'personKeyNav';
-	const PERSONAL_INFO_NAV = 'empInfo/personNav/personalInfoNav';
-
+	const PERSON_KEY_NAV = 'personKeyNav';
+	const EMPINFO = 'empInfo';
+	const PERSON_NAV = 'personNav';
+	const EMAIL_NAV = 'emailNav';
+	const PHONE_NAV = 'phoneNav';
 	const EMAIL_POSTFIX = '@technikum-wien.at';
 
 	private $_convertfunctions = array(
 		'kontaktmail' => array(
 			'uid' => '_convertToAlias'
+		),
+		'kontaktmailprivate' => array(
+			'personIdExternal' => '_checkPrivateMail'
 		)
-	);
-
-	private $_sapsfdatenames = array(
-		'startDate'
 	);
 
 	/**
@@ -52,12 +54,14 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	// Public methods
 
 	/**
-	 * Gets employees from fhcomplete
+	 * Gets employees from fhcomplete. Prepares them for the sync.
 	 * @param array $uids
 	 * @return mixed
 	 */
 	public function getEmployeesForSync($uids)
 	{
+		$this->ci->load->library('extensions/FHC-Core-SAPSF/SyncFromSAPSFLib');
+
 		// if no uids passed, all employee aliases are synced
 		$mitarbeiterToSync = array();
 		$mitarbeiter = $this->ci->FhcDbModel->getMitarbeiter($uids);
@@ -70,9 +74,18 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 			$sapsfUidName = $this->_predicates[self::OBJTYPE][0];
 			$sapsfPersonIdName = $this->_predicates[self::MAILTYPE][0];
 			$sapsfstartDateName = $this->_predicates[self::PERSONALINFOTYPE][1];
+			$sapsfEmailTypeName = $this->_predicates[self::MAILTYPE][1];
+			$sapsfPhoneTypeName = $this->_predicates[self::PHONETYPE][1];
+
+			$emailnav = self::EMPINFO.'/'.self::PERSON_NAV.'/'.self::EMAIL_NAV;
+			$phonenav = self::EMPINFO.'/'.self::PERSON_NAV.'/'.self::PHONE_NAV;
+
+			$fhcmailprivate = 'kontaktmailprivate';
+			$fhctelprivate = 'kontakttelprivate';
+
 			$sapsfemployees = $this->ci->QueryUserModel->getAll(
-				array($sapsfUidName, self::PERSON_NAV.'/' . $sapsfPersonIdName, self::PERSONAL_INFO_NAV . '/' . $sapsfstartDateName),
-				array(self::PERSON_NAV, self::PERSONAL_INFO_NAV)
+				array($sapsfUidName, self::PERSON_KEY_NAV.'/'.$sapsfPersonIdName, $emailnav.'/'.$sapsfEmailTypeName, $phonenav .'/'.$sapsfPhoneTypeName), // selects
+				array(self::PERSON_KEY_NAV,  $emailnav, $phonenav) // expands
 			);
 
 			if (isError($sapsfemployees))
@@ -80,6 +93,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 			elseif (hasData($sapsfemployees))
 			{
 				$sapsfemployees = getData($sapsfemployees);
+
 				foreach ($mitarbeiter as $ma)
 				{
 					foreach ($sapsfemployees as $sapsfemployee)
@@ -88,33 +102,54 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 						{
 							$matosync = $this->_convertEmployeeToSapsf($ma);
 
-							// check if any of the predicate keys can be found in queried sapsf employees.
-							// If yes, add them to employee to sync.
-							foreach ($sapsfemployee as $prop => $value)
+							$sapsfvals = array(
+								$sapsfPersonIdName => $sapsfemployee->{self::PERSON_KEY_NAV}->{$sapsfPersonIdName},
+								$sapsfstartDateName => $this->ci->syncfromsapsflib->convertDateToSAPSF(date('Y-m-d H:i:s'))
+							);
+							$emailTypes = $sapsfemployee->{self::EMPINFO}->{self::PERSON_NAV}->{self::EMAIL_NAV}->results;
+							$phoneTypes = $sapsfemployee->{self::EMPINFO}->{self::PERSON_NAV}->{self::PHONE_NAV}->results;
+
+							foreach ($matosync as $entity => $mats)
 							{
-								if (is_object($value))
+								foreach ($mats as $fhctbl => $data)
 								{
-									foreach ($value as $valprop => $valval)
+									foreach ($matosync[$entity][$fhctbl][self::PREDICATE_INDEX] as $predprop => $predval)
 									{
-										foreach ($matosync as $entity => $mats)
-										{
-											foreach ($mats as $fhctbl => $data)
-											{
-												foreach ($matosync[$entity][$fhctbl][self::PREDICATE_INDEX] as $valprop => $valval)
-												{
-													$foundValue = $this->_recursive_object_search($valprop, $value);
-													if ($foundValue)
-													{
-														if (in_array($valprop, $this->_sapsfdatenames)) // if date present, convert it to required format
-															$foundValue = $this->_convertSAPSFTimestampToDateTime($foundValue);
-														$matosync[$entity][$fhctbl][self::PREDICATE_INDEX][$valprop] = $foundValue;
-													}
-												}
-											}
-										}
+										if (isset($sapsfvals[$predprop]))
+											$matosync[$entity][$fhctbl][self::PREDICATE_INDEX][$predprop] = $sapsfvals[$predprop];
 									}
 								}
 							}
+
+							$hasPrivatePhone = false;
+							$hasPrivateMail = false;
+							$privateMailTypCode = $this->_confvaluedefaults[$fhcmailprivate][self::MAILTYPE][$sapsfEmailTypeName];
+							$privateTelTypCode = $this->_confvaluedefaults[$fhctelprivate][self::PHONETYPE][$sapsfPhoneTypeName];
+
+							foreach ($emailTypes as $emailType)
+							{
+								if ($emailType->{$sapsfEmailTypeName} == $privateMailTypCode)
+								{
+									$hasPrivateMail = true;
+									break;
+								}
+							}
+
+							foreach ($phoneTypes as $phoneType)
+							{
+								if ($phoneType->{$sapsfPhoneTypeName} == $privateTelTypCode)
+								{
+									$hasPrivatePhone = true;
+									break;
+								}
+							}
+
+							// not sync private mail and phone if there is none
+							if (!$hasPrivateMail)
+								unset($matosync[self::MAILTYPE][$fhcmailprivate]);
+
+							if (!$hasPrivatePhone)
+								unset($matosync[self::PHONETYPE][$fhctelprivate]);
 
 							if (!isEmptyArray($matosync))
 								$mitarbeiterToSync[$ma->uid] = $matosync;
@@ -136,7 +171,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	 */
 	private function _convertEmployeeToSapsf($employee)
 	{
-		$fhctables = array('benutzer', 'person', 'mitarbeiter', 'kontakttel', 'kontaktmail', 'kontaktmailprivate');
+		$fhctables = array('benutzer', 'person', 'mitarbeiter', 'kontakttel', 'kontakttelprivate', 'kontaktmail', 'kontaktmailprivate');
 		$sapsfemployee = array();
 
 		foreach ($fhctables as $fhctable)
@@ -207,30 +242,5 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 			$alias = $alias.self::EMAIL_POSTFIX;
 
 		return $alias;
-	}
-
-	/**
-	 * Recursively searches for a value with a certain key in an object or array.
-	 * @param string $needle the key to search for
-	 * @param object|array $haystack
-	 * @return string|bool found value or false
-	 */
-	private function _recursive_object_search($needle, $haystack)
-	{
-		foreach($haystack as $prop => $value)
-		{
-			if (is_object($value) || is_array($value))
-			{
-				$nextKey = $this->_recursive_object_search($needle,$value);
-				if ($nextKey)
-				{
-					return $nextKey;
-				}
-			}
-			elseif ($prop == $needle) {
-				return $value;
-			}
-		}
-		return false;
 	}
 }

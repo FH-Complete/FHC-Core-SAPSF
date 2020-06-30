@@ -5,6 +5,9 @@ class FhcDbModel extends DB_Model
 {
 	const TABLE_PREFIX = 'tbl_';
 
+	const MAX_INT = 2147483647;
+	const MIN_INT = -2147483648;
+
 	public function __construct()
 	{
 		parent::__construct();
@@ -49,7 +52,7 @@ class FhcDbModel extends DB_Model
 	 * @param $value
 	 * @return bool
 	 */
-	public function checkLength($table, $field, $value)
+	public function checkStrLength($table, $field, $value)
 	{
 		$table = self::TABLE_PREFIX.$table;
 		$query = "SELECT character_maximum_length FROM information_schema.columns
@@ -68,6 +71,16 @@ class FhcDbModel extends DB_Model
 				return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Checks if a integer value has right length.
+	 * @param $value
+	 * @return bool
+	 */
+	public function checkIntLength($value)
+	{
+		return $value <= self::MAX_INT && $value >= self::MIN_INT;
 	}
 
 	/**
@@ -127,7 +140,7 @@ class FhcDbModel extends DB_Model
 		$this->load->model('person/Kontakt_model', 'KontaktModel');
 
 		$mitarbeiterres = array();
-		$mitarbeiter = $this->MitarbeiterModel->getPersonal(true, null, null, true);
+		$mitarbeiter = $this->MitarbeiterModel->getPersonal(null, null, null, true);
 
 		if (hasData($mitarbeiter))
 		{

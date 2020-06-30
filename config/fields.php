@@ -56,7 +56,11 @@ $config['fhcfields']['User'] = array(
 			array('name' => 'Standort',
 				'type' => 'integer')
 	),
-	'benutzer' => array('uid' => array('required' => true)),
+	'benutzer' => array(
+		'uid' => array('required' => true),
+		'aktiv' => array('required' => true,
+						'type' => 'boolean')
+	),
 /*	'adresse' => array('nation' => array('required' => true,
 
 		'ref' => 'bis.tbl_nation',
@@ -88,12 +92,13 @@ $config['sapsfpredicates']['PerPhone'] = array(
 	'phoneType'
 );
 
-$config['sapsfpredicates']['PerPersonal'] = array(
+$config['sapsfpredicates']['PerPersonal'] = array(// for office
 	'personIdExternal',
 	'startDate'
 );
 
 $config['sapsflastmodifiedfields'] = array(
+	"empInfo/personNav",
 	"empInfo/personNav/nationalIdNav",
 	"empInfo/personNav/emailNav",
 	"empInfo/personNav/emergencyContactNav",
