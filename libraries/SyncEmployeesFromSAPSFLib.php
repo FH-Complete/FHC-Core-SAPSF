@@ -234,14 +234,23 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 		$this->ci->db->trans_begin();
 
-		$this->ci->BenutzerModel->addSelect('uid, person_id');
+		$this->ci->BenutzerModel->addSelect('uid, person_id, aktiv');
 		$benutzerexists = $this->ci->BenutzerModel->loadWhere(array('uid' =>$uid));
 
 		if (hasData($benutzerexists))
 		{
+			$prevaktiv = getData($benutzerexists)[0]->aktiv;
+			$updateaktiv = $prevaktiv !== $benutzer['aktiv'];
+
 			// update benutzer
 			unset($benutzer['uid']); // avoiding update error
 			$this->_stamp('update', $benutzer);
+			if ($updateaktiv)
+			{
+				$benutzer['updateaktivvon'] = self::IMPORTUSER;
+				$benutzer['updateaktivam'] = date('Y-m-d');
+			}
+
 			$this->ci->BenutzerModel->update(array('uid' => $uid), $benutzer);
 
 			// if benutzer exists, person must exist -> update person
@@ -292,7 +301,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				$this->_stamp('update', $kontaktnotfall);
 				$kontaktnotfallres = $this->ci->KontaktModel->update($kontakt_id, $kontaktnotfall);
 			}
-			else
+			elseif (!isEmptyString($kontaktnotfall['kontakt']))
 			{
 				$this->_stamp('insert', $kontaktnotfall);
 				$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);

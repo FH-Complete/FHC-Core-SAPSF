@@ -56,3 +56,9 @@ $config['sapsfdefaults']['kontakttelprivate']['PerPhone'] = array(
 	'phoneType' => 28491,
 	'isPrimary' => false
 );
+
+// Mobile Phone
+$config['sapsfdefaults']['kontakttelmobile']['PerPhone'] = array(
+	'phoneType' => 28490,
+	'isPrimary' => false
+);

@@ -82,6 +82,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 
 			$fhcmailprivate = 'kontaktmailprivate';
 			$fhctelprivate = 'kontakttelprivate';
+			$fhctelmobile = 'kontakttelmobile';
 
 			$sapsfemployees = $this->ci->QueryUserModel->getAll(
 				array($sapsfUidName, self::PERSON_KEY_NAV.'/'.$sapsfPersonIdName, $emailnav.'/'.$sapsfEmailTypeName, $phonenav .'/'.$sapsfPhoneTypeName), // selects
@@ -106,8 +107,12 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 								$sapsfPersonIdName => $sapsfemployee->{self::PERSON_KEY_NAV}->{$sapsfPersonIdName},
 								$sapsfstartDateName => $this->ci->syncfromsapsflib->convertDateToSAPSF(date('Y-m-d H:i:s'))
 							);
-							$emailTypes = $sapsfemployee->{self::EMPINFO}->{self::PERSON_NAV}->{self::EMAIL_NAV}->results;
-							$phoneTypes = $sapsfemployee->{self::EMPINFO}->{self::PERSON_NAV}->{self::PHONE_NAV}->results;
+
+							$emailTypes = isset($sapsfemployee->{self::EMPINFO}->{self::PERSON_NAV}->{self::EMAIL_NAV}->results) ?
+								$sapsfemployee->{self::EMPINFO}->{self::PERSON_NAV}->{self::EMAIL_NAV}->results : array();
+
+							$phoneTypes = isset($sapsfemployee->{self::EMPINFO}->{self::PERSON_NAV}->{self::PHONE_NAV}->results) ?
+								$sapsfemployee->{self::EMPINFO}->{self::PERSON_NAV}->{self::PHONE_NAV}->results : array();
 
 							foreach ($matosync as $entity => $mats)
 							{
@@ -122,9 +127,11 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 							}
 
 							$hasPrivatePhone = false;
+							$hasMobilePhone = false;
 							$hasPrivateMail = false;
 							$privateMailTypCode = $this->_confvaluedefaults[$fhcmailprivate][self::MAILTYPE][$sapsfEmailTypeName];
 							$privateTelTypCode = $this->_confvaluedefaults[$fhctelprivate][self::PHONETYPE][$sapsfPhoneTypeName];
+							$mobileTelTypCode = $this->_confvaluedefaults[$fhctelmobile][self::PHONETYPE][$sapsfPhoneTypeName];
 
 							foreach ($emailTypes as $emailType)
 							{
@@ -140,7 +147,11 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 								if ($phoneType->{$sapsfPhoneTypeName} == $privateTelTypCode)
 								{
 									$hasPrivatePhone = true;
-									break;
+								}
+
+								if ($phoneType->{$sapsfPhoneTypeName} == $mobileTelTypCode)
+								{
+									$hasMobilePhone = true;
 								}
 							}
 
@@ -151,10 +162,11 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 							if (!$hasPrivatePhone)
 								unset($matosync[self::PHONETYPE][$fhctelprivate]);
 
+							if (!$hasMobilePhone)
+								unset($matosync[self::PHONETYPE][$fhctelmobile]);
+
 							if (!isEmptyArray($matosync))
 								$mitarbeiterToSync[$ma->uid] = $matosync;
-
-							break;
 						}
 					}
 				}
@@ -171,7 +183,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	 */
 	private function _convertEmployeeToSapsf($employee)
 	{
-		$fhctables = array('benutzer', 'person', 'mitarbeiter', 'kontakttel', 'kontakttelprivate', 'kontaktmail', 'kontaktmailprivate');
+		$fhctables = array('benutzer', 'person', 'mitarbeiter', 'kontakttel', 'kontakttelprivate', 'kontakttelmobile', 'kontaktmail', 'kontaktmailprivate');
 		$sapsfemployee = array();
 
 		foreach ($fhctables as $fhctable)
@@ -193,16 +205,15 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 				{
 					foreach ($conffieldmappings as $fhcfield => $sffield)
 					{
-						if (isset($employee->{$fhcfield}))
-						{
-							$value = $employee->{$fhcfield};
+						/*if (isset($employee->{$fhcfield}))*/
+						//{
+							$value = isset($employee->{$fhcfield}) ? $employee->{$fhcfield} : '';
 							if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
 								$value = $this->{$this->_convertfunctions[$fhctable][$fhcfield]}($value);
 
-
-							if (!isEmptyString($value))// data should not get lost in SAPSF if empty field
-								$sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield] = $value;
-						}
+							//if (!isEmptyString($value))// data should not get lost in SAPSF if empty field
+							$sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield] = $value;
+						//}
 					}
 				}
 			}

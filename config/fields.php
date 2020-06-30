@@ -97,6 +97,7 @@ $config['sapsfpredicates']['PerPersonal'] = array(// for office
 	'startDate'
 );
 
+// fields to be checked for lastModifiedDate
 $config['sapsflastmodifiedfields'] = array(
 	"empInfo/personNav",
 	"empInfo/personNav/nationalIdNav",

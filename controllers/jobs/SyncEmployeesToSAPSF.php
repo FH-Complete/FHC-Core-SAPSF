@@ -35,7 +35,7 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 			// get all input uids of jobs
 			$lastJobsData = getData($lastJobs);
 			$syncobj = mergeEmployeesArray($lastJobsData);
-			$uids = $syncobj->uids;
+			$uids = $syncobj->syncAll ? null : $syncobj->uids;
 			$mitarbeiterToSync = $this->syncemployeestosapsflib->getEmployeesForSync($uids);
 
 			// employees to be synced with sapsf
