@@ -61,6 +61,11 @@ $config['fieldmappings']['fromsapsf']['User']['benutzer'] = array(
 	'empInfo/personNav/personalInfoNav/customStringxNav/externalCode' => 'hautpberuf'
 );*/
 
+$config['fieldmappings']['fromsapsf']['HourlyRate']['sap_stundensatz'] = array(
+	'userId' => 'mitarbeiter_uid',
+	'externalCodeOfcust_HourlyRateNav/cust_HourlyRate2' => 'sap_kalkulatorischer_stundensatz'
+);
+
 $config['fieldmappings']['tosapsf']['kontakttel']['PerPhone'] = array(
 	'firmentelefon_nummer' => 'phoneNumber',
 	'firmentelefon_vorwahl' => 'countryCode',

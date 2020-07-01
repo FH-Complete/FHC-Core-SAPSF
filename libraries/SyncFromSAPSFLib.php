@@ -12,6 +12,8 @@ class SyncFromSAPSFLib
 
 	const UNKNOWN_NATION_CODE = 'XXX';
 
+	protected $_convertfunctions;
+
 	protected $_conffieldmappings;
 	protected $_confvaluedefaults;
 	protected $_confvaluemappings;
@@ -89,7 +91,7 @@ class SyncFromSAPSFLib
 				else
 					$select = $sapsfkey;
 
-				if (!in_array($select, $selects)) // if not navigation property
+				if (!in_array($select, $selects))
 				{
 					$selects[] = $select;
 				}
@@ -150,6 +152,118 @@ class SyncFromSAPSFLib
 	//------------------------------------------------------------------------------------------------------------------
 	// Protected methods
 
+	/**
+	 * Converts object from SAPSF to save in the fhc database.
+	 * @param $sapsfobj
+	 * @return array converted employee
+	 */
+	protected function _convertSapsfObjToFhc($sapsfobj, $objtype)
+	{
+		$fhctables = array_keys($this->_conffieldmappings[$objtype]);
+		$fhcemployee = array();
+
+		foreach ($fhctables as $fhctable)
+		{
+			// prefill with value defaults
+			if (isset($this->_confvaluedefaults[$objtype][$fhctable]))
+			{
+				foreach ($this->_confvaluedefaults[$objtype][$fhctable] as $fhcfield => $fhcdefault)
+				{
+					$fhcemployee[$fhctable][$fhcfield] = $fhcdefault;
+				}
+			}
+
+			// any property in fieldmappings is synced
+			foreach ($this->_conffieldmappings[$objtype][$fhctable] as $sffield => $fhcfields)
+			{
+				$fhcfields = is_array($fhcfields) ? $fhcfields : array($fhcfields);
+
+				foreach ($fhcfields as $fhcfield)
+				{
+					$sfvalue = null;
+					if (isset($sapsfobj->{$sffield}) /*&& !isEmptyString($employee->{$sffield})*/)
+					{
+						$sfvalue = $sapsfobj->{$sffield};
+					}
+					elseif (strpos($sffield, '/'))
+					{
+						// if navigation property, navigate to value needed
+						$navfield = substr($sffield, 0, strrpos($sffield, '/'));
+						$field = substr($sffield, strrpos($sffield, '/') + 1, strlen($sffield));
+						$props = explode('/', $navfield);
+
+						if (isset($sapsfobj->{$props[0]}))
+						{
+							$value = $sapsfobj->{$props[0]};
+							for ($i = 1; $i < count($props); $i++)
+							{
+								if (isset($value->{$props[$i]}))
+								{
+									$value = $value->{$props[$i]};
+								}
+								// navigate further if value has results array instead of a finite value
+								elseif (isset($value->results[0]->{$props[$i]}))
+								{
+									$noValues = count($value->results);
+									if ($noValues == 1)
+										$value = $value->results[0]->{$props[$i]};
+								}
+							}
+
+							if (isset($value->{$field}))
+								$sfvalue = $value->{$field};
+							elseif (isset($value->results[0]->{$field})) // if value has results array
+							{
+								if (count($value->results) == 1) // take first result
+									$sfvalue = $value->results[0]->{$field};
+								elseif (count($value->results) > 1) // or take all results
+								{
+									$sfvalue = array();
+									foreach ($value->results as $result)
+									{
+										$sfvalue[] = $result->{$field};
+									}
+								}
+							}
+						}
+					}
+
+					// set sapsf value unless it is null and there is a default
+					if (isset($sfvalue) || !isset($fhcemployee[$fhctable][$fhcfield]))
+						$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
+
+					// check if there is a valuemapping
+					$mapped = null;
+					if (isset($this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue]))
+					{
+						$mapped = $this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue];
+						$fhcemployee[$fhctable][$fhcfield] = $mapped;
+					}
+
+					// check for convertfunctions, execute with passed parameters if found
+					if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
+					{
+						$params = array();
+						if (is_array($this->_convertfunctions[$fhctable][$fhcfield]['extraParams']))
+						{
+							$params = $this->_convertfunctions[$fhctable][$fhcfield]['extraParams'];
+							if (isset($params['table']) && isset($params['name']) && isset($fhcemployee[$params['table']][$params['name']]))
+								$params[$params['name']] = $fhcemployee[$params['table']][$params['name']];
+						}
+
+						$funcval = isset($mapped) ? $mapped : $sfvalue;
+						$fhcemployee[$fhctable][$fhcfield] = $this->{$this->_convertfunctions[$fhctable][$fhcfield]['function']}(
+							$funcval,
+							$params
+						);
+					}
+				}
+			}
+		}
+
+		return $fhcemployee;
+	}
+	
 	/**
 	 * Checks if fhcomplete object has errors, e.g. missing fields, thus cannot be inserted in db.
 	 * @param $fhcobj

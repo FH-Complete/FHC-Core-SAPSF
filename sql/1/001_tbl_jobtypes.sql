@@ -1,6 +1,6 @@
 INSERT INTO system.tbl_jobtypes
     (type, description)
-SELECT 'SyncEmployeesFromSAPSF', 'Create new employees from SAP Success Factors'
+SELECT 'SyncEmployeesFromSAPSF', 'Save employees from SAP Success Factors'
 WHERE
     NOT EXISTS (
         SELECT type FROM system.tbl_jobtypes WHERE type = 'SyncEmployeesFromSAPSF'
@@ -12,4 +12,12 @@ SELECT 'SyncEmployeesToSAPSF', 'Save employee data in SAP Success Factors'
 WHERE
    NOT EXISTS (
        SELECT type FROM system.tbl_jobtypes WHERE type = 'SyncEmployeesToSAPSF'
+   );
+
+INSERT INTO system.tbl_jobtypes
+   (type, description)
+SELECT 'SyncHourlyRatesFromSAPSF', 'Save hourly rate data from SAP Success Factors'
+WHERE
+   NOT EXISTS (
+       SELECT type FROM system.tbl_jobtypes WHERE type = 'SyncHourlyRatesFromSAPSF'
    );

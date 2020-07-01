@@ -9,9 +9,11 @@ require_once('include/functions.inc.php');// needed for activation key generatio
 class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 {
 	const OBJTYPE = 'User';
+	const HOURLY_RATE_OBJ = 'HourlyRate';
 	const SAPSF_EMPLOYEES_FROM_SAPSF = 'SyncEmployeesFromSAPSF';
+	const SAPSF_HOURLY_RATES_FROM_SAPSF = 'SyncHourlyRatesFromSAPSF';
 
-	private $_convertfunctions = array(
+	protected $_convertfunctions = array(
 		'person' => array(
 			'gebdatum' => array(
 				'function' => '_convertDateToFhc',
@@ -76,7 +78,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 			foreach ($employees as $employee)
 			{
-				$ma = $this->_convertEmployeeToFhc($employee);
+				$ma = $this->_convertSapsfObjToFhc($employee, self::OBJTYPE);
 				$result = $this->_saveMitarbeiter($ma);
 				$results[] = $result;
 			}
@@ -85,120 +87,93 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		return success($results);
 	}
 
-	//------------------------------------------------------------------------------------------------------------------
-	// Private methods
-
 	/**
-	 * Converts employee from SAPSF to mitarbeiter to save in the fhc database.
-	 * @param $employee
-	 * @return array converted employee
+	 * Starts hourly rates sync.
+	 * Converts given hourly rate data to fhc format and saves the hourly rates object.
+	 * @param $hourlyrates
+	 * @return object
 	 */
-	private function _convertEmployeeToFhc($employee)
+	public function syncHourlyRateWithFhc($hourlyrates)
 	{
-		$fhctables = array_keys($this->_conffieldmappings[self::OBJTYPE]);
-		$fhcemployee = array();
+		$results = array();
 
-		foreach ($fhctables as $fhctable)
+		if (hasData($hourlyrates))
 		{
-			// prefill with value defaults
-			if (isset($this->_confvaluedefaults[self::OBJTYPE][$fhctable]))
+			$hourlyrates = getData($hourlyrates);
+
+			foreach ($hourlyrates as $rate)
 			{
-				foreach ($this->_confvaluedefaults[self::OBJTYPE][$fhctable] as $fhcfield => $fhcdefault)
-				{
-					$fhcemployee[$fhctable][$fhcfield] = $fhcdefault;
-				}
-			}
-
-			// any property in fieldmappings is synced
-			foreach ($this->_conffieldmappings[self::OBJTYPE][$fhctable] as $sffield => $fhcfields)
-			{
-				$fhcfields = is_array($fhcfields) ? $fhcfields : array($fhcfields);
-
-				foreach ($fhcfields as $fhcfield)
-				{
-					$sfvalue = null;
-					if (isset($employee->{$sffield}) /*&& !isEmptyString($employee->{$sffield})*/)
-					{
-						$sfvalue = $employee->{$sffield};
-					}
-					elseif (strpos($sffield, '/'))
-					{
-						// if navigation property, navigate to value needed
-						$navfield = substr($sffield, 0, strrpos($sffield, '/'));
-						$field = substr($sffield, strrpos($sffield, '/') + 1, strlen($sffield));
-						$props = explode('/', $navfield);
-
-						if (isset($employee->{$props[0]}))
-						{
-							$value = $employee->{$props[0]};
-							for ($i = 1; $i < count($props); $i++)
-							{
-								if (isset($value->{$props[$i]}))
-								{
-									$value = $value->{$props[$i]};
-								}
-								// navigate further if value has results array instead of a finite value
-								elseif (isset($value->results[0]->{$props[$i]}))
-								{
-									$noValues = count($value->results);
-									if ($noValues == 1)
-										$value = $value->results[0]->{$props[$i]};
-								}
-							}
-
-							if (isset($value->{$field}))
-								$sfvalue = $value->{$field};
-							elseif (isset($value->results[0]->{$field})) // if value has results array
-							{
-								if (count($value->results) == 1) // take first result
-									$sfvalue = $value->results[0]->{$field};
-								elseif (count($value->results) > 1) // or take all results
-								{
-									$sfvalue = array();
-									foreach ($value->results as $result)
-									{
-										$sfvalue[] = $result->{$field};
-									}
-								}
-							}
-						}
-					}
-
-					// set sapsf value unless it is null and there is a default
-					if (isset($sfvalue) || !isset($fhcemployee[$fhctable][$fhcfield]))
-						$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
-
-					// check if there is a valuemapping
-					$mapped = null;
-					if (isset($this->_confvaluemappings[self::OBJTYPE][$fhctable][$fhcfield][$sfvalue]))
-					{
-						$mapped = $this->_confvaluemappings[self::OBJTYPE][$fhctable][$fhcfield][$sfvalue];
-						$fhcemployee[$fhctable][$fhcfield] = $mapped;
-					}
-
-					// check for convertfunctions, execute with passed parameters if found
-					if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
-					{
-						$params = array();
-						if (is_array($this->_convertfunctions[$fhctable][$fhcfield]['extraParams']))
-						{
-							$params = $this->_convertfunctions[$fhctable][$fhcfield]['extraParams'];
-							if (isset($params['table']) && isset($params['name']) && isset($fhcemployee[$params['table']][$params['name']]))
-								$params[$params['name']] = $fhcemployee[$params['table']][$params['name']];
-						}
-
-						$funcval = isset($mapped) ? $mapped : $sfvalue;
-						$fhcemployee[$fhctable][$fhcfield] = $this->{$this->_convertfunctions[$fhctable][$fhcfield]['function']}(
-							$funcval,
-							$params
-						);
-					}
-				}
+				$hr = $this->_convertSapsfObjToFhc($rate, self::HOURLY_RATE_OBJ);
+				$result = $this->ci->FhcDbModel->saveKalkStundensatz($hr);
+				$results[] = $result;
 			}
 		}
 
-		return $fhcemployee;
+		return success($results);
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	// Protected methods
+
+	/**
+	 * Selects correct email string to be inserted in fhc.
+	 * @param $mails contains all mails present in sapsf
+	 * @param $params contain emailtyp information
+	 * @return string the mail kontakt to insert in fhc
+	 */
+	protected function _selectEmailForFhc($mails, $params)
+	{
+		$mails = is_string($mails) ? array($mails) : $mails;
+		$params['emailtyp'] = is_string($params['emailtyp']) ? array($params['emailtyp']) : $params['emailtyp'];
+		$mail = '';
+
+		if (is_array($mails))
+		{
+			for ($i = 0; $i < count($mails); $i++)
+			{
+				if (isset($params['emailtyp'][$i]) && $params['emailtyp'][$i] == $this->_sapsfvaluedefaults['kontaktmailprivate']['PerEmail']['emailType'])
+				{
+					$mail = $mails[$i];
+					break;
+				}
+			}
+		}
+		else
+			return $mails;
+
+		return $mail;
+	}
+
+	/**
+	 * Selects correct Kennzeichen (svnr, ersatzkennzeichen) to be inserted in fhc.
+	 * @param $kzval contain Kennzeichen
+	 * @param $params contain kztyp information
+	 * @return string the kz to insert in fhc
+	 */
+	protected function _selectKzForFhc($kzval, $params)
+	{
+		$kz = null;
+		if (is_array($kzval))
+		{
+			for ($i = 0; $i < count($kzval); $i++)
+			{
+				if (isset($params['kztyp'][$i]) && $params['kztyp'][$i] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
+				{
+					$kz = $kzval[$i];
+					break;
+				}
+			}
+		}
+		elseif (isset($params['kztyp']) && $params['kztyp'] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
+		{
+			$kz = $kzval;
+		}
+
+		return $kz;
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	// Private methods
 
 	/**
 	 * Saves Mitarbeiter in fhc database.
@@ -367,62 +342,5 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			$this->ci->db->trans_commit();
 			return success($uid);
 		}
-	}
-
-	/**
-	 * Selects correct email string to be inserted in fhc.
-	 * @param $mails contains all mails present in sapsf
-	 * @param $params contain emailtyp information
-	 * @return string the mail kontakt to insert in fhc
-	 */
-	private function _selectEmailForFhc($mails, $params)
-	{
-		$mails = is_string($mails) ? array($mails) : $mails;
-		$params['emailtyp'] = is_string($params['emailtyp']) ? array($params['emailtyp']) : $params['emailtyp'];
-		$mail = '';
-
-		if (is_array($mails))
-		{
-			for ($i = 0; $i < count($mails); $i++)
-			{
-				if (isset($params['emailtyp'][$i]) && $params['emailtyp'][$i] == $this->_sapsfvaluedefaults['kontaktmailprivate']['PerEmail']['emailType'])
-				{
-					$mail = $mails[$i];
-					break;
-				}
-			}
-		}
-		else
-			return $mails;
-
-		return $mail;
-	}
-
-	/**
-	 * Selects correct Kennzeichen (svnr, ersatzkennzeichen) to be inserted in fhc.
-	 * @param $kzval contain Kennzeichen
-	 * @param $params contain kztyp information
-	 * @return string the kz to insert in fhc
-	 */
-	private function _selectKzForFhc($kzval, $params)
-	{
-		$kz = null;
-		if (is_array($kzval))
-		{
-			for ($i = 0; $i < count($kzval); $i++)
-			{
-				if (isset($params['kztyp'][$i]) && $params['kztyp'][$i] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
-				{
-					$kz = $kzval[$i];
-					break;
-				}
-			}
-		}
-		elseif (isset($params['kztyp']) && $params['kztyp'] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
-		{
-			$kz = $kzval;
-		}
-
-		return $kz;
 	}
 }

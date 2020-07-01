@@ -13,7 +13,9 @@ class FhcDbModel extends DB_Model
 		parent::__construct();
 
 		$this->load->model('person/Benutzer_model', 'BenutzerModel');
+		$this->load->model('ressource/Mitarbeiter_model', 'MitarbeiterModel');
 		$this->load->model('codex/Nation_model', 'NationModel');
+		$this->load->model('extensions/FHC-Core-SAPSF/fhcomplete/SAPStundensatz_model', 'StundensatzModel');
 	}
 
 	/**
@@ -176,6 +178,36 @@ class FhcDbModel extends DB_Model
 		}
 
 		return success($mitarbeiterres);
+	}
+
+	/**
+	 * Saves Kalkulatorischen Stundensatz in fhcomplete if mitarbeiter is present.
+	 * @param object $stdsobj Studensatzobject to save.
+	 * @return object error or success
+	 */
+	public function saveKalkStundensatz($stdsobj)
+	{
+		$result = null;
+		$stundensatz = $stdsobj['sap_stundensatz'];
+		$uid = $stundensatz['mitarbeiter_uid'];
+
+		$maExists = $this->MitarbeiterModel->loadWhere(array('mitarbeiter_uid' => $uid));
+
+		if (hasData($maExists))
+		{
+			// TODO insertamum setzen?
+			//$stundensatz['insertamum'] = date('Y-m-d H:i:s');
+			$stdResult = $this->StundensatzModel->insert($stundensatz);
+
+			if (hasData($stdResult))
+				$result = success($uid);
+			else
+				$result = error('Error when inserting kalk. Stundensatz');
+		}
+		else
+			$result = error("Employee $uid does not exist");
+
+		return $result;
 	}
 
 	/**
