@@ -29,17 +29,34 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			),
 			'svnr' => array(
 				'function' => '_selectKzForFhc',
-				'extraParams' => array('table' => 'kztyp', 'name' => 'kztyp', 'fhcfield' => 'svnr')
+				'extraParams' => array(
+					array('table' => 'kztyp', 'name' => 'kztyp', 'fhcfield' => 'svnr')
+				)
 			),
 			'ersatzkennzeichen' => array(
 				'function' => '_selectKzForFhc',
-				'extraParams' => array('table' => 'kztyp', 'name' => 'kztyp', 'fhcfield' => 'ersatzkennzeichen')
+				'extraParams' => array(
+					array('table' => 'kztyp', 'name' => 'kztyp', 'fhcfield' => 'ersatzkennzeichen')
+				)
 			)
 		),
 		'kontaktmail' => array(
 			'kontakt' => array(
 				'function' => '_selectEmailForFhc',
-				'extraParams' => array('table' => 'mailtyp', 'name' => 'emailtyp')
+				'extraParams' => array(
+					array('table' => 'mailtyp', 'name' => 'emailtyp')
+				)
+			)
+		),
+		'kontakttelefon' => array(
+			'kontakt' => array(
+				'function' => '_selectPhoneForFhc',
+				'extraParams' => array(
+					array('table' => 'telefondaten', 'name' => 'telefontyp'),
+					array('table' => 'telefondaten', 'name' => 'landesvorwahl'),
+					array('table' => 'telefondaten', 'name' => 'ortsvorwahl'),
+					array('table' => 'telefondaten', 'name' => 'telefonklappe')
+				)
 			)
 		)
 	);
@@ -123,50 +140,93 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 */
 	protected function _selectEmailForFhc($mails, $params)
 	{
-		$mails = is_string($mails) ? array($mails) : $mails;
-		$params['emailtyp'] = is_string($params['emailtyp']) ? array($params['emailtyp']) : $params['emailtyp'];
-		$mail = '';
-
-		if (is_array($mails))
+		$mail = null;
+		if (isset($mails) && isset($params['emailtyp']))
 		{
-			for ($i = 0; $i < count($mails); $i++)
+			$mails = is_string($mails) ? array($mails) : $mails;
+			$params['emailtyp'] = is_string($params['emailtyp']) ? array($params['emailtyp']) : $params['emailtyp'];
+
+			if (is_array($mails))
 			{
-				if (isset($params['emailtyp'][$i]) && $params['emailtyp'][$i] == $this->_sapsfvaluedefaults['kontaktmailprivate']['PerEmail']['emailType'])
+				for ($i = 0; $i < count($mails); $i++)
 				{
-					$mail = $mails[$i];
-					break;
+					if (isset($params['emailtyp'][$i]) && $params['emailtyp'][$i] == $this->_sapsfvaluedefaults['kontaktmailprivate']['PerEmail']['emailType'])
+					{
+						$mail = $mails[$i];
+						break;
+					}
 				}
 			}
+			else
+				$mail = $mails;
 		}
-		else
-			return $mails;
 
 		return $mail;
 	}
 
 	/**
+	 * Selects and builds correct phone string to be inserted in fhc.
+	 * @param $phones contains all phones present in sapsf
+	 * @param $params contains phone components and phone type
+	 * @return string the phone kontakt to insert in fhc
+	 */
+	protected function _selectPhoneForFhc($phones, $params)
+	{
+		$phone = null;
+
+		if (isset($phones) && isset($params['telefontyp']))
+		{
+			$phones = is_string($phones) ? array($phones) : $phones;
+			$params['telefontyp'] = is_string($params['telefontyp']) ? array($params['telefontyp']) : $params['telefontyp'];
+			$params['landesvorwahl'] = is_string($params['landesvorwahl']) ? array($params['landesvorwahl']) : $params['landesvorwahl'];
+			$params['ortsvorwahl'] = is_string($params['ortsvorwahl']) ? array($params['ortsvorwahl']) : $params['ortsvorwahl'];
+			if (isset($params['telefonklappe']))
+				$params['telefonklappe'] = is_string($params['telefonklappe']) ? array($params['telefonklappe']) : $params['telefonklappe'];
+
+			if (is_array($phones))
+			{
+				for ($i = 0; $i < count($phones); $i++)
+				{
+					if (isset($params['telefontyp'][$i]) && $params['telefontyp'][$i] == $this->_sapsfvaluedefaults['kontakttelprivate']['PerPhone']['phoneType'] && !isEmptyString($phones[$i]))
+					{
+						$phone = $params['landesvorwahl'][$i] . ' ' . $params['ortsvorwahl'][$i] . ' ' . $phones[$i] . (isset($params['telefonklappe'][$i]) ? '-' . $params['telefonklappe'][$i] : '');
+						break;
+					}
+				}
+			}
+			else
+				$phone = $params['landesvorwahl'] . ' ' . $params['ortsvorwahl'] . ' ' . $phones . (isset($params['telefonklappe']) ? '-' . $params['telefonklappe'] : '');
+		}
+		return $phone;
+	}
+
+	/**
 	 * Selects correct Kennzeichen (svnr, ersatzkennzeichen) to be inserted in fhc.
-	 * @param $kzval contain Kennzeichen
+	 * @param $kzval contains Kennzeichen
 	 * @param $params contain kztyp information
 	 * @return string the kz to insert in fhc
 	 */
 	protected function _selectKzForFhc($kzval, $params)
 	{
 		$kz = null;
-		if (is_array($kzval))
+
+		if (isset($kzval) && isset($params['kztyp']))
 		{
-			for ($i = 0; $i < count($kzval); $i++)
+			if (is_array($kzval))
 			{
-				if (isset($params['kztyp'][$i]) && $params['kztyp'][$i] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
+				for ($i = 0; $i < count($kzval); $i++)
 				{
-					$kz = $kzval[$i];
-					break;
+					if (isset($params['kztyp'][$i]) && $params['kztyp'][$i] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
+					{
+						$kz = $kzval[$i];
+						break;
+					}
 				}
 			}
-		}
-		elseif (isset($params['kztyp']) && $params['kztyp'] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
-		{
-			$kz = $kzval;
+			elseif (isset($params['kztyp']) && $params['kztyp'] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
+			{
+				$kz = $kzval;
+			}
 		}
 
 		return $kz;
@@ -204,6 +264,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		$mitarbeiter = $maobj['mitarbeiter'];
 		$benutzer = $maobj['benutzer'];
 		$kontaktmail = $maobj['kontaktmail'];
+		$kontakttelefon = $maobj['kontakttelefon'];
 		$kontaktnotfall = $maobj['kontaktnotfall'];
 		$uid = $benutzer['uid'];
 
@@ -256,6 +317,30 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
 			}
 
+			// update phone - assuming there is only one!
+			$this->ci->KontaktModel->addSelect('kontakt_id');
+			$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
+			$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
+			$kontakttelefon['person_id'] = $person_id;
+
+			$kontakttelToUpdate = $this->ci->KontaktModel->loadWhere(array(
+					'kontakttyp' => $kontakttelefon['kontakttyp'],
+					'person_id' => $person_id,
+					'zustellung' => true)
+			);
+
+			if (hasData($kontakttelToUpdate))
+			{
+				$kontakt_id = getData($kontakttelToUpdate)[0]->kontakt_id;
+				//$this->_stamp('update', $kontaktmail); no stamp because sync to SAPSF can assume it changed -> sync loop
+				$kontakttelres = $this->ci->KontaktModel->update($kontakt_id, $kontakttelefon);
+			}
+			else
+			{
+				$this->_stamp('insert', $kontakttelefon);
+				$kontakttelres = $this->ci->KontaktModel->insert($kontakttelefon);
+			}
+
 			// update kontaktnotfall
 			$kontaktnotfall['person_id'] = $person_id;
 
@@ -306,6 +391,10 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				$kontaktmail['person_id'] = $person_id;
 				$this->_stamp('insert', $kontaktmail);
 				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
+
+				$kontakttelefon['person_id'] = $person_id;
+				$this->_stamp('insert', $kontakttelefon);
+				$kontakttelres = $this->ci->KontaktModel->insert($kontakttelefon);
 
 				if (!isEmptyString($kontaktnotfall['kontakt']))
 				{

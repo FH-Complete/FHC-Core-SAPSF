@@ -31,8 +31,20 @@ $config['fieldmappings']['fromsapsf']['User']['mailtyp'] = array(
 );
 
 $config['fieldmappings']['fromsapsf']['User']['kontaktmail'] = array(
-	/*'email' => 'kontakt'*/
 	'empInfo/personNav/emailNav/emailAddress' => 'kontakt'
+);
+
+$config['fieldmappings']['fromsapsf']['User']['telefondaten'] = array(
+	'empInfo/personNav/phoneNav/phoneType' => 'telefontyp',
+	'empInfo/personNav/phoneNav/countryCode' => 'landesvorwahl',
+	'empInfo/personNav/phoneNav/areaCode' => 'ortsvorwahl',
+	'empInfo/personNav/phoneNav/extension' => 'telefonklappe',
+	// not synced, just needed to get correct phone data to sync
+	// MUST BE PLACED BEFORE KONTAKTPHONE so it's populated before!
+);
+
+$config['fieldmappings']['fromsapsf']['User']['kontakttelefon'] = array(
+	'empInfo/personNav/phoneNav/phoneNumber' => 'kontakt'
 );
 
 $config['fieldmappings']['fromsapsf']['User']['kontaktnotfall'] = array(

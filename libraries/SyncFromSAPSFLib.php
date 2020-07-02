@@ -240,15 +240,24 @@ class SyncFromSAPSFLib
 						$fhcemployee[$fhctable][$fhcfield] = $mapped;
 					}
 
-					// check for convertfunctions, execute with passed parameters if found
+					// check for convertfunctions, execute with passed extra parameters if found
 					if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
 					{
 						$params = array();
-						if (is_array($this->_convertfunctions[$fhctable][$fhcfield]['extraParams']))
+						if (isset($this->_convertfunctions[$fhctable][$fhcfield]['extraParams']) &&
+							is_array($this->_convertfunctions[$fhctable][$fhcfield]['extraParams']))
 						{
-							$params = $this->_convertfunctions[$fhctable][$fhcfield]['extraParams'];
-							if (isset($params['table']) && isset($params['name']) && isset($fhcemployee[$params['table']][$params['name']]))
-								$params[$params['name']] = $fhcemployee[$params['table']][$params['name']];
+							$allparams = $this->_convertfunctions[$fhctable][$fhcfield]['extraParams'];
+
+							foreach ($allparams as $param)
+							{
+								if (isset($param['table']) && isset($param['name']) && isset($fhcemployee[$param['table']][$param['name']]))
+								{
+									$params[$param['name']] = $fhcemployee[$param['table']][$param['name']];
+									if (isset($param['fhcfield']))
+										$params['fhcfield'] = $param['fhcfield'];
+								}
+							}
 						}
 
 						$funcval = isset($mapped) ? $mapped : $sfvalue;

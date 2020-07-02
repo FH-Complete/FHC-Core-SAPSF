@@ -17,8 +17,6 @@ $config['fhcfields']['User'] = array(
 		'geburtsnation' =>
 			array('ref' => 'bis.tbl_nation',
 				'reffield' => 'nation_code'),
-
-		'anrede' => array(),
 		'gebdatum' =>
 			array('name' => 'Geburtsdatum',
 			'type' => 'date'),
@@ -42,7 +40,7 @@ $config['fhcfields']['User'] = array(
 				'pk' => 'mitarbeiter_uid',
 				'type' => 'integer'),
 		'fixangestellt' =>
-			array('type' => 'boolean'),
+			array('type' => 'boolean', 'required' => true),
 		'lektor' =>
 			array('type' => 'boolean'),
 		'bismelden' =>
@@ -72,6 +70,8 @@ $config['fhcfields']['User'] = array(
 	),*/
 	'kontaktmail' => array('kontakt' => array('required' => true,
 		'name' => 'E-Mail-Adresse')
+	),
+	'kontakttelefon' => array('kontakt' => array('name' => 'Telefonkontakt')
 	),
 	'kontaktnotfall' => array('kontakt' => array('name' => 'Notfallkontakt')
 	)

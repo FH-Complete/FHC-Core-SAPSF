@@ -8,6 +8,11 @@ $config['fhcdefaults']['User']['kontaktmail'] = array(
 	'zustellung' => true
 );
 
+$config['fhcdefaults']['User']['kontakttelefon'] = array(
+	'kontakttyp' => 'telefon',
+	'zustellung' => true
+);
+
 $config['fhcdefaults']['User']['kontaktnotfall'] = array(
 	'kontakt' => '',
 	'kontakttyp' => 'notfallkontakt',
@@ -41,24 +46,24 @@ $config['sapsfdefaults']['kontaktmail']['PerEmail'] = array(
 
 // Private Mail
 $config['sapsfdefaults']['kontaktmailprivate']['PerEmail'] = array(
-	'emailType' => 28800,
+	'emailType' => 28800,//1406
 	'isPrimary' => false
 );
 
 // Business Phone
 $config['sapsfdefaults']['kontakttel']['PerPhone'] = array(
-	'phoneType' => 28489,
+	'phoneType' => 28489,//2354
 	'isPrimary' => true
 );
 
 // Private Phone
 $config['sapsfdefaults']['kontakttelprivate']['PerPhone'] = array(
-	'phoneType' => 28491,
+	'phoneType' => 28491,//2358
 	'isPrimary' => false
 );
 
 // Mobile Phone
 $config['sapsfdefaults']['kontakttelmobile']['PerPhone'] = array(
-	'phoneType' => 28490,
+	'phoneType' => 28490,//2356
 	'isPrimary' => false
 );

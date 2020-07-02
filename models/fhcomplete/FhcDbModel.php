@@ -189,23 +189,26 @@ class FhcDbModel extends DB_Model
 	{
 		$result = null;
 		$stundensatz = $stdsobj['sap_stundensatz'];
-		$uid = $stundensatz['mitarbeiter_uid'];
 
-		$maExists = $this->MitarbeiterModel->loadWhere(array('mitarbeiter_uid' => $uid));
-
-		if (hasData($maExists))
+		if (isset($stundensatz['mitarbeiter_uid']) &&
+			isset($stundensatz['sap_kalkulatorischer_stundensatz']) && is_numeric($stundensatz['sap_kalkulatorischer_stundensatz']))
 		{
-			// TODO insertamum setzen?
-			//$stundensatz['insertamum'] = date('Y-m-d H:i:s');
-			$stdResult = $this->StundensatzModel->insert($stundensatz);
+			$uid = $stundensatz['mitarbeiter_uid'];
 
-			if (hasData($stdResult))
-				$result = success($uid);
+			$maExists = $this->MitarbeiterModel->loadWhere(array('mitarbeiter_uid' => $uid));
+
+			if (hasData($maExists))
+			{
+				$stdResult = $this->StundensatzModel->insert($stundensatz);
+
+				if (hasData($stdResult))
+					$result = success($uid);
+				else
+					$result = error('Error when inserting kalk. Stundensatz');
+			}
 			else
-				$result = error('Error when inserting kalk. Stundensatz');
+				$result = error("Employee $uid does not exist");
 		}
-		else
-			$result = error("Employee $uid does not exist");
 
 		return $result;
 	}
