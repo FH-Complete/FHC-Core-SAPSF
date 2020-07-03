@@ -190,8 +190,7 @@ class FhcDbModel extends DB_Model
 		$result = null;
 		$stundensatz = $stdsobj['sap_stundensatz'];
 
-		if (isset($stundensatz['mitarbeiter_uid']) &&
-			isset($stundensatz['sap_kalkulatorischer_stundensatz']) && is_numeric($stundensatz['sap_kalkulatorischer_stundensatz']))
+		if (isset($stundensatz['mitarbeiter_uid']))
 		{
 			$uid = $stundensatz['mitarbeiter_uid'];
 
