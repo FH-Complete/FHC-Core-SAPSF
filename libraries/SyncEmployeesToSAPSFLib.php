@@ -26,9 +26,6 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	private $_convertfunctions = array(
 		'kontaktmail' => array(
 			'uid' => '_convertToAlias'
-		),
-		'kontaktmailprivate' => array(
-			'personIdExternal' => '_checkPrivateMail'
 		)
 	);
 
@@ -86,7 +83,8 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 
 			$sapsfemployees = $this->ci->QueryUserModel->getAll(
 				array($sapsfUidName, self::PERSON_KEY_NAV.'/'.$sapsfPersonIdName, $emailnav.'/'.$sapsfEmailTypeName, $phonenav .'/'.$sapsfPhoneTypeName), // selects
-				array(self::PERSON_KEY_NAV,  $emailnav, $phonenav) // expands
+				array(self::PERSON_KEY_NAV,  $emailnav, $phonenav), // expands
+				null, null, $uids
 			);
 
 			if (isError($sapsfemployees))

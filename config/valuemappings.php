@@ -35,8 +35,11 @@ $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['ausbildungcode'] =
 );
 
 $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['fixangestellt'] = array(
-	'R' => true,
-	'T' => false
+	'S' => true,
+	'N' => false,
+	'E' => false,
+	'H' => false,
+	'F' => false
 );
 
 $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['standort_id'] = array(

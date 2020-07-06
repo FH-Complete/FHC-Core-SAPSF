@@ -20,7 +20,8 @@ $config['fhcdefaults']['User']['kontaktnotfall'] = array(
 );
 
 $config['fhcdefaults']['User']['mitarbeiter'] = array(
-	'standort_id' => 3
+	'standort_id' => 3,
+	'fixangestellt' => false
 );
 
 $config['fhcdefaults']['User']['person'] = array(
@@ -40,7 +41,7 @@ $config['fhcdefaults']['User']['kztyp'] = array(
 
 // Business Mail
 $config['sapsfdefaults']['kontaktmail']['PerEmail'] = array(
-	'emailType' => 28799,//2470,
+	'emailType' => 28799,//1404,
 	'isPrimary' => true
 );
 

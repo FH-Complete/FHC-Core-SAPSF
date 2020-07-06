@@ -25,7 +25,7 @@ class SAPSFQueryModel extends SAPSFClientModel
     const FILTERVALUE_PLACEHOLDER = '?'; // placeholder for replacement of filter values in url
 
 	private $_supported_connectionoperators = array('and','or');
-	private $_supported_logicaloperators = array('eq', 'ne', 'gt', 'ge', 'lt', 'le');
+	private $_supported_logicaloperators = array('eq', 'ne', 'gt', 'ge', 'lt', 'le', 'in');
 
 	// --------------------------------------------------------------------------------------------
 	// Public methods

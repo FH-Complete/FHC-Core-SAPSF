@@ -45,16 +45,17 @@ class QueryUserModel extends SAPSFQueryModel
 	 * @param null $lastModifiedDateTimeProps additional properties checked for lastModifiedDateTime
 	 * @return object userdata
 	 */
-	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null)
+	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null, $uids = null)
 	{
 		$this->_setEntity('User');
 		$this->_setSelects($selects);
 		$this->_setExpands($expands);
 		$this->_setOrderBys(array('lastName', 'firstName'));
 
+		// get all modified after given date
 		if (isset($lastModifiedDateTime))
 		{
-			$lastModFilterStr = '(lastModifiedDateTime gt datetime?';
+			$lastModFilterStr = 'lastModifiedDateTime gt datetime?';
 
 			if (isset($lastModifiedDateTimeProps))
 			{
@@ -67,9 +68,39 @@ class QueryUserModel extends SAPSFQueryModel
 			else
 				$lastModifiedDateTimeProps = array();
 
-			$lastModFilterStr .= ')';
 			$lastModifiedDates = array_pad(array(), count($lastModifiedDateTimeProps) + 1, $lastModifiedDateTime);
 			$this->_setFilterString($lastModFilterStr, $lastModifiedDates);
+		}
+
+		//get all which are active in sapsf OR have "fas aktiv" checked
+		$benutzerfields = $this->config->item('fieldmappings')['fromsapsf']['User']['benutzer'];
+		foreach ($benutzerfields as $sapsfield => $fhcfield)
+		{
+			if ($fhcfield === 'aktiv')
+			{
+				$benutzerfieldname = $sapsfield;
+				break;
+			}
+		}
+
+		$valuemappings = $this->config->item('valuemappings')['fromsapsf']['User']['benutzer']['aktiv'];
+		foreach ($valuemappings as $sapsfield => $fhcfield)
+		{
+			if ($fhcfield === true)
+			{
+				$yesval = $sapsfield;
+				break;
+			}
+		}
+
+		if (isset($benutzerfieldname) && isset($yesval))
+		{
+			$this->_setFilterString("status eq ? or (status eq ? and $benutzerfieldname eq ?)", array('active', 'inactive', $yesval));
+		}
+
+		if (isset($uids))
+		{
+			$this->_setFilter('userId', $uids, 'in');
 		}
 
 		return $this->_query();

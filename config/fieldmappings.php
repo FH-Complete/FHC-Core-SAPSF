@@ -59,7 +59,7 @@ $config['fieldmappings']['fromsapsf']['User']['mitarbeiter'] = array(
 	'empInfo/personNav/personalInfoNav/customString10Nav/externalCode' => 'lektor',
 	'empInfo/personNav/personalInfoNav/customString12Nav/externalCode' => 'bismelden',
 	'empInfo/personNav/personalInfoNav/customString14Nav/externalCode' => 'ausbildungcode',
-	'empInfo/jobInfoNav/regularTempNav/externalCode' => 'fixangestellt',
+	'empInfo/jobInfoNav/employeeTypeNav/externalCode' => 'fixangestellt',
 	'empInfo/jobInfoNav/location' => 'standort_id'
 );
 
