@@ -56,8 +56,8 @@ $config['fieldmappings']['fromsapsf']['User']['mitarbeiter'] = array(
 	'userId' => 'mitarbeiter_uid',
 	'empInfo/personNav/customString1' => 'personalnummer',
 	'externalCodeOfcust_HourlyRateNav/cust_HourlyRate1' => 'stundensatz',
-	'empInfo/personNav/personalInfoNav/customString10Nav/externalCode' => 'lektor',
-	'empInfo/personNav/personalInfoNav/customString12Nav/externalCode' => 'bismelden',
+	'empInfo/jobInfoNav/customString11Nav/externalCode' => 'lektor',
+	'empInfo/jobInfoNav/customString12Nav/externalCode' => 'bismelden',
 	'empInfo/personNav/personalInfoNav/customString14Nav/externalCode' => 'ausbildungcode',
 	'empInfo/jobInfoNav/employeeTypeNav/externalCode' => 'fixangestellt',
 	'empInfo/jobInfoNav/location' => 'standort_id'
@@ -65,7 +65,7 @@ $config['fieldmappings']['fromsapsf']['User']['mitarbeiter'] = array(
 
 $config['fieldmappings']['fromsapsf']['User']['benutzer'] = array(
 	'userId' => 'uid',
-	'empInfo/personNav/personalInfoNav/customString2Nav/externalCode' => 'aktiv'
+	'empInfo/jobInfoNav/customString13Nav/externalCode' => 'aktiv'
 );
 
 /*$config['fieldmappings']['fromsapsf']['User']['bisverwendung'] = array(

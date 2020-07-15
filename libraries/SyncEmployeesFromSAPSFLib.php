@@ -172,7 +172,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 */
 	protected function _selectPhoneForFhc($phones, $params)
 	{
-		$phone = null;
+		$phone = '';
 
 		if (isset($phones) && isset($params['telefontyp']))
 		{
@@ -263,9 +263,6 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		$person = $maobj['person'];
 		$mitarbeiter = $maobj['mitarbeiter'];
 		$benutzer = $maobj['benutzer'];
-		$kontaktmail = $maobj['kontaktmail'];
-		$kontakttelefon = $maobj['kontakttelefon'];
-		$kontaktnotfall = $maobj['kontaktnotfall'];
 		$uid = $benutzer['uid'];
 
 		$this->ci->db->trans_begin();
@@ -293,79 +290,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			$this->_stamp('update', $person);
 			$this->ci->PersonModel->update($person_id, $person);
 
-			// update email - assuming there is only one!
-			$this->ci->KontaktModel->addSelect('kontakt_id');
-			$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
-			$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
-			$kontaktmail['person_id'] = $person_id;
-
-			$kontaktmailToUpdate = $this->ci->KontaktModel->loadWhere(array(
-				'kontakttyp' => $kontaktmail['kontakttyp'],
-				'person_id' => $person_id,
-				'zustellung' => true)
-			);
-
-			if (hasData($kontaktmailToUpdate))
-			{
-				$kontakt_id = getData($kontaktmailToUpdate)[0]->kontakt_id;
-				$this->_stamp('update', $kontaktmail);
-				$kontaktmailres = $this->ci->KontaktModel->update($kontakt_id, $kontaktmail);
-			}
-			else
-			{
-				$this->_stamp('insert', $kontaktmail);
-				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
-			}
-
-			// update phone - assuming there is only one!
-			$this->ci->KontaktModel->addSelect('kontakt_id');
-			$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
-			$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
-			$kontakttelefon['person_id'] = $person_id;
-
-			$kontakttelToUpdate = $this->ci->KontaktModel->loadWhere(array(
-					'kontakttyp' => $kontakttelefon['kontakttyp'],
-					'person_id' => $person_id,
-					'zustellung' => true)
-			);
-
-			if (hasData($kontakttelToUpdate))
-			{
-				$kontakt_id = getData($kontakttelToUpdate)[0]->kontakt_id;
-				//$this->_stamp('update', $kontaktmail); no stamp because sync to SAPSF can assume it changed -> sync loop
-				$kontakttelres = $this->ci->KontaktModel->update($kontakt_id, $kontakttelefon);
-			}
-			else
-			{
-				$this->_stamp('insert', $kontakttelefon);
-				$kontakttelres = $this->ci->KontaktModel->insert($kontakttelefon);
-			}
-
-			// update kontaktnotfall
-			$kontaktnotfall['person_id'] = $person_id;
-
-			$this->ci->KontaktModel->addSelect('kontakt_id');
-			$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
-			$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
-			$kontaktnotfallToUpdate = $this->ci->KontaktModel->loadWhere(
-				array(
-					'kontakttyp' => $kontaktnotfall['kontakttyp'],
-					'person_id' => $person_id,
-					'zustellung' => true
-				)
-			);
-
-			if (hasData($kontaktnotfallToUpdate))
-			{
-				$kontakt_id = getData($kontaktnotfallToUpdate)[0]->kontakt_id;
-				$this->_stamp('update', $kontaktnotfall);
-				$kontaktnotfallres = $this->ci->KontaktModel->update($kontakt_id, $kontaktnotfall);
-			}
-			elseif (!isEmptyString($kontaktnotfall['kontakt']))
-			{
-				$this->_stamp('insert', $kontaktnotfall);
-				$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
-			}
+			$this->_updatePersonContacts($person_id, $maobj);
 
 			// Mitarbeiter may not exist even if there is a Benutzer - update only if already exists, otherwise insert
 			$mitarbeiterexists = $this->ci->MitarbeiterModel->load(array('mitarbeiter_uid' => $uid));
@@ -380,34 +305,46 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				$mitarbeiterres = $this->ci->MitarbeiterModel->insert($mitarbeiter);
 			}
 		}
-		else // new person
+		else
 		{
-			$this->_stamp('insert', $person);
-			$personres = $this->ci->PersonModel->insert($person);
-			if (isSuccess($personres))
+			// no benutzer found - checking if person with same svnr already exists
+			if (isset($person['svnr']) && !isEmptyString($person['svnr']))
 			{
-				$person_id = getData($personres);
+				$this->ci->PersonModel->addSelect('person_id');
+				$hasSvnr = $this->ci->PersonModel->loadWhere(array('svnr' => $person['svnr']));
 
-				$kontaktmail['person_id'] = $person_id;
-				$this->_stamp('insert', $kontaktmail);
-				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
-
-				$kontakttelefon['person_id'] = $person_id;
-				$this->_stamp('insert', $kontakttelefon);
-				$kontakttelres = $this->ci->KontaktModel->insert($kontakttelefon);
-
-				if (!isEmptyString($kontaktnotfall['kontakt']))
+				if (isSuccess($hasSvnr) && hasData($hasSvnr))
 				{
-					$kontaktnotfall['person_id'] = $person_id;
-					$this->_stamp('insert', $kontaktnotfall);
-					$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
+					$person_id = getData($hasSvnr)[0]->person_id;
+					// update person if found svnr
+					$this->_stamp('update', $person);
+					$this->ci->PersonModel->update($person_id, $person);
 				}
+			}
+
+			if (!isset($person_id))
+			{
+				// new person
+				$this->_stamp('insert', $person);
+				$personres = $this->ci->PersonModel->insert($person);
+				if (hasData($personres))
+				{
+					$person_id = getData($personres);
+				}
+			}
+
+			if (isset($person_id))
+			{
+				$this->_updatePersonContacts($person_id, $maobj);
+
+				// generate benutzer
 				$benutzer['person_id'] = $person_id;
 				$benutzer['aktivierungscode'] = generateActivationKey();
 
 				$this->_stamp('insert', $benutzer);
 				$benutzerres = $this->ci->BenutzerModel->insert($benutzer);
 
+				// insert mitarbeiter
 				if (isSuccess($benutzerres))
 				{
 					$this->_stamp('insert', $mitarbeiter);
@@ -430,6 +367,87 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		{
 			$this->ci->db->trans_commit();
 			return success($uid);
+		}
+	}
+
+	private function _updatePersonContacts($person_id, $maobj)
+	{
+		$kontaktmail = $maobj['kontaktmail'];
+		$kontakttelefon = $maobj['kontakttelefon'];
+		$kontaktnotfall = $maobj['kontaktnotfall'];
+
+		// update email - assuming there is only one!
+		$this->ci->KontaktModel->addSelect('kontakt_id');
+		$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
+		$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
+		$kontaktmail['person_id'] = $person_id;
+
+		$kontaktmailToUpdate = $this->ci->KontaktModel->loadWhere(array(
+				'kontakttyp' => $kontaktmail['kontakttyp'],
+				'person_id' => $person_id,
+				'zustellung' => true)
+		);
+
+		if (hasData($kontaktmailToUpdate))
+		{
+			$kontakt_id = getData($kontaktmailToUpdate)[0]->kontakt_id;
+			$this->_stamp('update', $kontaktmail);
+			$kontaktmailres = $this->ci->KontaktModel->update($kontakt_id, $kontaktmail);
+		}
+		elseif (!isEmptyString($kontaktmail['kontakt']))
+		{
+			$this->_stamp('insert', $kontaktmail);
+			$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
+		}
+
+		// update phone - assuming there is only one!
+		$this->ci->KontaktModel->addSelect('kontakt_id');
+		$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
+		$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
+		$kontakttelefon['person_id'] = $person_id;
+
+		$kontakttelToUpdate = $this->ci->KontaktModel->loadWhere(array(
+				'kontakttyp' => $kontakttelefon['kontakttyp'],
+				'person_id' => $person_id,
+				'zustellung' => true)
+		);
+
+		if (hasData($kontakttelToUpdate))
+		{
+			$kontakt_id = getData($kontakttelToUpdate)[0]->kontakt_id;
+			//$this->_stamp('update', $kontaktmail); no stamp because sync to SAPSF can assume it changed -> sync loop
+			$kontakttelres = $this->ci->KontaktModel->update($kontakt_id, $kontakttelefon);
+		}
+		elseif (!isEmptyString($kontakttelefon['kontakt']))
+		{
+			$this->_stamp('insert', $kontakttelefon);
+			$kontakttelres = $this->ci->KontaktModel->insert($kontakttelefon);
+		}
+
+		// update kontaktnotfall
+		$kontaktnotfall['person_id'] = $person_id;
+
+		$this->ci->KontaktModel->addSelect('kontakt_id');
+		$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
+		$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
+		$kontaktnotfallToUpdate = $this->ci->KontaktModel->loadWhere(
+			array(
+				'kontakttyp' => $kontaktnotfall['kontakttyp'],
+				'person_id' => $person_id,
+				'zustellung' => true
+			)
+		);
+
+		if (hasData($kontaktnotfallToUpdate))
+		{
+			$kontakt_id = getData($kontaktnotfallToUpdate)[0]->kontakt_id;
+			$this->_stamp('update', $kontaktnotfall);
+			$kontaktnotfallres = $this->ci->KontaktModel->update($kontakt_id, $kontaktnotfall);
+		}
+		elseif (!isEmptyString($kontaktnotfall['kontakt']))
+		{
+			$this->_stamp('insert', $kontaktnotfall);
+			$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
 		}
 	}
 }

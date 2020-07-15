@@ -21,9 +21,7 @@ $config['fhcfields']['User'] = array(
 			array('name' => 'Geburtsdatum',
 			'type' => 'date'),
 		'svnr' =>
-			array('unique' => true,
-				'pk' => 'person_id',
-				'length' => 10),
+			array('length' => 10),
 		'ersatzkennzeichen' =>
 			array('unique' => true,
 				'pk' => 'person_id')
@@ -42,9 +40,9 @@ $config['fhcfields']['User'] = array(
 		'fixangestellt' =>
 			array('type' => 'boolean', 'required' => true),
 		'lektor' =>
-			array('type' => 'boolean'),
+			array('type' => 'boolean', 'required' => true),
 		'bismelden' =>
-			array('type' => 'boolean'),
+			array('type' => 'boolean', 'required' => true),
 		'stundensatz' =>
 			array('type' => 'integer'),
 		'ausbildungcode' =>
@@ -68,12 +66,23 @@ $config['fhcfields']['User'] = array(
 		'plz' => array('name' => 'Postleitzahl'),
 		'gemeinde' => array()
 	),*/
-	'kontaktmail' => array('kontakt' => array('required' => true,
-		'name' => 'E-Mail-Adresse')
+	'kontaktmail' => array('kontakt' =>
+		array(
+			'required' => true,
+			'name' => 'E-Mail-Adresse'
+		)
 	),
-	'kontakttelefon' => array('kontakt' => array('name' => 'Telefonkontakt')
+	'kontakttelefon' => array('kontakt' =>
+		array(
+			'name' => 'Telefonkontakt',
+			'notnull' => true
+		)
 	),
-	'kontaktnotfall' => array('kontakt' => array('name' => 'Notfallkontakt')
+	'kontaktnotfall' => array('kontakt' =>
+		array(
+			'name' => 'Notfallkontakt',
+			'notnull' => true
+		)
 	)
 );
 

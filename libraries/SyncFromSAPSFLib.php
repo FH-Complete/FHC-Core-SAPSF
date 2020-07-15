@@ -228,7 +228,7 @@ class SyncFromSAPSFLib
 						}
 					}
 
-					// set sapsf value unless it is null and there is a default
+					// set sapsf value if it is not null or there is no default
 					if (isset($sfvalue) || !isset($fhcemployee[$fhctable][$fhcfield]))
 						$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
 
@@ -359,7 +359,7 @@ class SyncFromSAPSFLib
 								$haserror = true;
 								$errortext = 'has wrong data type';
 							}
-								// right string length?
+							// right string length?
 							$rightlength = true;
 							if (!$haserror && ($params['type'] === 'string' || $params['type'] === 'base64'))
 							{
@@ -405,10 +405,19 @@ class SyncFromSAPSFLib
 							}
 						}
 					}
-					elseif ($required)
+					else
 					{
-						$haserror = true;
-						$errortext = 'is missing';
+						if ($required)
+						{
+							$haserror = true;
+							$errortext = 'is missing';
+						}
+						elseif (isset($params['notnull']) && $params['notnull'] === true)
+						{
+							// notnull constraint violated
+							$haserror = true;
+							$errortext = "cannot be null";
+						}
 					}
 
 					if ($haserror)
