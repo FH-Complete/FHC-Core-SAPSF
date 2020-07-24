@@ -218,14 +218,14 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				{
 					if (isset($params['kztyp'][$i]) && $params['kztyp'][$i] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
 					{
-						$kz = $kzval[$i];
+						$kz = str_replace(' ', '', $kzval[$i]);
 						break;
 					}
 				}
 			}
 			elseif (isset($params['kztyp']) && $params['kztyp'] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
 			{
-				$kz = $kzval;
+				$kz = str_replace(' ', '', $kzval);
 			}
 		}
 
