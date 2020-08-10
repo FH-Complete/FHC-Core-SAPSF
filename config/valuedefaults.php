@@ -32,7 +32,7 @@ $config['fhcdefaults']['User']['person'] = array(
 );
 
 $config['fhcdefaults']['User']['kztyp'] = array(
-	'svnr' => 'svnr', // svnr/essn
+	'svnr' => 'SocialSecurityNumber', // svnr/essn
 	'ersatzkennzeichen' => 'ekz'
 );
 
