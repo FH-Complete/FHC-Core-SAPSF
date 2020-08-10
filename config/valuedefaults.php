@@ -70,3 +70,9 @@ $config['sapsfdefaults']['kontakttelmobile']['PerPhone'] = array(
 	'phoneType' => 28490,//2356 / 28490
 	'isPrimary' => false
 );
+
+// kalkulatorischer Stundensatz
+$config['sapsfdefaults']['sap_kalkulatorischer_stundensatz']['HourlyRates'] = array(
+	'hourlyRatesType' => 'kalkSt',
+	'isPrimary' => false
+);

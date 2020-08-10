@@ -58,7 +58,15 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 					array('table' => 'telefondaten', 'name' => 'telefonklappe')
 				)
 			)
-		)
+		),
+		'sap_kalkulatorischer_stundensatz' => array(
+			'sap_kalkulatorischer_stundensatz' => array(
+				'function' => '_selectKalkStundensatzForFhc',
+				'extraParams' => array(
+					array('table' => 'sap_kalkulatorischer_stundensatz_typ', 'name' => 'sap_kalkulatorischer_stundensatz_typ')
+				)
+			)
+		),
 	);
 
 	/**
@@ -230,6 +238,40 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 
 		return $kz;
+	}
+
+	/**
+	 * Selects correct kalkulatorischer Stundensatz to be inserted in fhc.
+	 * @param $stundensaetze
+	 * @param $params contains Stundensatz type
+	 * @return string the kalkulatorischer Stundensatz to insert in fhc
+	 */
+	protected function _selectKalkStundensatzForFhc($stundensaetze, $params)
+	{
+		$stundensatz = null;
+		if (isset($stundensaetze) && isset($params['sap_kalkulatorischer_stundensatz_typ']))
+		{
+			$stundensaetze = is_string($stundensaetze) ? array($stundensaetze) : $stundensaetze;
+			$params['sap_kalkulatorischer_stundensatz_typ'] = is_string($params['sap_kalkulatorischer_stundensatz_typ']) ?
+				array($params['sap_kalkulatorischer_stundensatz_typ']) : $params['sap_kalkulatorischer_stundensatz_typ'];
+
+			if (is_array($stundensaetze))
+			{
+				for ($i = 0; $i < count($stundensaetze); $i++)
+				{
+					if (isset($params['sap_kalkulatorischer_stundensatz_typ'][$i]) &&
+						$params['sap_kalkulatorischer_stundensatz_typ'][$i] == $this->_sapsfvaluedefaults['sap_kalkulatorischer_stundensatz']['HourlyRates']['hourlyRatesType'])
+					{
+						$stundensatz = $stundensaetze[$i];
+						break;
+					}
+				}
+			}
+			else
+				$stundensatz = $stundensaetze;
+		}
+
+		return $stundensatz;
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

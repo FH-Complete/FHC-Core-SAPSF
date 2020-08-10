@@ -73,9 +73,15 @@ $config['fieldmappings']['fromsapsf']['User']['benutzer'] = array(
 	'empInfo/personNav/personalInfoNav/customStringxNav/externalCode' => 'hautpberuf'
 );*/
 
-$config['fieldmappings']['fromsapsf']['HourlyRate']['sap_stundensatz'] = array(
+$config['fieldmappings']['fromsapsf']['HourlyRate']['sap_kalkulatorischer_stundensatz_typ'] = array(
+	'empInfo/compInfoNav/empPayCompRecurringNav/payComponent' => 'sap_kalkulatorischer_stundensatz_typ'
+	// not synced, just needed to get correct stundensatz to sync
+	// MUST BE PLACED BEFORE STUNDENSATZ so it's populated before!
+);
+
+$config['fieldmappings']['fromsapsf']['HourlyRate']['sap_kalkulatorischer_stundensatz'] = array(
 	'userId' => 'mitarbeiter_uid',
-	'externalCodeOfcust_HourlyRateNav/cust_HourlyRate2' => 'sap_kalkulatorischer_stundensatz'
+	'empInfo/compInfoNav/empPayCompRecurringNav/paycompvalue' => 'sap_kalkulatorischer_stundensatz'
 );
 
 $config['fieldmappings']['tosapsf']['kontakttel']['PerPhone'] = array(

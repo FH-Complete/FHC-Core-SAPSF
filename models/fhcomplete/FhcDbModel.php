@@ -86,7 +86,7 @@ class FhcDbModel extends DB_Model
 	}
 
 	/**
-	 * Takes care of actions concerting alias for a user.
+	 * Takes care of actions concerning alias for a user.
 	 * - If non-empty alias exists, it is returned.
 	 * - If alias is not present, it is generated.
 	 * - if alias is generated, it is updated in fhcomplete.
@@ -127,7 +127,8 @@ class FhcDbModel extends DB_Model
 					$alias = $genAlias;
 				}
 			}
-		} 
+		}
+
 		return $alias;
 	}
 
@@ -188,7 +189,7 @@ class FhcDbModel extends DB_Model
 	public function saveKalkStundensatz($stdsobj)
 	{
 		$result = null;
-		$stundensatz = $stdsobj['sap_stundensatz'];
+		$stundensatz = $stdsobj['sap_kalkulatorischer_stundensatz'];
 
 		if (isset($stundensatz['mitarbeiter_uid']))
 		{

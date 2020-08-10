@@ -155,6 +155,7 @@ class SyncFromSAPSFLib
 	/**
 	 * Converts object from SAPSF to save in the fhc database.
 	 * @param $sapsfobj
+	 * @param $objtype
 	 * @return array converted employee
 	 */
 	protected function _convertSapsfObjToFhc($sapsfobj, $objtype)
