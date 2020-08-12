@@ -169,12 +169,12 @@ abstract class SAPSFClientModel extends CI_Model
 			$responsebody = $response->body;
 			if (isset($responsebody->d))
 			{
-				if (isset($responsebody->d->results))
+				/*if (isset($responsebody->d->results))
 				{
 					$data = $responsebody->d->results;
 				}
-				else
-					$data = $responsebody->d;
+				else*/
+				$data = $responsebody->d;
 			}
 			else
 				$data = $responsebody;

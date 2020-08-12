@@ -38,11 +38,11 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 
 		//load models
 		$this->ci->load->model('person/person_model', 'PersonModel');
-		$this->ci->load->model('ressource/mitarbeiter_model', 'MitarbeiterModel');
-		$this->ci->load->model('person/benutzer_model', 'BenutzerModel');
+		//$this->ci->load->model('ressource/mitarbeiter_model', 'MitarbeiterModel');
+		//$this->ci->load->model('person/benutzer_model', 'BenutzerModel');
 		$this->ci->load->model('person/adresse_model', 'AdresseModel');
 		$this->ci->load->model('person/kontakt_model', 'KontaktModel');
-		$this->ci->load->model('codex/Nation_model', 'NationModel');
+		//$this->ci->load->model('codex/Nation_model', 'NationModel');
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 	}

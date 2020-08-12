@@ -13,7 +13,15 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	const SAPSF_EMPLOYEES_FROM_SAPSF = 'SyncEmployeesFromSAPSF';
 	const SAPSF_HOURLY_RATES_FROM_SAPSF = 'SyncHourlyRatesFromSAPSF';
 
-	protected $_convertfunctions = array(
+	protected $_convertfunctions = array( // extraParams -> additional parameters coming from SF which are needed by function
+		'mitarbeiter' =>array(
+			'stundensatz' => array(
+				'function' => '_selectStundensatzForFhc',
+				'extraParams' => array(
+					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_typ')
+				)
+			)
+		),
 		'person' => array(
 			'gebdatum' => array(
 				'function' => '_convertDateToFhc',
@@ -63,7 +71,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			'sap_kalkulatorischer_stundensatz' => array(
 				'function' => '_selectKalkStundensatzForFhc',
 				'extraParams' => array(
-					array('table' => 'sap_kalkulatorischer_stundensatz_typ', 'name' => 'sap_kalkulatorischer_stundensatz_typ')
+					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_typ')
 				)
 			)
 		),
@@ -148,28 +156,12 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 */
 	protected function _selectEmailForFhc($mails, $params)
 	{
-		$mail = null;
-		if (isset($mails) && isset($params['emailtyp']))
-		{
-			$mails = is_string($mails) ? array($mails) : $mails;
-			$params['emailtyp'] = is_string($params['emailtyp']) ? array($params['emailtyp']) : $params['emailtyp'];
-
-			if (is_array($mails))
-			{
-				for ($i = 0; $i < count($mails); $i++)
-				{
-					if (isset($params['emailtyp'][$i]) && $params['emailtyp'][$i] == $this->_sapsfvaluedefaults['kontaktmailprivate']['PerEmail']['emailType'])
-					{
-						$mail = $mails[$i];
-						break;
-					}
-				}
-			}
-			else
-				$mail = $mails;
-		}
-
-		return $mail;
+		return $this->_selectFieldForFhc(
+			$mails,
+			$params,
+			'emailtyp',
+			$this->_sapsfvaluedefaults['kontaktmailprivate']['PerEmail']['emailType']
+		);
 	}
 
 	/**
@@ -246,36 +238,70 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 * @param $params contains Stundensatz type
 	 * @return string the kalkulatorischer Stundensatz to insert in fhc
 	 */
+	protected function _selectStundensatzForFhc($stundensaetze, $params)
+	{
+		return $this->_selectFieldForFhc(
+			$stundensaetze,
+			$params,
+			'sap_stundensatz_typ',
+			$this->_sapsfvaluedefaults['sap_lekt_stundensatz']['HourlyRates']['hourlyRatesType']
+		);
+	}
+
+	/**
+	 * Selects correct kalkulatorischer Stundensatz to be inserted in fhc.
+	 * @param $stundensaetze
+	 * @param $params contains Stundensatz type
+	 * @return string the kalkulatorischer Stundensatz to insert in fhc
+	 */
 	protected function _selectKalkStundensatzForFhc($stundensaetze, $params)
 	{
-		$stundensatz = null;
-		if (isset($stundensaetze) && isset($params['sap_kalkulatorischer_stundensatz_typ']))
-		{
-			$stundensaetze = is_string($stundensaetze) ? array($stundensaetze) : $stundensaetze;
-			$params['sap_kalkulatorischer_stundensatz_typ'] = is_string($params['sap_kalkulatorischer_stundensatz_typ']) ?
-				array($params['sap_kalkulatorischer_stundensatz_typ']) : $params['sap_kalkulatorischer_stundensatz_typ'];
+		return $this->_selectFieldForFhc(
+			$stundensaetze,
+			$params,
+			'sap_stundensatz_typ',
+			$this->_sapsfvaluedefaults['sap_kalkulatorischer_stundensatz']['HourlyRates']['hourlyRatesType']
+		);
+	}
 
-			if (is_array($stundensaetze))
+	//------------------------------------------------------------------------------------------------------------------
+	// Private methods
+
+	/**
+	 * Selects a value out of a data array based on extraparameters
+	 * @param $data
+	 * @param $params extraparameters
+	 * @param $fieldname of the extraparameters
+	 * @param $sffieldtype type to select
+	 * @return object|null
+	 */
+	private function _selectFieldForFhc($data, $params, $fieldname, $sffieldtype)
+	{
+		$returnvalue = null;
+		if (isset($data) && isset($params[$fieldname]))
+		{
+			$data = is_string($data) ? array($data) : $data;
+			$params[$fieldname] = is_string($params[$fieldname]) ?
+				array($params[$fieldname]) : $params[$fieldname];
+
+			if (is_array($data))
 			{
-				for ($i = 0; $i < count($stundensaetze); $i++)
+				for ($i = 0; $i < count($data); $i++)
 				{
-					if (isset($params['sap_kalkulatorischer_stundensatz_typ'][$i]) &&
-						$params['sap_kalkulatorischer_stundensatz_typ'][$i] == $this->_sapsfvaluedefaults['sap_kalkulatorischer_stundensatz']['HourlyRates']['hourlyRatesType'])
+					if (isset($params[$fieldname][$i]) &&
+						$params[$fieldname][$i] == $sffieldtype)//$this->_sapsfvaluedefaults['sap_kalkulatorischer_stundensatz']['HourlyRates']['hourlyRatesType'])
 					{
-						$stundensatz = $stundensaetze[$i];
+						$returnvalue = $data[$i];
 						break;
 					}
 				}
 			}
 			else
-				$stundensatz = $stundensaetze;
+				$returnvalue = $data;
 		}
 
-		return $stundensatz;
+		return $returnvalue;
 	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	// Private methods
 
 	/**
 	 * Saves Mitarbeiter in fhc database.
@@ -395,6 +421,9 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			}
 		}
 
+		// generate and save kurzbz
+		$this->ci->FhcDbModel->manageKurzbzForUid($uid);
+
 		// Transaction complete!
 		$this->ci->db->trans_complete();
 
@@ -412,6 +441,11 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 	}
 
+	/**
+	 * Updates contacts of a person in fhc database, including mail, telefon, contact
+	 * @param $person_id
+	 * @param $maobj the employee to save in db
+	 */
 	private function _updatePersonContacts($person_id, $maobj)
 	{
 		$kontaktmail = $maobj['kontaktmail'];

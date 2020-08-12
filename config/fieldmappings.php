@@ -52,10 +52,18 @@ $config['fieldmappings']['fromsapsf']['User']['kontaktnotfall'] = array(
 	'empInfo/personNav/emergencyContactNav/name' => 'anmerkung'
 );
 
+$stundensatztyp = array(
+	'empInfo/compInfoNav/empPayCompRecurringNav/payComponent' => 'sap_stundensatz_typ'
+	// not synced, just needed to get correct stundensatz to sync
+	// MUST BE PLACED BEFORE STUNDENSATZ so it's populated before!
+);
+
+$config['fieldmappings']['fromsapsf']['User']['sap_stundensatz_typ'] = $stundensatztyp;
+
 $config['fieldmappings']['fromsapsf']['User']['mitarbeiter'] = array(
 	'userId' => 'mitarbeiter_uid',
 	'empInfo/personNav/customString1' => 'personalnummer',
-	'externalCodeOfcust_HourlyRateNav/cust_HourlyRate1' => 'stundensatz',
+	'empInfo/compInfoNav/empPayCompRecurringNav/paycompvalue' => 'stundensatz',
 	'empInfo/jobInfoNav/customString11Nav/externalCode' => 'lektor',
 	'empInfo/jobInfoNav/customString12Nav/externalCode' => 'bismelden',
 	'empInfo/personNav/personalInfoNav/customString14Nav/externalCode' => 'ausbildungcode',
@@ -73,11 +81,7 @@ $config['fieldmappings']['fromsapsf']['User']['benutzer'] = array(
 	'empInfo/personNav/personalInfoNav/customStringxNav/externalCode' => 'hautpberuf'
 );*/
 
-$config['fieldmappings']['fromsapsf']['HourlyRate']['sap_kalkulatorischer_stundensatz_typ'] = array(
-	'empInfo/compInfoNav/empPayCompRecurringNav/payComponent' => 'sap_kalkulatorischer_stundensatz_typ'
-	// not synced, just needed to get correct stundensatz to sync
-	// MUST BE PLACED BEFORE STUNDENSATZ so it's populated before!
-);
+$config['fieldmappings']['fromsapsf']['HourlyRate']['sap_stundensatz_typ'] = $stundensatztyp;
 
 $config['fieldmappings']['fromsapsf']['HourlyRate']['sap_kalkulatorischer_stundensatz'] = array(
 	'userId' => 'mitarbeiter_uid',

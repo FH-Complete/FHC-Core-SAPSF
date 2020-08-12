@@ -35,12 +35,10 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 			$lastNewJobs = getData($lastNewJobs);
 
 			// only employees changed after last full sync
-			$this->JobsQueueModel->addOrder('creationtime', 'DESC');
-			$lastDoneJobs = $this->JobsQueueModel->loadWhere(array(
-				'status' => jobsqueuelib::STATUS_DONE,
-				'type' => SyncEmployeesFromSAPSFLib::SAPSF_EMPLOYEES_FROM_SAPSF,
-				'input' => null // input empty -> sync all
-				)
+			$lastDoneJobs = $this->getJobsByTypeStatusInput(
+				SyncEmployeesFromSAPSFLib::SAPSF_EMPLOYEES_FROM_SAPSF,
+				jobsqueuelib::STATUS_DONE,
+				null
 			);
 
 			if (isError($lastDoneJobs))

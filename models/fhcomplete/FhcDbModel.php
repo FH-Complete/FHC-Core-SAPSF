@@ -133,6 +133,52 @@ class FhcDbModel extends DB_Model
 	}
 
 	/**
+	 * Takes care of actions concerning kurzbz for a user.
+	 * - If non-empty kurzbz exists, it is returned.
+	 * - If kurzbz is not present, it is generated.
+	 * - if kurzbz is generated, it is updated in fhcomplete.
+	 * @param string $uid
+	 * @return string kurzbz for the uid or empty string
+	 */
+	public function manageKurzbzForUid($uid)
+	{
+		$kurzbz = '';
+		$this->MitarbeiterModel->addSelect('kurzbz');
+		$kurzbzres = $this->MitarbeiterModel->loadWhere(array('mitarbeiter_uid' => $uid));
+		$hasKurzbz = false;
+
+		if (isSuccess($kurzbzres) && !hasData($kurzbzres))
+		{
+			$kurzbzres = getData($kurzbzres);
+			$kurzbzres = $kurzbzres[0]->kurzbz;
+			if (!isEmptyString($kurzbzres))
+			{
+				$kurzbz = $kurzbzres;
+				$hasKurzbz = true;
+			}
+		}
+
+		if (!$hasKurzbz)
+		{
+			// no non-empty kurzbz found -> generate
+			$genKurzbz = $this->MitarbeiterModel->generateKurzbz($uid);
+			if (hasData($genKurzbz))
+			{
+				$genKurzbz = getData($genKurzbz);
+
+				if (!isEmptyString($genKurzbz))
+				{
+					// set alias in fhcomplete
+					$this->MitarbeiterModel->update(array('mitarbeiter_uid' => $uid), array('kurzbz' => $genKurzbz));
+					$kurzbz = $genKurzbz;
+				}
+			}
+		}
+
+		return $kurzbz;
+	}
+
+	/**
 	 * Gets Mitarbeiter with Firmentelefon.
 	 * @param array $uids filter by uids
 	 * @return object

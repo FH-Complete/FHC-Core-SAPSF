@@ -71,8 +71,12 @@ $config['sapsfdefaults']['kontakttelmobile']['PerPhone'] = array(
 	'isPrimary' => false
 );
 
+// Lektorentundensatz
+$config['sapsfdefaults']['sap_lekt_stundensatz']['HourlyRates'] = array(
+	'hourlyRatesType' => 'StL'
+);
+
 // kalkulatorischer Stundensatz
 $config['sapsfdefaults']['sap_kalkulatorischer_stundensatz']['HourlyRates'] = array(
-	'hourlyRatesType' => 'kalkSt',
-	'isPrimary' => false
+	'hourlyRatesType' => 'kalkSt'
 );

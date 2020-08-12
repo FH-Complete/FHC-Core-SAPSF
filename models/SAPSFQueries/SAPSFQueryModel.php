@@ -49,22 +49,47 @@ class SAPSFQueryModel extends SAPSFClientModel
 	protected function _query()
     {
     	$result = null;
-    	$this->_setFormat();
+    	$totalresultdata = array();
+
+		$this->_setFormat();
 		$this->_generateQueryString();
 
 		if ($this->_hasError())
 		{
-			$result = error(implode("; ", $this->_errors));
+			return error(implode("; ", $this->_errors));
 		}
 		else
 		{
-			$result = $this->_call($this->_odataQueryString, SAPSFClientLib::HTTP_GET_METHOD);
+			while(true)
+			{
+				$result = $this->_call($this->_odataQueryString, SAPSFClientLib::HTTP_GET_METHOD);
+				if (hasData($result))
+				{
+					$resultdata = getData($result);
+					if (isset($resultdata->results))
+					{
+						$totalresultdata = array_merge($totalresultdata, $resultdata->results);
+						if (isset($resultdata->__next))
+						{
+							$nextOdataQueryString = str_replace($this->sapsfclientlib->getBaseUri(), '', $resultdata->__next);
+							$this->_setOdataQueryString($nextOdataQueryString);
+						}
+						else
+							break;
+					}
+					else
+						return $result; // no results - return as is
+				}
+				else
+					return $result;
+			}
 		}
 
 		// reset properties
 		$this->_initialiseProperties();
 
-    	return $result;
+		return success($totalresultdata);
+
     }
 
 	/**

@@ -20,7 +20,7 @@ class SAPSFClientLib
 	const COOKIE_PARAM = 'set-cookie';
 	const TOKEN_PARAM = 'x-csrf-token';
     //const HTTP_DELETE_METHOD = 'DELETE'; // http deletemethod name
-    const URI_TEMPLATE = '%s://%s/%s/%s'; // URI format
+    const BASE_URI_TEMPLATE = '%s://%s/%s/'; // URI format
 
 	// Blocking errors
 	const CONNECTION_ERROR = 'CONNECTION_ERROR';
@@ -151,6 +151,22 @@ class SAPSFClientLib
 		$this->_callParametersArray = array();
 	}
 
+	/**
+	 * get only the base uri for API calls
+	 * @return string
+	 */
+	public function getBaseUri()
+	{
+		$uri = sprintf(
+				SAPSFClientLib::BASE_URI_TEMPLATE,
+				$this->_configArray['protocol'],
+				$this->_configArray['host'],
+				$this->_configArray['path']
+			);
+
+		return $uri;
+	}
+
     // --------------------------------------------------------------------------------------------
     // Private methods
 
@@ -193,15 +209,7 @@ class SAPSFClientLib
      */
     private function _generateURI()
     {
-        $uri = sprintf(
-            SAPSFClientLib::URI_TEMPLATE,
-            $this->_configArray['protocol'],
-            $this->_configArray['host'],
-            $this->_configArray['path'],
-            $this->_odataUriPart
-        );
-
-        return $uri;
+        return $this->getBaseUri() . $this->_odataUriPart;
     }
 
 	/**
