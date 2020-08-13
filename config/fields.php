@@ -111,7 +111,9 @@ $config['sapsflastmodifiedfields'] = array(
 	"empInfo/personNav",
 	"empInfo/personNav/nationalIdNav",
 	"empInfo/personNav/emailNav",
+	"empInfo/personNav/phoneNav",
 	"empInfo/personNav/emergencyContactNav",
 	"empInfo/personNav/personalInfoNav",
-	"empInfo/jobInfoNav"
+	"empInfo/jobInfoNav",
+	"empInfo/compInfoNav/empPayCompRecurringNav"
 );
