@@ -421,6 +421,9 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			}
 		}
 
+		// generate and save alias
+		$this->ci->FhcDbModel->manageAliasForUid($uid);
+
 		// generate and save kurzbz
 		$this->ci->FhcDbModel->manageKurzbzForUid($uid);
 

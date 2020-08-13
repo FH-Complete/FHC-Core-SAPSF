@@ -43,7 +43,7 @@ $config['fhcdefaults']['User']['kztyp'] = array(
 
 // Business Mail
 $config['sapsfdefaults']['kontaktmail']['PerEmail'] = array(
-	'emailType' => 28799,//1404 / 28799
+	'emailType' => 29298,//1404 / 29298
 	'isPrimary' => true
 );
 
