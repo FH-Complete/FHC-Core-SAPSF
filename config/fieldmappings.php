@@ -3,7 +3,8 @@
 /**
  * config file containing mapping of fieldnames from fhcomplete and SAP Success Factors
  * array structure:
- * ['fieldmappings']['mobilityonlineobject']['fhctable'] = array('fhcfieldname' => 'mobilityonlinefieldname')
+ * ['fieldmappings']['syncdirection']['objecttosyncfrom']['objecttosyncinto'] =
+ * array('objecttosyncfromfieldname' => 'objecttosyncintofieldname')
  */
 
 $config['fieldmappings']['fromsapsf']['User']['kztyp'] = array(
