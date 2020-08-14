@@ -25,7 +25,10 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 
 	private $_convertfunctions = array(
 		'kontaktmail' => array(
-			'uid' => '_convertToAlias'
+			'uid' => '_convertToAliasMail'
+		),
+		'kontaktmailtech' => array(
+			'uid' => '_convertToTechMail'
 		)
 	);
 
@@ -178,7 +181,8 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	 */
 	private function _convertEmployeeToSapsf($employee)
 	{
-		$fhctables = array('benutzer', 'person', 'mitarbeiter', 'kontakttel', 'kontakttelprivate', 'kontakttelmobile', 'kontaktmail', 'kontaktmailprivate');
+		$fhctables = array('benutzer', 'person', 'mitarbeiter', 'kontakttel', 'kontakttelprivate', 'kontakttelmobile',
+			'kontaktmail', 'kontaktmailprivate', 'kontaktmailtech');
 		$sapsfemployee = array();
 
 		foreach ($fhctables as $fhctable)
@@ -240,7 +244,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	 * @param string $uid
 	 * @return string
 	 */
-	private function _convertToAlias($uid)
+	private function _convertToAliasMail($uid)
 	{
 		$alias = null;
 		$this->ci->BenutzerModel->addLimit(1);
@@ -255,5 +259,19 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 		}
 
 		return $alias;
+	}
+
+	/**
+	 * Gets correct alias for a uid
+	 * @param string $uid
+	 * @return string
+	 */
+	private function _convertToTechMail($uid)
+	{
+		$mail = null;
+			if (!isEmptyString($uid))
+				$mail = $uid.self::EMAIL_POSTFIX;
+
+		return $mail;
 	}
 }
