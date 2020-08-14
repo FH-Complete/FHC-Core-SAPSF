@@ -349,6 +349,7 @@ class SAPSFClientLib
         if (is_object($response) && isset($response->headers) && isset($response->body))
         {
             $responsebody = $response->body;
+
             if (isset($response->body->error))
             {
                 $responseerror = $responsebody->error;
@@ -356,10 +357,10 @@ class SAPSFClientLib
                 $errormsg = isEmptyString($responseerror->message->value) ? $genericErrorText : $responseerror->message->value;
                 $this->_error($errorcode, $errormsg);
             }
-            elseif (isset($response->headers->error_code))
+            elseif (isset($response->headers["error-code"]))
             {
                 $errormsg = is_string($responsebody) && !isEmptyString($responsebody) ? $responsebody : $genericErrorText;
-                $this->_error($response->headers->error_code, $errormsg);
+                $this->_error($response->headers["error-code"], $errormsg);
             }
             else
             {
