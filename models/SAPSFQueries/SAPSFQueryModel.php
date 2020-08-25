@@ -89,7 +89,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 		$this->_initialiseProperties();
 
 		return success($totalresultdata);
-
     }
 
 	/**

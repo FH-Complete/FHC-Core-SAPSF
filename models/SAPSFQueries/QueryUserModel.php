@@ -28,11 +28,10 @@ class QueryUserModel extends SAPSFQueryModel
 	 */
 	public function getByUserId($userId, $selects = array(), $expands = array())
 	{
-		//$this->_setEntity('User', $userId);
-		$this->_setEntity('User');
+		$this->_setEntity('User', $userId);
 		$this->_setSelects($selects);
 		$this->_setExpands($expands);
-		$this->_setFilter('userId', $userId);
+		//$this->_setFilter('userId', $userId);
 
 		return $this->_query();
 	}
@@ -95,7 +94,7 @@ class QueryUserModel extends SAPSFQueryModel
 
 		if (isset($benutzerfieldname) && isset($yesval))
 		{
-			$this->_setFilterString("status eq ? or (status eq ? and $benutzerfieldname eq ?)", array('active', 'inactive', $yesval));
+			$this->_setFilter('status', array('active', 'inactive'), 'in');
 		}
 
 		if (isset($uids))

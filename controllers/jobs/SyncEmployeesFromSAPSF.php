@@ -97,7 +97,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 						$this->logError(getError($employee));
 					elseif (hasData($employee))
 					{
-						$maToSync[] = getData($employee)[0];
+						$maToSync[] = getData($employee);
 					}
 				}
 
@@ -241,7 +241,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 					$this->logError(getError($hourlyRate));
 				elseif (hasData($hourlyRate))
 				{
-					$maToSync[] = getData($hourlyRate)[0];
+					$maToSync[] = getData($hourlyRate);
 				}
 			}
 
