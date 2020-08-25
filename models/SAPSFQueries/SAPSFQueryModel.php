@@ -20,6 +20,8 @@ class SAPSFQueryModel extends SAPSFClientModel
 	const EXPANDOPTION = 'expand';
 	const ORDERBYOPTION = 'orderby';
 	const FORMATOPTION = 'format';
+	const FROMDATEOPTION = 'fromDate';
+	const TODATEOPTION = 'toDate';
 
 	const DEFAULT_FILTER_CONNECTIONOPERATOR = 'and'; // default connector for multiple filters
     const FILTERVALUE_PLACEHOLDER = '?'; // placeholder for replacement of filter values in url
@@ -36,6 +38,9 @@ class SAPSFQueryModel extends SAPSFClientModel
 	public function __construct()
 	{
 		parent::__construct();
+
+		$this->config->load('extensions/FHC-Core-SAPSF/SAPSFSyncparams');
+
 		$this->_initialiseProperties();
 	}
 
@@ -53,6 +58,8 @@ class SAPSFQueryModel extends SAPSFClientModel
 
 		$this->_setFormat();
 		$this->_generateQueryString();
+
+		echo $this->_odataQueryString;
 
 		if ($this->_hasError())
 		{
@@ -231,7 +238,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_setError('Invalid expand properties provided');
 	}
 
-
 	/**
 	 * Sets a single filter option.
 	 * @param string $filterName
@@ -363,6 +369,31 @@ class SAPSFQueryModel extends SAPSFClientModel
     }
 
 	/**
+	 * Set effective dates (from, to)
+	 */
+	protected function _setEffectiveDates()
+	{
+
+		$futureDays = $this->config->item('FHC-Core-SAPSFSyncparams')['daysInFuture'];
+
+		if ($futureDays == 0)
+			return;
+
+		$fromDate = date('Y-m-d');
+		$toDate = date('Y-m-d', strtotime($fromDate . "+$futureDays days"));
+
+		if ($this->_checkEffectiveDates($fromDate, $toDate))
+		{
+			$this->_setQueryOption(self::FROMDATEOPTION, $fromDate);
+			$this->_setQueryOption(self::TODATEOPTION, $toDate);
+		}
+		else
+		{
+			$this->_setError('Invalid from/to dates provided');
+		}
+	}
+
+	/**
 	 * Sets filter so that only employees modified after a certain date are retrieved from sapsf.
 	 * @param $lastModifiedDateTime
 	 */
@@ -408,7 +439,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_queryOptions[$name][] = $value;
 		else
 			$this->_setError('Invalid query option name provided' . is_string($name) ? ": $name" : "");
-
 	}
 
 	/**
@@ -449,7 +479,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 
 					switch($optionname)
 					{
-						case self::SELECTOPTION:
+						case self::SELECTOPTION: // TODO dublicate code
 							$first = true;
 							foreach ($queryOptions as $selectOption)
 							{
@@ -548,6 +578,12 @@ class SAPSFQueryModel extends SAPSFClientModel
 									$first = false;
 								}
 							}
+							break;
+						case self::FROMDATEOPTION:
+							$queryString .= self::FROMDATEOPTION . '=' . $queryOptions[0];
+							break;
+						case self::TODATEOPTION:
+							$queryString .= self::TODATEOPTION . '=' . $queryOptions[0];
 							break;
 						case self::FORMATOPTION:
 							$queryString .= '$' . self::FORMATOPTION . '=' . $queryOptions[0];
@@ -653,5 +689,10 @@ class SAPSFQueryModel extends SAPSFClientModel
 	private function _encodeFilterValue($val)
 	{
 		return is_integer($val) ? $val : "'" . $this->_encodeForOdata($val) . "'";
+	}
+
+	private function _checkEffectiveDates($fromDate, $toDate)
+	{
+		return validateDateFormat($fromDate) && validateDateFormat($toDate) && $fromDate <= $toDate;
 	}
 }

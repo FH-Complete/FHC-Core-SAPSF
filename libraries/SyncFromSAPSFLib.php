@@ -27,6 +27,10 @@ class SyncFromSAPSFLib
 	{
 		$this->ci =& get_instance();
 
+		// load helper
+		$this->ci->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
+
+		// load config
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings');
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/valuemappings');
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/valuedefaults');
@@ -41,6 +45,7 @@ class SyncFromSAPSFLib
 		$this->_fhcconffields = $this->ci->config->item('fhcfields');
 		$this->_sapsflastmodifiedfields = $this->ci->config->item('sapsflastmodifiedfields');
 
+		// load models
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
 	}
 
@@ -160,6 +165,9 @@ class SyncFromSAPSFLib
 	 */
 	protected function _convertSapsfObjToFhc($sapsfobj, $objtype)
 	{
+		/*echo json_encode($sapsfobj);
+		die();*/
+
 		$fhctables = array_keys($this->_conffieldmappings[$objtype]);
 		$fhcemployee = array();
 
@@ -193,11 +201,18 @@ class SyncFromSAPSFLib
 						$field = substr($sffield, strrpos($sffield, '/') + 1, strlen($sffield));
 						$props = explode('/', $navfield);
 
+						if ($field == 'location')
+							var_dump($props);
+
 						if (isset($sapsfobj->{$props[0]}))
 						{
 							$value = $sapsfobj->{$props[0]};
+
 							for ($i = 1; $i < count($props); $i++)
 							{
+								if ($props[$i] == "jobInfoNav" && $field == 'location')
+									var_dump($value->{$props[$i]});
+
 								if (isset($value->{$props[$i]}))
 								{
 									$value = $value->{$props[$i]};
@@ -205,9 +220,30 @@ class SyncFromSAPSFLib
 								// navigate further if value has results array instead of a finite value
 								elseif (isset($value->results[0]->{$props[$i]}))
 								{
+
+
+
 									$noValues = count($value->results);
-									if ($noValues == 1)
+									if ($noValues == 1) // if only one result, navigate into it. Otherwise choose first based on date.
 										$value = $value->results[0]->{$props[$i]};
+									elseif (isset($value->results[0]->startDate))
+									{
+										$min = (int)filter_var($value->results[0]->startDate, FILTER_SANITIZE_NUMBER_INT);
+										$minObj = $value->results[0]->{$props[$i]};
+										foreach ($value->results as $result)
+										{
+											$millisec = (int)filter_var($result->startDate, FILTER_SANITIZE_NUMBER_INT);
+											if ($millisec < $min)
+											{
+												$minObj = $result->{$props[$i]};
+												$min = $millisec;
+											}
+											//var_dump($result->startDate);
+										}
+										//var_dump($min);
+										$value = $minObj;
+									}
+
 								}
 							}
 
@@ -234,8 +270,12 @@ class SyncFromSAPSFLib
 						$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
 
 					// check if there is a valuemapping
+/*					var_dump($fhctable);
+					var_dump($fhcfield);*/
+					//var_dump($sfvalue);
+
 					$mapped = null;
-					if (isset($this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue]))
+					if (!is_array($sfvalue) && isset($this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue]))
 					{
 						$mapped = $this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue];
 						$fhcemployee[$fhctable][$fhcfield] = $mapped;
@@ -329,7 +369,7 @@ class SyncFromSAPSFLib
 										}
 										break;
 									case 'date':
-										if (!$this->_validateDate($value))
+										if (!validateDateFormat($value))
 										{
 											$wrongdatatype = true;
 										}
@@ -507,9 +547,9 @@ class SyncFromSAPSFLib
 	 * @param string $format
 	 * @return bool
 	 */
-	private function _validateDate($date, $format = 'Y-m-d')
+/*	private function _validateDate($date, $format = 'Y-m-d')
 	{
 		$d = DateTime::createFromFormat($format, $date);
 		return $d && $d->format($format) === $date;
-	}
+	}*/
 }

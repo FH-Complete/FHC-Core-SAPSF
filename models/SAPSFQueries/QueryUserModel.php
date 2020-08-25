@@ -32,6 +32,7 @@ class QueryUserModel extends SAPSFQueryModel
 		$this->_setSelects($selects);
 		$this->_setExpands($expands);
 		//$this->_setFilter('userId', $userId);
+		$this->_setEffectiveDates();
 
 		return $this->_query();
 	}
@@ -42,6 +43,7 @@ class QueryUserModel extends SAPSFQueryModel
 	 * @param array $expands fields to expand
 	 * @param string $lastModifiedDateTime date when users were last modified
 	 * @param null $lastModifiedDateTimeProps additional properties checked for lastModifiedDateTime
+	 * @param null $uids
 	 * @return object userdata
 	 */
 	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null, $uids = null)
@@ -72,7 +74,7 @@ class QueryUserModel extends SAPSFQueryModel
 		}
 
 		//get all which are active in sapsf OR have "fas aktiv" checked
-		$benutzerfields = $this->config->item('fieldmappings')['fromsapsf']['User']['benutzer'];
+/*		$benutzerfields = $this->config->item('fieldmappings')['fromsapsf']['User']['benutzer'];
 		foreach ($benutzerfields as $sapsfield => $fhcfield)
 		{
 			if ($fhcfield === 'aktiv')
@@ -93,14 +95,16 @@ class QueryUserModel extends SAPSFQueryModel
 		}
 
 		if (isset($benutzerfieldname) && isset($yesval))
-		{
-			$this->_setFilter('status', array('active', 'inactive'), 'in');
-		}
+		{*/
+		$this->_setFilter('status', array('active', 'inactive'), 'in');
+		//}
 
 		if (isset($uids))
 		{
 			$this->_setFilter('userId', $uids, 'in');
 		}
+
+		$this->_setEffectiveDates();
 
 		return $this->_query();
 	}
