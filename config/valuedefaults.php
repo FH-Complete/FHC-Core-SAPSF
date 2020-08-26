@@ -23,12 +23,20 @@ $config['fhcdefaults']['User']['kontaktnotfall'] = array(
 
 $config['fhcdefaults']['User']['mitarbeiter'] = array(
 	'standort_id' => 3,
-	'fixangestellt' => false
+	'fixangestellt' => false,
+	'ausbildungcode' => null
 );
 
 $config['fhcdefaults']['User']['person'] = array(
 	'staatsbuergerschaft' => 'XXX',
-	'geburtsnation' => 'XXX'
+	'geburtsnation' => 'XXX',
+	'titelpre' => null, // if default is null and there is no sapsf value, it is overwritten in fhc!
+	'titelpost' => null,
+	'vornamen' => null
+);
+
+$config['fhcdefaults']['User']['benutzer'] = array(
+	'aktiv' => false
 );
 
 $config['fhcdefaults']['User']['kztyp'] = array(

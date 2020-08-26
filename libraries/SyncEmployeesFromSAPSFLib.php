@@ -312,8 +312,6 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 */
 	private function _saveMitarbeiter($maobj)
 	{
-		var_dump($maobj);
-		die();
 		$uid = isset($maobj['benutzer']['uid']) ? $maobj['benutzer']['uid'] : '';
 		$person_id = null;
 

@@ -165,9 +165,6 @@ class SyncFromSAPSFLib
 	 */
 	protected function _convertSapsfObjToFhc($sapsfobj, $objtype)
 	{
-		/*echo json_encode($sapsfobj);
-		die();*/
-
 		$fhctables = array_keys($this->_conffieldmappings[$objtype]);
 		$fhcemployee = array();
 
@@ -201,18 +198,12 @@ class SyncFromSAPSFLib
 						$field = substr($sffield, strrpos($sffield, '/') + 1, strlen($sffield));
 						$props = explode('/', $navfield);
 
-						if ($field == 'location')
-							var_dump($props);
-
 						if (isset($sapsfobj->{$props[0]}))
 						{
 							$value = $sapsfobj->{$props[0]};
 
 							for ($i = 1; $i < count($props); $i++)
 							{
-								if ($props[$i] == "jobInfoNav" && $field == 'location')
-									var_dump($value->{$props[$i]});
-
 								if (isset($value->{$props[$i]}))
 								{
 									$value = $value->{$props[$i]};
@@ -220,40 +211,27 @@ class SyncFromSAPSFLib
 								// navigate further if value has results array instead of a finite value
 								elseif (isset($value->results[0]->{$props[$i]}))
 								{
-
-
-
 									$noValues = count($value->results);
 									if ($noValues == 1) // if only one result, navigate into it. Otherwise choose first based on date.
 										$value = $value->results[0]->{$props[$i]};
 									elseif (isset($value->results[0]->startDate))
 									{
-										$min = (int)filter_var($value->results[0]->startDate, FILTER_SANITIZE_NUMBER_INT);
-										$minObj = $value->results[0]->{$props[$i]};
-										foreach ($value->results as $result)
-										{
-											$millisec = (int)filter_var($result->startDate, FILTER_SANITIZE_NUMBER_INT);
-											if ($millisec < $min)
-											{
-												$minObj = $result->{$props[$i]};
-												$min = $millisec;
-											}
-											//var_dump($result->startDate);
-										}
-										//var_dump($min);
-										$value = $minObj;
+										$value = $this->_extractFirstResult($value, $props[$i]);
 									}
-
 								}
 							}
 
 							if (isset($value->{$field}))
 								$sfvalue = $value->{$field};
-							elseif (isset($value->results[0]->{$field})) // if value has results array
+							elseif (isset($value->results[0]) && property_exists($value->results[0], $field)) // if value has results array with the field
 							{
 								if (count($value->results) == 1) // take first result
 									$sfvalue = $value->results[0]->{$field};
-								elseif (count($value->results) > 1) // or take all results
+								elseif (isset($value->results[0]->startDate)) // if results are time-based
+								{
+									$sfvalue = $this->_extractFirstResult($value, $field);
+								}
+								else // or take all results
 								{
 									$sfvalue = array();
 									foreach ($value->results as $result)
@@ -265,15 +243,11 @@ class SyncFromSAPSFLib
 						}
 					}
 
-					// set sapsf value if it is not null or there is no default
-					if (isset($sfvalue) || !isset($fhcemployee[$fhctable][$fhcfield]))
+					// set sapsf value if it is not null
+					if (isset($sfvalue))
 						$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
 
 					// check if there is a valuemapping
-/*					var_dump($fhctable);
-					var_dump($fhcfield);*/
-					//var_dump($sfvalue);
-
 					$mapped = null;
 					if (!is_array($sfvalue) && isset($this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue]))
 					{
@@ -302,10 +276,18 @@ class SyncFromSAPSFLib
 						}
 
 						$funcval = isset($mapped) ? $mapped : $sfvalue;
-						$fhcemployee[$fhctable][$fhcfield] = $this->{$this->_convertfunctions[$fhctable][$fhcfield]['function']}(
+						$funcresult = $this->{$this->_convertfunctions[$fhctable][$fhcfield]['function']}(
 							$funcval,
 							$params
 						);
+
+						// if there is a null function result set only if null/empty values are permitted
+						if ($funcresult == null && (!isset($this->_confvaluedefaults[$objtype][$fhctable]) ||
+														!array_key_exists($fhcfield, $this->_confvaluedefaults[$objtype][$fhctable]) ||
+														!isEmptyString($this->_confvaluedefaults[$objtype][$fhctable][$fhcfield])))
+							unset($fhcemployee[$fhctable][$fhcfield]);
+						else
+							$fhcemployee[$fhctable][$fhcfield] =  $funcresult;
 					}
 				}
 			}
@@ -489,6 +471,9 @@ class SyncFromSAPSFLib
 	protected function _convertDateToFhc($unixstr)
 	{
 		// extract milliseconds from string
+		if (isEmptyString($unixstr))
+			return null;
+
 		$millisec = (int)filter_var($unixstr, FILTER_SANITIZE_NUMBER_INT);
 
 		$seconds = $millisec / 1000;
@@ -542,14 +527,25 @@ class SyncFromSAPSFLib
 	// Private methods
 
 	/**
-	 * Checks if given date exists and is valid.
-	 * @param $date
-	 * @param string $format
-	 * @return bool
+	 * Extracts the chronologically first result from an array of time-based objects,
+	 * based on startDate property.
+	 * @param $results
+	 * @param $property the property to extract
+	 * @return mixed the extracted property data
 	 */
-/*	private function _validateDate($date, $format = 'Y-m-d')
+	private function _extractFirstResult($results, $property)
 	{
-		$d = DateTime::createFromFormat($format, $date);
-		return $d && $d->format($format) === $date;
-	}*/
+		$min = (int)filter_var($results->results[0]->startDate, FILTER_SANITIZE_NUMBER_INT);
+		$minObj = $results->results[0]->{$property};
+		foreach ($results->results as $result)
+		{
+			$millisec = (int)filter_var($result->startDate, FILTER_SANITIZE_NUMBER_INT);
+			if ($millisec < $min)
+			{
+				$minObj = $result->{$property};
+				$min = $millisec;
+			}
+		}
+		return $minObj;
+	}
 }

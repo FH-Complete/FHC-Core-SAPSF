@@ -376,7 +376,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 
 		$futureDays = $this->config->item('FHC-Core-SAPSFSyncparams')['daysInFuture'];
 
-		if ($futureDays == 0)
+		if (!isset($futureDays) || !is_numeric($futureDays) || $futureDays <= 0)
 			return;
 
 		$fromDate = date('Y-m-d');
