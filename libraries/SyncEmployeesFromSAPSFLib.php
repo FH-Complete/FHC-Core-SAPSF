@@ -105,16 +105,15 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 */
 	public function syncEmployeesWithFhc($employees)
 	{
+		$convEmployees = $this->getEmployeesForFhcSync($employees, self::OBJTYPE);
+
 		$results = array();
 
-		if (hasData($employees))
+		if (is_array($convEmployees))
 		{
-			$employees = getData($employees);
-
-			foreach ($employees as $employee)
+			foreach ($convEmployees as $employee)
 			{
-				$ma = $this->_convertSapsfObjToFhc($employee, self::OBJTYPE);
-				$result = $this->_saveMitarbeiter($ma);
+				$result = $this->_saveMitarbeiter($employee);
 				$results[] = $result;
 			}
 		}
@@ -130,21 +129,44 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 */
 	public function syncHourlyRateWithFhc($hourlyrates)
 	{
+		$convEmployees = $this->getEmployeesForFhcSync($hourlyrates, self::HOURLY_RATE_OBJ);
+
 		$results = array();
 
-		if (hasData($hourlyrates))
+		if (is_array($convEmployees))
 		{
-			$hourlyrates = getData($hourlyrates);
-
-			foreach ($hourlyrates as $rate)
+			foreach ($convEmployees as $employee)
 			{
-				$hr = $this->_convertSapsfObjToFhc($rate, self::HOURLY_RATE_OBJ);
-				$result = $this->ci->FhcDbModel->saveKalkStundensatz($hr);
+				$result = $this->ci->FhcDbModel->saveKalkStundensatz($employee);
 				$results[] = $result;
 			}
 		}
 
 		return success($results);
+	}
+
+	/**
+	 * Converts given employee data to fhc format.
+	 * @param $sapsfemployees
+	 * @param $objtype
+	 * @return array converted employees
+	 */
+	public function getEmployeesForFhcSync($sapsfemployees, $objtype)
+	{
+		$mas = array();
+
+		if (hasData($sapsfemployees))
+		{
+			$employees = getData($sapsfemployees);
+
+			foreach ($employees as $employee)
+			{
+				$ma = $this->_convertSapsfObjToFhc($employee, $objtype);
+				$mas[] = $ma;
+			}
+		}
+
+		return $mas;
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

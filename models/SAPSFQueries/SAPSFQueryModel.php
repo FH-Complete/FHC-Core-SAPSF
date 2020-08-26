@@ -59,8 +59,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 		$this->_setFormat();
 		$this->_generateQueryString();
 
-		echo $this->_odataQueryString;
-
 		if ($this->_hasError())
 		{
 			return error(implode("; ", $this->_errors));
@@ -373,7 +371,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 	 */
 	protected function _setEffectiveDates()
 	{
-
 		$futureDays = $this->config->item('FHC-Core-SAPSFSyncparams')['daysInFuture'];
 
 		if (!isset($futureDays) || !is_numeric($futureDays) || $futureDays <= 0)

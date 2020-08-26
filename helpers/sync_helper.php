@@ -48,3 +48,13 @@ function validateDateFormat($date, $format = 'Y-m-d')
 	$d = DateTime::createFromFormat($format, $date);
 	return $d && $d->format($format) === $date;
 }
+
+/**
+ * Prints given data and aborts execution.
+ * @param $obj
+ */
+function printAndDie($obj)
+{
+	print_r($obj);
+	die();
+}

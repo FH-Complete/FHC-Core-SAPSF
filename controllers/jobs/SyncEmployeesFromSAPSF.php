@@ -4,6 +4,8 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 class SyncEmployeesFromSAPSF  extends JQW_Controller
 {
+	private $_syncpreview; // not sync, only output if true
+
 	/**
 	 * Controller initialization
 	 */
@@ -15,6 +17,9 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
 		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 		//$this->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
+
+		$this->config->load('extensions/FHC-Core-SAPSF/SAPSFSyncparams');
+		$this->_syncpreview = $this->config->item('FHC-Core-SAPSFSyncparams')['syncpreview'];
 	}
 
 	/**
@@ -111,7 +116,13 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 				{
 					$syncedMitarbeiter = array();
 
-					$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employees);
+					if ($this->_syncpreview === false)
+						$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employees);
+					else
+					{
+						$mas = $this->syncemployeesfromsapsflib->getEmployeesForFhcSync($employees, SyncEmployeesFromSAPSFLib::OBJTYPE);
+						printAndDie($mas);
+					}
 
 					if (hasData($results))
 					{
@@ -254,7 +265,13 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 			{
 				$syncedMitarbeiter = array();
 
-				$results = $this->syncemployeesfromsapsflib->syncHourlyRateWithFhc($hourlyrates);
+				if ($this->_syncpreview === false)
+					$results = $this->syncemployeesfromsapsflib->syncHourlyRateWithFhc($hourlyrates);
+				else
+				{
+					$mas = $this->syncemployeesfromsapsflib->getEmployeesForFhcSync($hourlyrates, SyncEmployeesFromSAPSFLib::HOURLY_RATE_OBJ);
+					printAndDie($mas);
+				}
 
 				if (hasData($results))
 				{
