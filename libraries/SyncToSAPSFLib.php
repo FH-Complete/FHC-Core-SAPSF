@@ -21,9 +21,9 @@ class SyncToSAPSFLib
 		$this->ci->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
 
 		// load config
-		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings');
-		$this->ci->config->load('extensions/FHC-Core-SAPSF/valuedefaults');
-		$this->ci->config->load('extensions/FHC-Core-SAPSF/fields');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings/fieldmappings');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings/valuedefaults');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings/fields');
 
 		$this->_conffieldmappings = $this->ci->config->item('fieldmappings');
 		$this->_conffieldmappings = $this->_conffieldmappings['tosapsf'];
