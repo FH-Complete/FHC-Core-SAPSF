@@ -17,6 +17,10 @@ class SyncToSAPSFLib
 	{
 		$this->ci =& get_instance();
 
+		// load heloper
+		$this->ci->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
+
+		// load config
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings');
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/valuedefaults');
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/fields');
@@ -26,6 +30,7 @@ class SyncToSAPSFLib
 		$this->_confvaluedefaults = $this->ci->config->item('sapsfdefaults');
 		$this->_predicates = $this->ci->config->item('sapsfpredicates');
 
+		// load models
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
 	}
 

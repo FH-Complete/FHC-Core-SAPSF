@@ -84,6 +84,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	{
 		parent::__construct();
 
+		$this->ci->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
+
 		//load models
 		$this->ci->load->model('person/person_model', 'PersonModel');
 		$this->ci->load->model('ressource/mitarbeiter_model', 'MitarbeiterModel');

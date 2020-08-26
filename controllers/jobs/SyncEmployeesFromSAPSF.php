@@ -14,7 +14,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncFromSAPSFLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
 		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
-		$this->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
+		//$this->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
 	}
 
 	/**
@@ -168,7 +168,6 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 							$updatedJobs[] = $job;
 						}
 
-						// update job, set it to done, write synced employees as output.
 						$updatejobsres = $this->updateJobsQueue(SyncEmployeesFromSAPSFLib::SAPSF_EMPLOYEES_FROM_SAPSF, $updatedJobs);
 						if (isError($updatejobsres))
 						{

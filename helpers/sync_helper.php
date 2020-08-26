@@ -36,3 +36,15 @@ function mergeEmployeesArray($jobs)
 	}
 	return $resultObj;
 }
+
+/**
+ * Checks if given date exists and is valid.
+ * @param $date
+ * @param string $format
+ * @return bool
+ */
+function validateDateFormat($date, $format = 'Y-m-d')
+{
+	$d = DateTime::createFromFormat($format, $date);
+	return $d && $d->format($format) === $date;
+}

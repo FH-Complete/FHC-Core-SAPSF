@@ -43,10 +43,12 @@ $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['fixangestellt'] = 
 );
 
 $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['standort_id'] = array(
-	'EB' => 5361,
-	'GF06' => 4,
 	'100200' => 3,
-	'HOE' => 3
+	'100001' => 4,
+	'100300' => 5361
+/*	'EB' => 5361,
+	'GF06' => 4,
+	'HOE' => 3*/
 	//'GMBH' => 3
 );
 

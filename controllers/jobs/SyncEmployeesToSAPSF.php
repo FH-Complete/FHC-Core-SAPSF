@@ -13,7 +13,6 @@ class SyncEmployeesToSapsf  extends JQW_Controller
 
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesToSAPSFLib');
 		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFEditOperations/EditUserModel', 'EditUserModel');
-		$this->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
 	}
 
 	/**
