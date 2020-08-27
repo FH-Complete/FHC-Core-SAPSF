@@ -54,7 +54,8 @@ $config['fieldmappings']['fromsapsf']['User']['kontaktnotfall'] = array(
 );
 
 $stundensatztyp = array(
-	'empInfo/compInfoNav/empPayCompRecurringNav/payComponent' => 'sap_stundensatz_typ'
+	'empInfo/compInfoNav/empPayCompRecurringNav/payComponent' => 'sap_stundensatz_typ',
+	'empInfo/compInfoNav/empPayCompRecurringNav/startDate' => 'sap_stundensatz_startdate'
 	// not synced, just needed to get correct stundensatz to sync
 	// MUST BE PLACED BEFORE STUNDENSATZ so it's populated before!
 );

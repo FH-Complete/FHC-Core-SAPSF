@@ -117,3 +117,9 @@ $config['sapsflastmodifiedfields'] = array(
 	"empInfo/jobInfoNav",
 	"empInfo/compInfoNav/empPayCompRecurringNav"
 );
+
+// non-time-based values, when descending into results, not chronologically first is taken, but all results
+$config['sapsfnontimebasedfields'] = array(
+	"paycompvalue",
+	"payComponent"
+);

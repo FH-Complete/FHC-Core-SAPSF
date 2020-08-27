@@ -18,7 +18,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			'stundensatz' => array(
 				'function' => '_selectStundensatzForFhc',
 				'extraParams' => array(
-					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_typ')
+					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_typ'),
+					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_startdate')
 				)
 			)
 		),
@@ -71,7 +72,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			'sap_kalkulatorischer_stundensatz' => array(
 				'function' => '_selectKalkStundensatzForFhc',
 				'extraParams' => array(
-					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_typ')
+					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_typ'),
+					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_startdate')
 				)
 			)
 		),
@@ -302,6 +304,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	private function _selectFieldForFhc($data, $params, $fieldname, $sffieldtype)
 	{
 		$returnvalue = null;
+		$fieldresults = array();
 		if (isset($data) && isset($params[$fieldname]))
 		{
 			$data = is_string($data) ? array($data) : $data;
@@ -313,15 +316,36 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				for ($i = 0; $i < count($data); $i++)
 				{
 					if (isset($params[$fieldname][$i]) &&
-						$params[$fieldname][$i] == $sffieldtype)//$this->_sapsfvaluedefaults['sap_kalkulatorischer_stundensatz']['HourlyRates']['hourlyRatesType'])
+						$params[$fieldname][$i] == $sffieldtype)
 					{
-						$returnvalue = $data[$i];
-						break;
+						// multiple field values with same type -> handle later
+						$fieldresults[$i] = $data[$i];
 					}
 				}
 			}
 			else
 				$returnvalue = $data;
+
+			if (count($fieldresults) > 0)
+			{
+				if (isset($params['startdate'])) // if multiple values, try to get chronologically first, otherwise take just first
+				{
+					$min = (int)filter_var(array_shift($params['startdate']), FILTER_SANITIZE_NUMBER_INT);
+					$minObj = array_shift($fieldresults);
+					foreach ($fieldresults as $idx => $fieldresult)
+					{
+						$millisec = (int)filter_var($params['startdate'][$idx], FILTER_SANITIZE_NUMBER_INT);
+						if ($millisec < $min)
+						{
+							$minObj = $fieldresults[$idx];
+							$min = $millisec;
+						}
+					}
+					$returnvalue = $minObj;
+				}
+				else
+					$returnvalue = array_shift($fieldresults);
+			}
 		}
 
 		return $returnvalue;

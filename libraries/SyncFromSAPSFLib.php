@@ -19,6 +19,7 @@ class SyncFromSAPSFLib
 	protected $_confvaluemappings;
 	protected $_fhcconffields;
 	protected $_sapsflastmodifiedfields;
+	protected $_sapsfnontimebasedfields;
 
 	/**
 	 * SyncFromSAPSFLib constructor.
@@ -44,6 +45,7 @@ class SyncFromSAPSFLib
 		$this->_sapsfvaluedefaults = $this->ci->config->item('sapsfdefaults');
 		$this->_fhcconffields = $this->ci->config->item('fhcfields');
 		$this->_sapsflastmodifiedfields = $this->ci->config->item('sapsflastmodifiedfields');
+		$this->_sapsfnontimebasedfields = $this->ci->config->item('sapsfnontimebasedfields');
 
 		// load models
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
@@ -227,7 +229,7 @@ class SyncFromSAPSFLib
 							{
 								if (count($value->results) == 1) // take first result
 									$sfvalue = $value->results[0]->{$field};
-								elseif (isset($value->results[0]->startDate)) // if results are time-based
+								elseif (isset($value->results[0]->startDate) && !in_array($field, $this->_sapsfnontimebasedfields)) // if results are time-based
 								{
 									$sfvalue = $this->_extractFirstResult($value, $field);
 								}
