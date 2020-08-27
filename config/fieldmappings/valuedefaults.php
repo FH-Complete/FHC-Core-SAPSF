@@ -61,6 +61,12 @@ $config['sapsfdefaults']['kontaktmailprivate']['PerEmail'] = array(
 	'isPrimary' => false
 );
 
+// Technische Mail
+$config['sapsfdefaults']['kontaktmailtech']['PerEmail'] = array(
+	'emailType' => 28799,//1406 / 28800
+	'isPrimary' => false
+);
+
 // Business Phone
 $config['sapsfdefaults']['kontakttel']['PerPhone'] = array(
 	'phoneType' => 28489,//2354 / 28489

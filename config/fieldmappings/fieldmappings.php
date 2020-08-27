@@ -101,6 +101,10 @@ $config['fieldmappings']['tosapsf']['kontaktmail']['PerEmail'] = array(
 	'uid' => 'emailAddress' // email is generated from alias, which is derived from the uid
 );
 
+$config['fieldmappings']['tosapsf']['kontaktmailtech']['PerEmail'] = array(
+	'uid' => 'emailAddress' // email is generated from uid
+);
+
 $config['fieldmappings']['tosapsf']['mitarbeiter']['PerPersonal'] = array(
 	'ort_kurzbz' => 'customString4'
 );
