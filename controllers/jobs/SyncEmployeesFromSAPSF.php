@@ -15,7 +15,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncFromSAPSFLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
-		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
+		//$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 		//$this->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
 
 		$this->config->load('extensions/FHC-Core-SAPSF/SAPSFSyncparams');
@@ -52,7 +52,12 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 			}
 			else
 			{
-				$lastModifiedDateTime = null;
+				$syncObj = mergeEmployeesArray($lastNewJobs);
+				$employees = $this->syncemployeesfromsapsflib->getEmployeesForSync($lastDoneJobs, $syncObj);
+
+/*				var_dump($employees);
+				die();*/
+/*				$lastModifiedDateTime = null;
 				if (hasData($lastDoneJobs))
 				{
 					$lastJobsData = getData($lastDoneJobs);
@@ -106,16 +111,14 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 					}
 				}
 
-				$employees = success($maToSync);
+				$employees = success($maToSync);*/
 
-				if (!hasData($employees))
-				{
+				if (isError($employees))
+					$this->logError('An error occurred while getting employees', getError($employees));
+				elseif (!hasData($employees))
 					$this->logInfo("No employees found for synchronisation");
-				}
 				else
 				{
-					$syncedMitarbeiter = array();
-
 					if ($this->_syncpreview === false)
 						$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employees);
 					else
@@ -126,24 +129,11 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 
 					if (hasData($results))
 					{
-						$results = getData($results);
+						$syncedMitarbeiter = $this->syncemployeesfromsapsflib->getSyncedEmployees($results);
 
-						foreach ($results as $result)
+						if (isError($syncedMitarbeiter))
 						{
-							if (isError($result))
-							{
-								$this->logError(getError($result));
-							}
-							elseif (hasData($result))
-							{
-								$employeeid = getData($result);
-								if (is_string($employeeid))
-								{
-									$employee = new stdClass();
-									$employee->uid = $employeeid;
-									$syncedMitarbeiter[$employeeid] = $employee;
-								}
-							}
+							$this->logError(getError($syncedMitarbeiter)); // TODO What if multiple errors?
 						}
 
 						// update jobs, set them to done, write synced employees as output.
@@ -160,7 +150,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 									$joboutput[] = $maobj;
 								}
 							}
-							else
+							elseif (is_array($decodedInput))
 							{
 								foreach ($decodedInput as $el)
 								{
@@ -309,7 +299,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 								$joboutput[] = $maobj;
 							}
 						}
-						else
+						elseif (is_array($decodedInput))
 						{
 							foreach ($decodedInput as $el)
 							{

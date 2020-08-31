@@ -67,7 +67,6 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 		{
 			$mitarbeiter = getData($mitarbeiter);
 
-			// only update employees which are in sapsf too
 			$sapsfUidName = $this->_predicates[self::OBJTYPE][0];
 			$sapsfPersonIdName = $this->_predicates[self::MAILTYPE][0];
 			$sapsfstartDateName = $this->_predicates[self::PERSONALINFOTYPE][1];
@@ -81,6 +80,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 			$fhctelprivate = 'kontakttelprivate';
 			$fhctelmobile = 'kontakttelmobile';
 
+			// only update employees which are in sapsf too
 			$sapsfemployees = $this->ci->QueryUserModel->getAll(
 				array($sapsfUidName, self::PERSON_KEY_NAV.'/'.$sapsfPersonIdName, $emailnav.'/'.$sapsfEmailTypeName, $phonenav .'/'.$sapsfPhoneTypeName), // selects
 				array(self::PERSON_KEY_NAV,  $emailnav, $phonenav), // expands
@@ -153,7 +153,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 								}
 							}
 
-							// not sync private mail and phone if there is none
+							// not sync private mail and phone if there is none in SAPSF
 							if (!$hasPrivateMail)
 								unset($matosync[self::MAILTYPE][$fhcmailprivate]);
 
@@ -163,6 +163,32 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 							if (!$hasMobilePhone)
 								unset($matosync[self::PHONETYPE][$fhctelmobile]);
 
+							foreach ($matosync as $sapsfproperty => $values)
+							{
+								if (isset($this->_requiredfields[$sapsfproperty]))
+								{
+									foreach ($values as $objname => $data)
+									{
+										if (isset($this->_requiredfields[$sapsfproperty][$objname]))
+										{
+											$required = $this->_requiredfields[$sapsfproperty][$objname];
+
+											foreach ($required as $req)
+											{
+												$navprops = explode('/', $req);
+
+												if (!isset($matosync[$sapsfproperty][$navprops[0]]['data'][$navprops[1]]) ||
+												isEmptyString($matosync[$sapsfproperty][$navprops[0]]['data'][$navprops[1]]))
+												{
+													unset($matosync[$sapsfproperty][$objname]); // remove if required field not present
+													continue 2; // continue outer loop
+												}
+											}
+										}
+									}
+								}
+							}
+
 							if (!isEmptyArray($matosync))
 								$mitarbeiterToSync[$ma->uid] = $matosync;
 						}
@@ -170,6 +196,9 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 				}
 			}
 		}
+
+		if ($this->_syncpreview !== false)
+			printAndDie($mitarbeiterToSync);
 
 		return success($mitarbeiterToSync);
 	}

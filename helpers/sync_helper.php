@@ -29,7 +29,7 @@ function mergeEmployeesArray($jobs)
 		{
 			foreach ($decodedInput as $el)
 			{
-				if (!in_array($el->uid, $resultObj->uids))
+				if (isset($el->uid) && !in_array($el->uid, $resultObj->uids))
 					$resultObj->uids[] = $el->uid;
 			}
 		}

@@ -1,10 +1,13 @@
 <?php
 /**
  * Fields for sync.
+ */
+
+/**
  * If required fields are not present in the object, sync is not possible and it is an error.
  * type (no type given - assuming string), foreign key references (ref), unique constraints (unique) are also checked
  * "name" is display name for errors
- */
+ **/
 
 $config['fhcfields']['User'] = array(
 	'person' => array(
@@ -84,6 +87,22 @@ $config['fhcfields']['User'] = array(
 			'notnull' => true
 		)
 	)
+);
+
+// required sapsf fields, excluded from sync if not present
+$config['requiredsapsffields']['PerEmail']['kontaktmail'] = array(
+	'kontaktmail/emailAddress'
+);
+
+$config['requiredsapsffields']['PerEmail']['kontaktmailprivate'] = array(
+	'kontaktmail/emailAddress'
+);
+
+$config['requiredsapsffields']['PerPhone']['kontakttel'] = array(
+	'kontakttel/phoneNumber',
+	'kontakttel/countryCode',
+	'kontakttel/areaCode',
+	'kontakttel/extension'
 );
 
 // entity predicate value ~ primary keys for SAPSF

@@ -95,10 +95,134 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		$this->ci->load->model('person/adresse_model', 'AdresseModel');
 		$this->ci->load->model('person/kontakt_model', 'KontaktModel');
 		$this->ci->load->model('codex/Nation_model', 'NationModel');
+		$this->ci->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 	}
 
 	// --------------------------------------------------------------------------------------------
 	// Public methods
+
+	/**
+	 * @param $lastDoneJobs oject jobs executed last
+	 * @param $newJobObj object contains information for sync (uids, fullsync)
+	 * @return object the mitarbeiter to sync on success, error oetherwise
+	 */
+	public function getEmployeesForSync($lastDoneJobs, $newJobObj)
+	{
+		$lastModifiedDateTime = null;
+		if (hasData($lastDoneJobs))
+		{
+			$lastJobsData = getData($lastDoneJobs);
+			$lastjobtime = $lastJobsData[0]->starttime;
+			$lastModifiedDateTime = $this->convertDateToSAPSF($lastjobtime);
+		}
+
+		// input uids if only certain users should be synced
+		$uids = $newJobObj->uids;
+
+		$selects = $this->getSelectsFromFieldMappings(self::OBJTYPE);
+		$expands = $this->getExpandsFromFieldMappings(self::OBJTYPE);
+		$lastmodifiedprops = $this->getLastModifiedDateTimeProps();
+
+		$uidsToSync = array();
+		$maToSync = array();
+		if ($newJobObj->syncAll)
+		{
+			$employees = $this->ci->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops);
+
+			if (isError($employees))
+			{
+				return error(getError($employees));
+			}
+
+			if (hasData($employees))
+			{
+				$empData = getData($employees);
+
+				foreach ($empData as $emp)
+				{
+					$maToSync[] = $emp;
+					$uidsToSync[] = $emp->userId;
+				}
+			}
+		}
+
+		foreach ($uids as $uid)
+		{
+			if (in_array($uid, $uidsToSync))
+				continue;
+
+			$employee = $this->ci->QueryUserModel->getByUserId($uid, $selects, $expands);
+
+			if (isError($employee))
+				return error(getError($employee));
+			elseif (hasData($employee))
+			{
+				$maToSync[] = getData($employee);
+			}
+		}
+
+		return success($maToSync);
+	}
+
+	public function getSyncedEmployees($results)
+	{
+		$syncedMitarbeiter = array();
+
+		$results = getData($results);
+
+		foreach ($results as $result)
+		{
+			if (isError($result))
+			{
+				return error(getError($result));
+			}
+			elseif (hasData($result))
+			{
+				$employeeid = getData($result);
+				if (is_string($employeeid))
+				{
+					$employee = new stdClass();
+					$employee->uid = $employeeid;
+					$syncedMitarbeiter[$employeeid] = $employee;
+				}
+			}
+		}
+
+		return success($syncedMitarbeiter);
+
+		// update jobs, set them to done, write synced employees as output.
+/*		foreach ($lastNewJobs as $job)
+		{
+			$joboutput = array();
+			$decodedInput = json_decode($job->input);
+			if ($decodedInput == null)// if there was job input, only output synced mitarbeiter for this input
+			{
+				foreach ($syncedMitarbeiter as $uidkey => $ma)
+				{
+					$maobj = new stdClass();
+					$maobj->uid = $uidkey;
+					$joboutput[] = $maobj;
+				}
+			}
+			elseif (is_array($decodedInput))
+			{
+				foreach ($decodedInput as $el)
+				{
+					if (isset($syncedMitarbeiter[$el->uid]))
+					{
+						$maobj = new stdClass();
+						$maobj->uid = $el->uid;
+						$joboutput[] = $maobj;
+					}
+				}
+			}
+
+			$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($joboutput);
+			$job->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
+			$job->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
+			$updatedJobs[] = $job;
+		}*/
+	}
 
 	/**
 	 * Starts employee sync. Converts given employee data to fhc format and saves the employee.
