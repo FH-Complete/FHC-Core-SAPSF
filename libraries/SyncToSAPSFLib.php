@@ -32,6 +32,7 @@ class SyncToSAPSFLib
 		$this->_confvaluedefaults = $this->ci->config->item('sapsfdefaults');
 		$this->_predicates = $this->ci->config->item('sapsfpredicates');
 		$this->_requiredfields = $this->ci->config->item('requiredsapsffields');
+		$this->_navigationfields = $this->ci->config->item('sapsfnavigationfields');
 
 		// load models
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');

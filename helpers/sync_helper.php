@@ -50,6 +50,27 @@ function validateDateFormat($date, $format = 'Y-m-d')
 }
 
 /**
+ * Descends into properties of an object using array.
+ * @param $var object the object
+ * @param $arr array with properties, hierarchical
+ * @return mixed the property as indicated by array
+ */
+function getPropertyByArray($var, $arr)
+{
+	$result = $var;
+	foreach ($arr as $item)
+	{
+		if (isset($result->{$item}))
+			$result = $result->{$item};
+		else
+		{
+			return null;
+		}
+	}
+	return $result;
+}
+
+/**
  * Prints given data and aborts execution.
  * @param $obj
  */

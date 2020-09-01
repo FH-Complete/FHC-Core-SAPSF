@@ -89,21 +89,29 @@ $config['fhcfields']['User'] = array(
 	)
 );
 
+$emailfield = 'kontaktmail/emailAddress';
+
 // required sapsf fields, excluded from sync if not present
 $config['requiredsapsffields']['PerEmail']['kontaktmail'] = array(
-	'kontaktmail/emailAddress'
+	$emailfield
 );
 
 $config['requiredsapsffields']['PerEmail']['kontaktmailprivate'] = array(
-	'kontaktmail/emailAddress'
+	$emailfield
 );
 
-$config['requiredsapsffields']['PerPhone']['kontakttel'] = array(
+$phonefields = array(
 	'kontakttel/phoneNumber',
 	'kontakttel/countryCode',
 	'kontakttel/areaCode',
 	'kontakttel/extension'
 );
+
+$config['requiredsapsffields']['PerPhone']['kontakttel'] = $phonefields;
+
+$config['requiredsapsffields']['PerPhone']['kontakttelprivate'] = $phonefields;
+
+$config['requiredsapsffields']['PerPhone']['kontakttelmobile'] = $phonefields;
 
 // entity predicate value ~ primary keys for SAPSF
 $config['sapsfpredicates']['User'] = array(
@@ -123,6 +131,11 @@ $config['sapsfpredicates']['PerPhone'] = array(
 $config['sapsfpredicates']['PerPersonal'] = array(// for office
 	'personIdExternal',
 	'startDate'
+);
+
+// navigation fields - for syncing to sapsf, where to find the field?
+$config['sapsfnavigationfields']['PerPersonal'] = array(
+	'customString4' => 'empInfo/personNav/personalInfoNav'
 );
 
 // fields to be checked for lastModifiedDate

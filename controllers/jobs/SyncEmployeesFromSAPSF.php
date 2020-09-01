@@ -4,8 +4,6 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 class SyncEmployeesFromSAPSF  extends JQW_Controller
 {
-	private $_syncpreview; // not sync, only output if true
-
 	/**
 	 * Controller initialization
 	 */
@@ -17,9 +15,6 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
 		//$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 		//$this->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
-
-		$this->config->load('extensions/FHC-Core-SAPSF/SAPSFSyncparams');
-		$this->_syncpreview = $this->config->item('FHC-Core-SAPSFSyncparams')['syncpreview'];
 	}
 
 	/**
@@ -38,6 +33,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 		elseif (hasData($lastNewJobs))
 		{
 			$lastNewJobs = getData($lastNewJobs);
+			$startdate = date('Y-m-d H:i:s');
 
 			// only employees changed after last full sync
 			$lastDoneJobs = $this->getJobsByTypeStatusInput(
@@ -53,65 +49,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 			else
 			{
 				$syncObj = mergeEmployeesArray($lastNewJobs);
-				$employees = $this->syncemployeesfromsapsflib->getEmployeesForSync($lastDoneJobs, $syncObj);
-
-/*				var_dump($employees);
-				die();*/
-/*				$lastModifiedDateTime = null;
-				if (hasData($lastDoneJobs))
-				{
-					$lastJobsData = getData($lastDoneJobs);
-					$lastjobtime = $lastJobsData[0]->starttime;
-					$lastModifiedDateTime = $this->syncfromsapsflib->convertDateToSAPSF($lastjobtime);
-				}
-
-				// input uids if only certain users should be synced
-				$syncObj = mergeEmployeesArray($lastNewJobs);
-				$uids = $syncObj->uids;
-
-				$selects = $this->syncfromsapsflib->getSelectsFromFieldMappings(SyncEmployeesFromSAPSFLib::OBJTYPE);
-				$expands = $this->syncfromsapsflib->getExpandsFromFieldMappings(SyncEmployeesFromSAPSFLib::OBJTYPE);
-				$lastmodifiedprops = $this->syncfromsapsflib->getLastModifiedDateTimeProps();
-
-				$uidsToSync = array();
-				$maToSync = array();
-				if ($syncObj->syncAll)
-				{
-					$employees = $this->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops);
-
-					if (isError($employees))
-					{
-						$this->logError(getError($employees));
-					}
-
-					if (hasData($employees))
-					{
-						$empData = getData($employees);
-
-						foreach ($empData as $emp)
-						{
-							$maToSync[] = $emp;
-							$uidsToSync[] = $emp->userId;
-						}
-					}
-				}
-
-				foreach ($uids as $uid)
-				{
-					if (in_array($uid, $uidsToSync))
-						continue;
-
-					$employee = $this->QueryUserModel->getByUserId($uid, $selects, $expands);
-
-					if (isError($employee))
-						$this->logError(getError($employee));
-					elseif (hasData($employee))
-					{
-						$maToSync[] = getData($employee);
-					}
-				}
-
-				$employees = success($maToSync);*/
+				$employees = $this->syncemployeesfromsapsflib->getEmployeesForSync(SyncEmployeesFromSAPSFLib::OBJTYPE, $syncObj, $lastDoneJobs);
 
 				if (isError($employees))
 					$this->logError('An error occurred while getting employees', getError($employees));
@@ -119,57 +57,28 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 					$this->logInfo("No employees found for synchronisation");
 				else
 				{
-					if ($this->_syncpreview === false)
-						$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employees);
-					else
-					{
-						$mas = $this->syncemployeesfromsapsflib->getEmployeesForFhcSync($employees, SyncEmployeesFromSAPSFLib::OBJTYPE);
-						printAndDie($mas);
-					}
+					$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employees);
 
 					if (hasData($results))
 					{
-						$syncedMitarbeiter = $this->syncemployeesfromsapsflib->getSyncedEmployees($results);
+						$results = getData($results);
+						$syncedMitarbeiter = array();
+						$syncedMitarbeiterRes = $this->syncemployeesfromsapsflib->getSyncedEmployees($results);
 
-						if (isError($syncedMitarbeiter))
+						foreach ($syncedMitarbeiterRes as $key => $res)
 						{
-							$this->logError(getError($syncedMitarbeiter)); // TODO What if multiple errors?
+							if (isError($res))
+								$this->logError(getError($res));
+							else
+								$syncedMitarbeiter[$key] = getData($res);
 						}
+
+						$enddate = date('Y-m-d H:i:s');
 
 						// update jobs, set them to done, write synced employees as output.
-						foreach ($lastNewJobs as $job)
-						{
-							$joboutput = array();
-							$decodedInput = json_decode($job->input);
-							if ($decodedInput == null)// if there was job input, only output synced mitarbeiter for this input
-							{
-								foreach ($syncedMitarbeiter as $uidkey => $ma)
-								{
-									$maobj = new stdClass();
-									$maobj->uid = $uidkey;
-									$joboutput[] = $maobj;
-								}
-							}
-							elseif (is_array($decodedInput))
-							{
-								foreach ($decodedInput as $el)
-								{
-									if (isset($syncedMitarbeiter[$el->uid]))
-									{
-										$maobj = new stdClass();
-										$maobj->uid = $el->uid;
-										$joboutput[] = $maobj;
-									}
-								}
-							}
-
-							$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($joboutput);
-							$job->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
-							$job->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
-							$updatedJobs[] = $job;
-						}
-
+						$updatedJobs = $this->_getUpdatedJobs($syncedMitarbeiter, $lastNewJobs, $startdate, $enddate);
 						$updatejobsres = $this->updateJobsQueue(SyncEmployeesFromSAPSFLib::SAPSF_EMPLOYEES_FROM_SAPSF, $updatedJobs);
+
 						if (isError($updatejobsres))
 						{
 							$this->logError('An error occurred while updating syncfromsapsfjob', getError($updatejobsres));
@@ -200,136 +109,99 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 		elseif (hasData($lastNewJobs))
 		{
 			$lastNewJobs = getData($lastNewJobs);
+			$startdate = date('Y-m-d H:i:s');
 
 			$syncObj = mergeEmployeesArray($lastNewJobs);
-			$uids = $syncObj->uids;
+			$hourlyrates = $this->syncemployeesfromsapsflib->getEmployeesForSync(SyncEmployeesFromSAPSFLib::HOURLY_RATE_OBJ, $syncObj);
 
-			$selects = $this->syncfromsapsflib->getSelectsFromFieldMappings(SyncEmployeesFromSAPSFLib::HOURLY_RATE_OBJ);
-			$expands = $this->syncfromsapsflib->getExpandsFromFieldMappings(SyncEmployeesFromSAPSFLib::HOURLY_RATE_OBJ);
-
-			$uidsToSync = array();
-			$maToSync = array();
-			if ($syncObj->syncAll)
-			{
-				$hourlyrates = $this->QueryUserModel->getAll($selects, $expands);
-
-				if (isError($hourlyrates))
-				{
-					$this->logError(getError($hourlyrates));
-				}
-
-				if (hasData($hourlyrates))
-				{
-					$empData = getData($hourlyrates);
-
-					foreach ($empData as $emp)
-					{
-						$maToSync[] = $emp;
-						$uidsToSync[] = $emp->userId;
-					}
-				}
-			}
-
-			foreach ($uids as $uid)
-			{
-				if (in_array($uid, $uidsToSync))
-					continue;
-
-				$hourlyRate = $this->QueryUserModel->getByUserId($uid, $selects, $expands);
-
-				if (isError($hourlyRate))
-					$this->logError(getError($hourlyRate));
-				elseif (hasData($hourlyRate))
-				{
-					$maToSync[] = getData($hourlyRate);
-				}
-			}
-
-			$hourlyrates = success($maToSync);
-
+			if (isError($hourlyrates))
+				$this->logError('An error occurred while getting hourly rates', getError($hourlyrates));
 			if (!hasData($hourlyrates))
 			{
 				$this->logInfo("No hourly rates found for synchronisation");
 			}
 			else
 			{
-				$syncedMitarbeiter = array();
-
-				if ($this->_syncpreview === false)
-					$results = $this->syncemployeesfromsapsflib->syncHourlyRateWithFhc($hourlyrates);
-				else
-				{
-					$mas = $this->syncemployeesfromsapsflib->getEmployeesForFhcSync($hourlyrates, SyncEmployeesFromSAPSFLib::HOURLY_RATE_OBJ);
-					printAndDie($mas);
-				}
+				$results = $this->syncemployeesfromsapsflib->syncHourlyRateWithFhc($hourlyrates);
 
 				if (hasData($results))
 				{
 					$results = getData($results);
+					$syncedMitarbeiter = array();
+					$syncedMitarbeiterRes = $this->syncemployeesfromsapsflib->getSyncedEmployees($results);
 
-					foreach ($results as $result)
+					foreach ($syncedMitarbeiterRes as $key => $res)
 					{
-						if (isError($result))
-						{
-							$this->logError(getError($result));
-						}
-						elseif (hasData($result))
-						{
-							$employeeid = getData($result);
-							if (is_string($employeeid))
-							{
-								$hourlyRate = new stdClass();
-								$hourlyRate->uid = $employeeid;
-								$syncedMitarbeiter[$employeeid] = $hourlyRate;
-							}
-						}
+						if (isError($res))
+							$this->logError(getError($res));
+						else
+							$syncedMitarbeiter[$key] = getData($res);
 					}
+
+					$enddate = date('Y-m-d H:i:s');
 
 					// update jobs, set them to done, write synced employees as output.
-					foreach ($lastNewJobs as $job)
-					{
-						$joboutput = array();
-						$decodedInput = json_decode($job->input);
-						if ($decodedInput == null)// if there was job input, only output synced mitarbeiter for this input
-						{
-							foreach ($syncedMitarbeiter as $uidkey => $ma)
-							{
-								$maobj = new stdClass();
-								$maobj->uid = $uidkey;
-								$joboutput[] = $maobj;
-							}
-						}
-						elseif (is_array($decodedInput))
-						{
-							foreach ($decodedInput as $el)
-							{
-								if (isset($syncedMitarbeiter[$el->uid]))
-								{
-									$maobj = new stdClass();
-									$maobj->uid = $el->uid;
-									$joboutput[] = $maobj;
-								}
-							}
-						}
-
-						$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($joboutput);
-						$job->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
-						$job->{jobsqueuelib::PROPERTY_END_TIME} = date('Y-m-d H:i:s');
-						$updatedJobs[] = $job;
-					}
-
-					// update job, set it to done, write synced employees as output.
+					$updatedJobs = $this->_getUpdatedJobs($syncedMitarbeiter, $lastNewJobs, $startdate, $enddate);
 					$updatejobsres = $this->updateJobsQueue(SyncEmployeesFromSAPSFLib::SAPSF_HOURLY_RATES_FROM_SAPSF, $updatedJobs);
+
 					if (isError($updatejobsres))
 					{
 						$this->logError('An error occurred while updating hourlyratessapsfjob', getError($updatejobsres));
 					}
 				}
 				else
-					$this->logInfo('No hourly rate data synced from SAP Success Factors');
+					$this->logInfo('No hourly rates data synced from SAP Success Factors');
 			}
 		}
 
 		$this->logInfo('End hourly rate data synchronization from SAP Success Factors');
+	}
+
+	/**
+	 * Gets jobs updated after sync.
+	 * @param $syncedMitarbeiter array synced employees
+	 * @param $lastNewJobs array jobs before sync
+	 * @param $startdate string job start date
+	 * @param $enddate string job end date
+	 * @return array updated jobs
+	 */
+	private function _getUpdatedJobs($syncedMitarbeiter, $lastNewJobs, $startdate, $enddate)
+	{
+		$updatedJobs = array();
+
+		foreach ($lastNewJobs as $job)
+		{
+			$joboutput = array();
+			$decodedInput = json_decode($job->input);
+			if ($decodedInput == null)
+			{
+				foreach ($syncedMitarbeiter as $uidkey => $ma)
+				{
+					$maobj = new stdClass();
+					$maobj->uid = $uidkey;
+					$joboutput[] = $maobj;
+				}
+			}
+			elseif (is_array($decodedInput))// if there was job input, only output synced mitarbeiter for this input
+			{
+				foreach ($decodedInput as $el)
+				{
+					if (isset($syncedMitarbeiter[$el->uid]))
+					{
+						$maobj = new stdClass();
+						$maobj->uid = $el->uid;
+						$joboutput[] = $maobj;
+					}
+				}
+			}
+
+			$job->{jobsqueuelib::PROPERTY_OUTPUT} = json_encode($joboutput);
+			$job->{jobsqueuelib::PROPERTY_STATUS} = jobsqueuelib::STATUS_DONE;
+			$job->{jobsqueuelib::PROPERTY_START_TIME} = $startdate;
+			$job->{jobsqueuelib::PROPERTY_END_TIME} = $enddate;
+			$updatedJobs[] = $job;
+		}
+
+		return $updatedJobs;
 	}
 }
