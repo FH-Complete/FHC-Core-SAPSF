@@ -639,7 +639,8 @@ class SAPSFQueryModel extends SAPSFClientModel
 			$this->_setError('Invalid filter value');
 			$valid = false;
 		}
-		elseif ((is_array($filterValue) && $logicalOperator !== 'in') || (!is_array($filterValue) && $logicalOperator === 'in'))
+		elseif ((is_array($filterValue) && $logicalOperator !== 'in') ||
+			((!is_array($filterValue) || isEmptyArray($filterValue)) && $logicalOperator === 'in'))
 		{
 			$this->_setError('Logical operator \'in\' requires filter given as array');
 			$valid = false;
