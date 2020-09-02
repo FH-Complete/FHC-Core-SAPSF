@@ -10,6 +10,7 @@ class JQMSchedulerLib
 	private $_ci; // Code igniter instance
 
 	const JOB_TYPE_SYNC_EMPLOYEES_FROM_SAPSF = 'SyncEmployeesFromSAPSF';
+	const JOB_TYPE_SYNC_EMPLOYEES_TO_SAPSF = 'SyncEmployeesToSAPSF';
 
 	/**
 	 * Object initialization
@@ -21,6 +22,51 @@ class JQMSchedulerLib
 
 	// --------------------------------------------------------------------------------------------
 	// Public methods
+
+	/**
+	 * Gets uids of employees to sync, criteria:
+	 * - mitarbeiter updateamum modified recently OR
+	 * - startdate of employee contract is current date
+	 * @return mixed
+	 */
+	public function getSyncemployeesToSAPSF()
+	{
+		// load config
+		$this->_ci->config->load('extensions/FHC-Core-SAPSF/SAPSFSyncparams');
+
+		$daysInPast = $this->_ci->config->item('FHC-Core-SAPSFSyncparams')['fhcMaHoursInPast'];
+
+		if (is_numeric($daysInPast) && $daysInPast >= 0)
+		{
+			$jobInput = null;
+
+			$qry = 'SELECT mitarbeiter_uid FROM public.tbl_mitarbeiter
+						WHERE tbl_mitarbeiter.updateamum >= NOW() - INTERVAL \' %s hours\'
+						OR EXISTS (SELECT 1 FROM bis.tbl_bisverwendung
+									WHERE tbl_bisverwendung.beginn = CURRENT_DATE
+									AND tbl_bisverwendung.mitarbeiter_uid = tbl_mitarbeiter.mitarbeiter_uid)
+						ORDER BY mitarbeiter_uid';
+
+			$dbModel = new DB_Model();
+
+			$maToSyncResult = $dbModel->execReadOnlyQuery(
+				sprintf($qry, $daysInPast)
+			);
+
+			// If error occurred while retrieving new users from database then return the error
+			if (isError($maToSyncResult)) return $maToSyncResult;
+
+			// If new users are present
+			if (hasData($maToSyncResult))
+			{
+				$jobInput = json_encode(getData($maToSyncResult));
+			}
+
+			return success($jobInput);
+		}
+		else
+			return error('Invalid daysInPast parameter');
+	}
 
 	public function checkUidInput($uids)
 	{
@@ -58,170 +104,5 @@ class JQMSchedulerLib
 		}
 
 		return $syncinput;
-	}
-
-	/**
-	 * Looks for new users that have been created in FHC and stores their person id into a job input
-	 */
-	public function newUsers($studySemester = null)
-	{
-		$jobInput = null;
-		$currentOrNextStudySemesterResult = null;
-
-		// Loads the StudiensemesterModel
-		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
-
-		// If a study semester was given as parameter
-		if (!isEmptyString($studySemester))
-		{
-			// Get info about the provided study semester
-			$currentOrNextStudySemesterResult = $this->_ci->StudiensemesterModel->loadWhere(
-				array(
-					'studiensemester_kurzbz' => $studySemester
-				)
-			);
-		}
-		else // otherwise get the last or current one
-		{
-			// Get the last or current studysemester
-			$currentOrNextStudySemesterResult = $this->_ci->StudiensemesterModel->getAktOrNextSemester();
-		}
-
-		// If an error occurred while getting the study semester return it
-		if (isError($currentOrNextStudySemesterResult)) return $currentOrNextStudySemesterResult;
-
-		// If a study semester is configured in database
-		if (hasData($currentOrNextStudySemesterResult))
-		{
-			// Last or current study semester
-			$currentOrNextStudySemester = getData($currentOrNextStudySemesterResult)[0]->studiensemester_kurzbz;
-
-			$dbModel = new DB_Model();
-
-			// 
-			$newUsersResult = $dbModel->execReadOnlyQuery('
-				SELECT ps.person_id
-				  FROM public.tbl_prestudent ps
-				  JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
-				 WHERE pss.studiensemester_kurzbz = ?
-				   AND pss.status_kurzbz IN (\'Aufgenommener\', \'Student\', \'Incoming\', \'Diplomand\')
-				   AND NOT EXISTS(SELECT 1 FROM sync.tbl_sap_students WHERE person_id=ps.person_id)
-			      GROUP BY ps.person_id
-			', array($currentOrNextStudySemester));
-
-			// If error occurred while retrieving new users from database then return the error
-			if (isError($newUsersResult)) return $newUsersResult;
-
-			// If new users are present
-			if (hasData($newUsersResult))
-			{
-				$jobInput = json_encode(getData($newUsersResult));
-			}
-		}
-		else
-		{
-			return error('No study semester present in database');
-		}
-
-		return success($jobInput);
-	}
-
-	/**
-	 * Looks for users that have been update in FHC and stores their person id into a job input
-	 */
-	public function updateUsers()
-	{
-		$jobInput = null;
-
-		$persons = array();
-		$contacts = array();
-		$addresses = array();
-
-		$dbModel = new DB_Model();
-
-		// Persons
-
-		// Get users that have been updated in tbl_person table
-		$personResult = $dbModel->execReadOnlyQuery('
-			SELECT p.person_id
-			  FROM public.tbl_person p
-			 WHERE NOW() - p.updateamum::timestamptz <= INTERVAL \'24 hours\'
-		');
-
-		// If error occurred while retrieving updated users from database then return the error
-		if (isError($personResult)) return $personResult;
-
-		// If there are updated users
-		if (hasData($personResult)) $persons = getData($personResult);
-
-		// Contacts
-
-		// Get users that have been updated in tbl_kontakt table
-		$contactsResult = $dbModel->execReadOnlyQuery('
-			SELECT k.person_id
-			  FROM public.tbl_kontakt k
-			 WHERE NOW() - k.updateamum::timestamptz <= INTERVAL \'24 hours\'
-		      GROUP BY k.person_id
-		');
-
-		// If error occurred while retrieving updated users from database then return the error
-		if (isError($contactsResult)) return $contactsResult;
-
-		// If there are updated users
-		if (hasData($contactsResult)) $contacts = getData($contactsResult);
-
-		// Addresses
-
-		// Get users that have been updated in tbl_adresse table
-		$addressesResult = $dbModel->execReadOnlyQuery('
-			SELECT a.person_id
-			  FROM public.tbl_adresse a
-			 WHERE NOW() - a.updateamum::timestamptz <= INTERVAL \'24 hours\'
-		      GROUP BY a.person_id
-		');
-
-		// If error occurred while retrieving updated users from database then return the error
-		if (isError($addressesResult)) return $addressesResult;
-
-		// If there are updated users
-		if (hasData($addressesResult)) $addresses = getData($addressesResult);
-
-		$jobInput = json_encode(array_merge($persons, $contacts, $addresses));
-
-		return success($jobInput);
-	}
-
-	/**
-	 * Looks for new users that have been created in FHC and stores their person id into a services job input
-	 */
-	public function newServices()
-	{
-		$jobInput = null;
-
-		$dbModel = new DB_Model();
-
-		// Gets new permanent employees created in the last 42 hours
-		$newUsersResult = $dbModel->execReadOnlyQuery('
-			SELECT b.person_id
-			  FROM public.tbl_benutzer b
-			  JOIN public.tbl_mitarbeiter m ON(m.mitarbeiter_uid = b.uid)
-			 WHERE NOW() - m.insertamum::timestamptz <= INTERVAL \'42 hours\'
-			   AND m.fixangestellt = TRUE
-			   AND b.aktiv = TRUE
-			   AND b.person_id NOT IN (
-				SELECT ss.person_id FROM sync.tbl_sap_services ss
-			   )
-		');
-
-		// If error occurred while retrieving new users from database then return the error
-		if (isError($newUsersResult)) return $newUsersResult;
-
-		// If new users are present
-		if (hasData($newUsersResult))
-		{
-			$jobInput = json_encode(getData($newUsersResult));
-		}
-
-		return success($jobInput);
 	}
 }

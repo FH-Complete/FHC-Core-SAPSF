@@ -397,7 +397,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 	protected function _setLastModifiedDateTime($lastModifiedDateTime)
 	{
 		if (isset($lastModifiedDateTime))
-			$this->_setFilterString("lastModifiedDateTime gt datetime?", array($lastModifiedDateTime));
+			$this->_setFilterString("lastModifiedDateTime ge datetime?", array($lastModifiedDateTime));
 	}
 
 	// --------------------------------------------------------------------------------------------

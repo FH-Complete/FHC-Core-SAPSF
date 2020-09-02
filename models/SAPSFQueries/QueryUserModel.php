@@ -56,14 +56,14 @@ class QueryUserModel extends SAPSFQueryModel
 		// get all modified after given date
 		if (isset($lastModifiedDateTime))
 		{
-			$lastModFilterStr = 'lastModifiedDateTime gt datetime?';
+			$lastModFilterStr = 'lastModifiedDateTime ge datetime?';
 
 			if (isset($lastModifiedDateTimeProps))
 			{
 				foreach ($lastModifiedDateTimeProps as $prop)
 				{
 					$lastModFilterStr .= ' or ';
-					$lastModFilterStr .= $prop . "/lastModifiedDateTime gt datetime?";
+					$lastModFilterStr .= $prop . "/lastModifiedDateTime ge datetime?";
 				}
 			}
 			else
