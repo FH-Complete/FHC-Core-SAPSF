@@ -40,7 +40,7 @@ class JQMSchedulerLib
 		{
 			$jobInput = null;
 
-			$qry = 'SELECT mitarbeiter_uid FROM public.tbl_mitarbeiter
+			$qry = 'SELECT mitarbeiter_uid AS "uid" FROM public.tbl_mitarbeiter
 						WHERE tbl_mitarbeiter.updateamum >= NOW() - INTERVAL \' %s hours\'
 						OR EXISTS (SELECT 1 FROM bis.tbl_bisverwendung
 									WHERE tbl_bisverwendung.beginn = CURRENT_DATE
