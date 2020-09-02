@@ -95,10 +95,105 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		$this->ci->load->model('person/adresse_model', 'AdresseModel');
 		$this->ci->load->model('person/kontakt_model', 'KontaktModel');
 		$this->ci->load->model('codex/Nation_model', 'NationModel');
+		$this->ci->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
 	}
 
 	// --------------------------------------------------------------------------------------------
 	// Public methods
+
+	/**
+	 * @param $objtype
+	 * @param $newJobObj object contains information for sync (uids, fullsync)
+	 * @param $lastDoneJobs oject jobs executed last
+	 * @return object the mitarbeiter to sync on success, error otherwise
+	 */
+	public function getEmployeesForSync($objtype, $newJobObj, $lastDoneJobs = null)
+	{
+		$lastModifiedDateTime = null;
+		if (hasData($lastDoneJobs))
+		{
+			$lastJobsData = getData($lastDoneJobs);
+			$lastjobtime = $lastJobsData[0]->starttime;
+			$lastModifiedDateTime = $this->convertDateToSAPSF($lastjobtime);
+		}
+
+		// input uids if only certain users should be synced
+		$uids = $newJobObj->uids;
+
+		$selects = $this->getSelectsFromFieldMappings($objtype);
+		$expands = $this->getExpandsFromFieldMappings($objtype);
+		$lastmodifiedprops = isset($lastModifiedDateTime) ? $this->getLastModifiedDateTimeProps() : null;
+
+		$uidsToSync = array();
+		$maToSync = array();
+		if ($newJobObj->syncAll)
+		{
+			$employees = $this->ci->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops);
+
+			if (isError($employees))
+			{
+				return error(getError($employees));
+			}
+
+			if (hasData($employees))
+			{
+				$empData = getData($employees);
+
+				foreach ($empData as $emp)
+				{
+					$maToSync[] = $emp;
+					$uidsToSync[] = $emp->userId;
+				}
+			}
+		}
+
+		foreach ($uids as $uid)
+		{
+			if (in_array($uid, $uidsToSync))
+				continue;
+
+			$employee = $this->ci->QueryUserModel->getByUserId($uid, $selects, $expands);
+
+			if (isError($employee))
+				return error(getError($employee));
+			elseif (hasData($employee))
+			{
+				$maToSync[] = getData($employee);
+			}
+		}
+
+		return success($maToSync);
+	}
+
+	/**
+	 * Gets synced employees uids, or errors from result.
+	 * @param $results
+	 * @return array
+	 */
+	public function getSyncedEmployees($results)
+	{
+		$syncedMitarbeiterRes = array();
+
+		foreach ($results as $result)
+		{
+			if (isError($result))
+			{
+				$syncedMitarbeiterRes[] = error(getError($result));
+			}
+			elseif (hasData($result))
+			{
+				$employeeid = getData($result);
+				if (is_string($employeeid))
+				{
+					$employee = new stdClass();
+					$employee->uid = $employeeid;
+					$syncedMitarbeiterRes[$employeeid] = success($employee);
+				}
+			}
+		}
+
+		return $syncedMitarbeiterRes;
+	}
 
 	/**
 	 * Starts employee sync. Converts given employee data to fhc format and saves the employee.
@@ -107,20 +202,28 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 */
 	public function syncEmployeesWithFhc($employees)
 	{
-		$convEmployees = $this->getEmployeesForFhcSync($employees, self::OBJTYPE);
-
-		$results = array();
-
-		if (is_array($convEmployees))
+		if ($this->_syncpreview === false)
 		{
-			foreach ($convEmployees as $employee)
-			{
-				$result = $this->_saveMitarbeiter($employee);
-				$results[] = $result;
-			}
-		}
+			$convEmployees = $this->getEmployeesForFhcSync($employees, self::OBJTYPE);
 
-		return success($results);
+			$results = array();
+
+			if (is_array($convEmployees))
+			{
+				foreach ($convEmployees as $employee)
+				{
+					$result = $this->_saveMitarbeiter($employee);
+					$results[] = $result;
+				}
+			}
+
+			return success($results);
+		}
+		else
+		{
+			$mas = $this->getEmployeesForFhcSync($employees, self::OBJTYPE);
+			printAndDie($mas);
+		}
 	}
 
 	/**
@@ -131,20 +234,28 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 */
 	public function syncHourlyRateWithFhc($hourlyrates)
 	{
-		$convEmployees = $this->getEmployeesForFhcSync($hourlyrates, self::HOURLY_RATE_OBJ);
-
-		$results = array();
-
-		if (is_array($convEmployees))
+		if ($this->_syncpreview === false)
 		{
-			foreach ($convEmployees as $employee)
-			{
-				$result = $this->ci->FhcDbModel->saveKalkStundensatz($employee);
-				$results[] = $result;
-			}
-		}
+			$convEmployees = $this->getEmployeesForFhcSync($hourlyrates, self::HOURLY_RATE_OBJ);
 
-		return success($results);
+			$results = array();
+
+			if (is_array($convEmployees))
+			{
+				foreach ($convEmployees as $employee)
+				{
+					$result = $this->ci->FhcDbModel->saveKalkStundensatz($employee);
+					$results[] = $result;
+				}
+			}
+
+			return success($results);
+		}
+		else
+		{
+			$mas = $this->getEmployeesForFhcSync($hourlyrates, self::HOURLY_RATE_OBJ);
+			printAndDie($mas);
+		}
 	}
 
 	/**

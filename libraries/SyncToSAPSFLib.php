@@ -21,14 +21,18 @@ class SyncToSAPSFLib
 		$this->ci->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
 
 		// load config
-		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings/fieldmappings');
-		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings/valuedefaults');
-		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings/fields');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/SAPSFSyncparams');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/valuedefaults');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/fields');
 
+		$this->_syncpreview = $this->ci->config->item('FHC-Core-SAPSFSyncparams')['syncpreview'];
 		$this->_conffieldmappings = $this->ci->config->item('fieldmappings');
 		$this->_conffieldmappings = $this->_conffieldmappings['tosapsf'];
 		$this->_confvaluedefaults = $this->ci->config->item('sapsfdefaults');
 		$this->_predicates = $this->ci->config->item('sapsfpredicates');
+		$this->_requiredfields = $this->ci->config->item('requiredsapsffields');
+		$this->_navigationfields = $this->ci->config->item('sapsfnavigationfields');
 
 		// load models
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');

@@ -12,6 +12,8 @@ class SyncFromSAPSFLib
 
 	const UNKNOWN_NATION_CODE = 'XXX';
 
+	protected $_syncpreview; // if false, sync, otherwise only output
+
 	protected $_convertfunctions;
 
 	protected $_conffieldmappings;
@@ -32,11 +34,13 @@ class SyncFromSAPSFLib
 		$this->ci->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
 
 		// load config
-		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings/fieldmappings');
-		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings/valuemappings');
-		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings/valuedefaults');
-		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings/fields');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/SAPSFSyncparams');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/fieldmappings');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/valuemappings');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/valuedefaults');
+		$this->ci->config->load('extensions/FHC-Core-SAPSF/fields');
 
+		$this->_syncpreview = $this->ci->config->item('FHC-Core-SAPSFSyncparams')['syncpreview'];
 		$this->_conffieldmappings = $this->ci->config->item('fieldmappings');
 		$this->_conffieldmappings = $this->_conffieldmappings['fromsapsf'];
 		$this->_confvaluemappings = $this->ci->config->item('valuemappings');
@@ -145,6 +149,37 @@ class SyncFromSAPSFLib
 			}
 		}
 		return $expands;
+	}
+
+	/**
+	 * Gets SAPSF to FHC fieldmappings.
+	 * @param string $sapsfobj SAPSF objecttype
+	 * @param string $fhctable
+	 * @param array $fhcvaluenames
+	 * @return array
+	 */
+	public function getFieldMappings($sapsfobj, $fhctable, $fhcvaluenames = array())
+	{
+		$valuenames = array();
+
+		if (isset($this->_conffieldmappings[$sapsfobj][$fhctable]))
+		{
+			foreach ($this->_conffieldmappings[$sapsfobj][$fhctable] as $sapsfname => $fhcname)
+			{
+				if (is_array($fhcname))
+				{
+					foreach ($fhcname as $name)
+					{
+						if (in_array($name, $fhcvaluenames))
+							$valuenames[$name] = $sapsfname;
+					}
+				}
+				elseif (in_array($fhcname, $fhcvaluenames))
+					$valuenames[$fhcname] = $sapsfname;
+			}
+		}
+
+		return $valuenames;
 	}
 
 	/**

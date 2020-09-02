@@ -1,10 +1,13 @@
 <?php
 /**
  * Fields for sync.
+ */
+
+/**
  * If required fields are not present in the object, sync is not possible and it is an error.
  * type (no type given - assuming string), foreign key references (ref), unique constraints (unique) are also checked
  * "name" is display name for errors
- */
+ **/
 
 $config['fhcfields']['User'] = array(
 	'person' => array(
@@ -86,6 +89,30 @@ $config['fhcfields']['User'] = array(
 	)
 );
 
+$emailfield = 'kontaktmail/emailAddress';
+
+// required sapsf fields, excluded from sync if not present
+$config['requiredsapsffields']['PerEmail']['kontaktmail'] = array(
+	$emailfield
+);
+
+$config['requiredsapsffields']['PerEmail']['kontaktmailprivate'] = array(
+	$emailfield
+);
+
+$phonefields = array(
+	'kontakttel/phoneNumber',
+	'kontakttel/countryCode',
+	'kontakttel/areaCode',
+	'kontakttel/extension'
+);
+
+$config['requiredsapsffields']['PerPhone']['kontakttel'] = $phonefields;
+
+$config['requiredsapsffields']['PerPhone']['kontakttelprivate'] = $phonefields;
+
+$config['requiredsapsffields']['PerPhone']['kontakttelmobile'] = $phonefields;
+
 // entity predicate value ~ primary keys for SAPSF
 $config['sapsfpredicates']['User'] = array(
 	'userId'
@@ -104,6 +131,11 @@ $config['sapsfpredicates']['PerPhone'] = array(
 $config['sapsfpredicates']['PerPersonal'] = array(// for office
 	'personIdExternal',
 	'startDate'
+);
+
+// navigation fields - for syncing to sapsf, where to find the field?
+$config['sapsfnavigationfields']['PerPersonal'] = array(
+	'customString4' => 'empInfo/personNav/personalInfoNav'
 );
 
 // fields to be checked for lastModifiedDate

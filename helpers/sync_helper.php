@@ -29,7 +29,7 @@ function mergeEmployeesArray($jobs)
 		{
 			foreach ($decodedInput as $el)
 			{
-				if (!in_array($el->uid, $resultObj->uids))
+				if (isset($el->uid) && !in_array($el->uid, $resultObj->uids))
 					$resultObj->uids[] = $el->uid;
 			}
 		}
@@ -47,6 +47,27 @@ function validateDateFormat($date, $format = 'Y-m-d')
 {
 	$d = DateTime::createFromFormat($format, $date);
 	return $d && $d->format($format) === $date;
+}
+
+/**
+ * Descends into properties of an object using array.
+ * @param $var object the object
+ * @param $arr array with properties, hierarchical
+ * @return mixed the property as indicated by array
+ */
+function getPropertyByArray($var, $arr)
+{
+	$result = $var;
+	foreach ($arr as $item)
+	{
+		if (isset($result->{$item}))
+			$result = $result->{$item};
+		else
+		{
+			return null;
+		}
+	}
+	return $result;
 }
 
 /**
