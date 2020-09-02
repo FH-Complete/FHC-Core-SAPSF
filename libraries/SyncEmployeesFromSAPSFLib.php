@@ -626,16 +626,19 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				'zustellung' => true)
 		);
 
-		if (hasData($kontaktmailToUpdate))
+		if (!isEmptyString($kontaktmail['kontakt']))
 		{
-			$kontakt_id = getData($kontaktmailToUpdate)[0]->kontakt_id;
-			$this->_stamp('update', $kontaktmail);
-			$kontaktmailres = $this->ci->KontaktModel->update($kontakt_id, $kontaktmail);
-		}
-		elseif (!isEmptyString($kontaktmail['kontakt']))
-		{
-			$this->_stamp('insert', $kontaktmail);
-			$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
+			if (hasData($kontaktmailToUpdate))
+			{
+				$kontakt_id = getData($kontaktmailToUpdate)[0]->kontakt_id;
+				$this->_stamp('update', $kontaktmail);
+				$kontaktmailres = $this->ci->KontaktModel->update($kontakt_id, $kontaktmail);
+			}
+			else
+			{
+				$this->_stamp('insert', $kontaktmail);
+				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
+			}
 		}
 
 		// update phone - assuming there is only one!
@@ -650,16 +653,19 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				'zustellung' => true)
 		);
 
-		if (hasData($kontakttelToUpdate))
+		if (!isEmptyString($kontakttelefon['kontakt']))
 		{
-			$kontakt_id = getData($kontakttelToUpdate)[0]->kontakt_id;
-			//$this->_stamp('update', $kontaktmail); no stamp because sync to SAPSF can assume it changed -> sync loop
-			$kontakttelres = $this->ci->KontaktModel->update($kontakt_id, $kontakttelefon);
-		}
-		elseif (!isEmptyString($kontakttelefon['kontakt']))
-		{
-			$this->_stamp('insert', $kontakttelefon);
-			$kontakttelres = $this->ci->KontaktModel->insert($kontakttelefon);
+			if (hasData($kontakttelToUpdate))
+			{
+				$kontakt_id = getData($kontakttelToUpdate)[0]->kontakt_id;
+				//$this->_stamp('update', $kontaktmail); no stamp because sync to SAPSF can assume it changed -> sync loop
+				$kontakttelres = $this->ci->KontaktModel->update($kontakt_id, $kontakttelefon);
+			}
+			else
+			{
+				$this->_stamp('insert', $kontakttelefon);
+				$kontakttelres = $this->ci->KontaktModel->insert($kontakttelefon);
+			}
 		}
 
 		// update kontaktnotfall
@@ -676,16 +682,19 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			)
 		);
 
-		if (hasData($kontaktnotfallToUpdate))
+		if (!isEmptyString($kontaktnotfall['kontakt']))
 		{
-			$kontakt_id = getData($kontaktnotfallToUpdate)[0]->kontakt_id;
-			$this->_stamp('update', $kontaktnotfall);
-			$kontaktnotfallres = $this->ci->KontaktModel->update($kontakt_id, $kontaktnotfall);
-		}
-		elseif (!isEmptyString($kontaktnotfall['kontakt']))
-		{
-			$this->_stamp('insert', $kontaktnotfall);
-			$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
+			if (hasData($kontaktnotfallToUpdate))
+			{
+				$kontakt_id = getData($kontaktnotfallToUpdate)[0]->kontakt_id;
+				$this->_stamp('update', $kontaktnotfall);
+				$kontaktnotfallres = $this->ci->KontaktModel->update($kontakt_id, $kontaktnotfall);
+			}
+			else
+			{
+				$this->_stamp('insert', $kontaktnotfall);
+				$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
+			}
 		}
 	}
 }
