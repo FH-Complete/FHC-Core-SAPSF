@@ -127,6 +127,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 		$uidsToSync = array();
 		$maToSync = array();
+
+		// full sync
 		if (isset($newJobObj->syncAll) && $newJobObj->syncAll)
 		{
 			$employees = $this->ci->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops);
@@ -148,6 +150,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			}
 		}
 
+		// include additional, manually passed uids
 		foreach ($uids as $uid)
 		{
 			if (in_array($uid, $uidsToSync))

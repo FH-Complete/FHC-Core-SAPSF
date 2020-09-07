@@ -25,7 +25,7 @@ $(document).ready(function()
                 }
                 else
                 {
-                    FHC_DialogLib.alertError("Ungültiger uid input. Akzeptiert werden Buchstaben, separiert mit , oder Leerzeichen.");
+                    FHC_DialogLib.alertError("Ungültiger uid input. Akzeptiert werden mit , oder Leerzeichen separierte Buchstaben.");
                 }
             }
         );
@@ -60,16 +60,51 @@ var SAPSFEmployeeSync = {
                 {
                     if (FHC_AjaxClient.isSuccess(data))
                     {
-                        console.log(data);
+                        if (FHC_AjaxClient.hasData(data))
+                        {
+                            var uidstr = '';
+                            var errorstr = '';
+
+                            var uids = FHC_AjaxClient.getData(data);
+                            var uidstrfirst = true;
+                            var errstrfirst = true;
+
+                            jQuery.each(uids, function(idx, uid)
+                            {
+                                if (uid.uid)
+                                {
+                                    if (!uidstrfirst)
+                                        uidstr += ', ';
+                                    uidstr += uid.uid;
+                                    uidstrfirst = false;
+                                }
+                                else
+                                {
+                                    if (!errstrfirst)
+                                        errorstr += ', ';
+                                    errorstr += uid;
+                                    errstrfirst = false;
+                                }
+                            });
+
+                            var successtext = uidstr === '' ? uidstr : "Folgende uids erfolgreich gesynct: " + uidstr;
+
+                            if (errorstr === '')
+                                FHC_DialogLib.alertSuccess(successtext);
+                            else
+                                FHC_DialogLib.alertWarning(successtext + "<br /> Folgende Fehler sind beim Syncen aufgetreten:<br />" + errorstr);
+                        }
+                        else
+                            FHC_DialogLib.alertInfo("Keine Mitarbeiter für sync gefunden.");
                     }
                     else
                     {
-                        console.log('error');
+                        FHC_DialogLib.alertError("Employees not synced, error:<br />" + FHC_AjaxClient.getError(data));
                     }
                 },
                 errorCallback: function(jqXHR, textStatus, errorThrown)
                 {
-                    FHC_DialogLib.alertError("error when getting employees");
+                    FHC_DialogLib.alertError("error when syncing employees");
                 }
             }
         );

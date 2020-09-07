@@ -17,21 +17,23 @@ class SyncEmployees extends Auth_Controller
 			)
 		);
 
+		$this->_uid = getAuthUID();
+
+		if (!$this->_uid)
+			show_error('User authentification failed');
+
+		$this->load->library('LogLib', array(
+				'classIndex' => 5,
+				'functionIndex' => 5,
+				'lineIndex' => 4,
+				'dbLogType' => 'job', // required
+				'dbExecuteUser' => $this->_uid)
+		);
+
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncFromSAPSFLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncToSAPSFLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesToSAPSFLib');
-
-		// It also specify parameters to set database fields
-		$params = array(
-			'classIndex' => 5,
-			'functionIndex' => 5,
-			'lineIndex' => 4,
-			'dbLogType' => 'SAPSFManualSync', // required
-			'dbExecuteUser' => 'employeeSync'
-		);
-
-		$this->load->library('LogLib', $params);
 	}
 
 	public function index()
@@ -57,17 +59,16 @@ class SyncEmployees extends Auth_Controller
 			$syncObj->uids = $uids;
 			$syncObj->syncAll = false;
 
-			//$this->_logInfo('Manual Employee Sync from SAPSF to FHC start');
+			$this->_logInfo('Manual Employee Sync from SAPSF to FHC start');
 			$employees = $this->syncemployeesfromsapsflib->getEmployeesForSync(SyncEmployeesFromSAPSFLib::OBJTYPE, $syncObj);
 
 			if (isError($employees))
 			{
-				//$this->_logError('An error occurred while getting employees', getError($employees));
+				$this->_logError('An error occurred while getting employees', getError($employees));
 				$result = error(getError($employees));
 			}
 			elseif (!hasData($employees))
-				echo "nope";
-				//$this->_logInfo('No employees found for synchronisation');
+				$this->_logInfo('No employees found for synchronisation');
 			else
 			{
 				$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employees);
@@ -82,7 +83,8 @@ class SyncEmployees extends Auth_Controller
 					{
 						if (isError($res))
 						{
-							//$this->_logError(getError($res));
+							$this->_logError(getError($res));
+							$syncedMitarbeiter[$key] = getError($res);
 						}
 						else
 							$syncedMitarbeiter[$key] = getData($res);
@@ -91,7 +93,7 @@ class SyncEmployees extends Auth_Controller
 					$result = success($syncedMitarbeiter);
 				}
 			}
-			//$this->_logInfo('Manual Employee Sync from SAPSF to FHC end');
+			$this->_logInfo('Manual Employee Sync from SAPSF to FHC end');
 		}
 		else
 			$result = error('Invalid uids passed');

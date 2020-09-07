@@ -114,7 +114,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 
 			if (isError($hourlyrates))
 				$this->logError('An error occurred while getting hourly rates', getError($hourlyrates));
-			if (!hasData($hourlyrates))
+			elseif (!hasData($hourlyrates))
 			{
 				$this->logInfo("No hourly rates found for synchronisation");
 			}

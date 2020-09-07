@@ -11,8 +11,8 @@ $this->load->view(
 		'dialoglib' => true,
 		'ajaxlib' => true,
 		'navigationwidget' => true,
-		'customJSs' => array('public/extensions/FHC-Core-SAPSF/js/manualSAPSFEmployeeSync.js'),
-		'customCSSs' => array('public/extensions/FHC-Core-SAPSF/css/manualSAPSFEmployeeSync.css')
+		'customJSs' => array('public/extensions/FHC-Core-SAPSF/js/manualSAPSFEmployeeSync.js')/*,
+		'customCSSs' => array('public/extensions/FHC-Core-SAPSF/css/manualSAPSFEmployeeSync.css')*/
 	)
 );
 ?>
@@ -35,7 +35,7 @@ $this->load->view(
                         <div class="input-group">
                         <input class="form-control" type="text" id="addfromsapuidinput">
                             <span class="input-group-btn">
-                                <button class="btn btn-default" id="addfromsapuidbtn"><i class="fa fa-plus"></i>&nbsp;uid hinzufügen</button>
+                                <button class="btn btn-default" id="addfromsapuidbtn"><i class="fa fa-plus"></i>&nbsp;uids hinzufügen</button>
                             </span>
                         </div>
                         <h4>Hinzugefügt:</h4>
@@ -44,7 +44,7 @@ $this->load->view(
                             </div>
                         </div>
                         <button class="btn btn-default" id="syncfromsapbtn">
-                            <i class="fa fa-refresh"></i>Mitarbeiter synchronisieren
+                            <i class="fa fa-refresh"></i>&nbsp;Mitarbeiter synchronisieren
                         </button>
 					</div>
                    <!-- <div class="col-xs-6 form-group">
