@@ -13,8 +13,6 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncFromSAPSFLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
-		//$this->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
-		//$this->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
 	}
 
 	/**
@@ -54,7 +52,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 				if (isError($employees))
 					$this->logError('An error occurred while getting employees', getError($employees));
 				elseif (!hasData($employees))
-					$this->logInfo("No employees found for synchronisation");
+					$this->logInfo('No employees found for synchronisation');
 				else
 				{
 					$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employees);

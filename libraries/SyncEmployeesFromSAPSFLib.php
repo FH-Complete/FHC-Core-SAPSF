@@ -102,9 +102,10 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	// Public methods
 
 	/**
+	 * Gets employees to be synced.
 	 * @param $objtype
 	 * @param $newJobObj object contains information for sync (uids, fullsync)
-	 * @param $lastDoneJobs oject jobs executed last
+	 * @param $lastDoneJobs object jobs executed last
 	 * @return object the mitarbeiter to sync on success, error otherwise
 	 */
 	public function getEmployeesForSync($objtype, $newJobObj, $lastDoneJobs = null)
@@ -118,7 +119,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 
 		// input uids if only certain users should be synced
-		$uids = $newJobObj->uids;
+		$uids = checkStringArray($newJobObj->uids) ? $newJobObj->uids : array();
 
 		$selects = $this->getSelectsFromFieldMappings($objtype);
 		$expands = $this->getExpandsFromFieldMappings($objtype);
@@ -126,7 +127,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 		$uidsToSync = array();
 		$maToSync = array();
-		if ($newJobObj->syncAll)
+		if (isset($newJobObj->syncAll) && $newJobObj->syncAll)
 		{
 			$employees = $this->ci->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops);
 
@@ -204,7 +205,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	{
 		if ($this->_syncpreview === false)
 		{
-			$convEmployees = $this->getEmployeesForFhcSync($employees, self::OBJTYPE);
+			$convEmployees = $this->_convertEmployeesForFhc($employees, self::OBJTYPE);
 
 			$results = array();
 
@@ -221,7 +222,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 		else
 		{
-			$mas = $this->getEmployeesForFhcSync($employees, self::OBJTYPE);
+			$mas = $this->_convertEmployeesForFhc($employees, self::OBJTYPE);
 			printAndDie($mas);
 		}
 	}
@@ -236,7 +237,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	{
 		if ($this->_syncpreview === false)
 		{
-			$convEmployees = $this->getEmployeesForFhcSync($hourlyrates, self::HOURLY_RATE_OBJ);
+			$convEmployees = $this->_convertEmployeesForFhc($hourlyrates, self::HOURLY_RATE_OBJ);
 
 			$results = array();
 
@@ -253,7 +254,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 		else
 		{
-			$mas = $this->getEmployeesForFhcSync($hourlyrates, self::HOURLY_RATE_OBJ);
+			$mas = $this->_convertEmployeesForFhc($hourlyrates, self::HOURLY_RATE_OBJ);
 			printAndDie($mas);
 		}
 	}
@@ -264,7 +265,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 * @param $objtype
 	 * @return array converted employees
 	 */
-	public function getEmployeesForFhcSync($sapsfemployees, $objtype)
+	private function _convertEmployeesForFhc($sapsfemployees, $objtype)
 	{
 		$mas = array();
 

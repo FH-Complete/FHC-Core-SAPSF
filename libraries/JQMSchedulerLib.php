@@ -67,42 +67,4 @@ class JQMSchedulerLib
 		else
 			return error('Invalid daysInPast parameter');
 	}
-
-	public function checkUidInput($uids)
-	{
-		$valid = false;
-
-		if (!isset($uids))
-			$valid = true;
-		elseif (is_array($uids))
-		{
-			$valid = true;
-			foreach ($uids as $uid)
-			{
-				if (!isset($uid->uid))
-				{
-					$valid = false;
-					break;
-				}
-			}
-		}
-
-		return $valid;
-	}
-
-	public function createSyncEmployeesInput($uids)
-	{
-		$syncinput = null;
-
-		if (isset($uids) && $this->checkUidInput($uids))
-		{
-			foreach ($uids as $uid)
-			{
-				$uidobj = new stdClass();
-				$syncinput[] = $uidobj;
-			}
-		}
-
-		return $syncinput;
-	}
 }
