@@ -1,11 +1,9 @@
 /**
- * javascript file for Mobility Online courses sync
+ * javascript file for SAPSF sync
  */
-const FULL_URL = FHC_JS_DATA_STORAGE_OBJECT.app_root + FHC_JS_DATA_STORAGE_OBJECT.ci_router + "/"+FHC_JS_DATA_STORAGE_OBJECT.called_path;
 
 $(document).ready(function()
     {
-
         // add uids for sync
         $("#addfromsapuidbtn").click(
             function()
@@ -13,7 +11,6 @@ $(document).ready(function()
                 var uidinput = $("#addfromsapuidinput").val();
                 if (SAPSFEmployeeSync._checkUid(uidinput))
                 {
-                    //uidinput = 'bla , blu';
                     var uids = uidinput.replaceAll(/(\s|,)+/g,',').split(',');
 
                     for (var i = 0; i < uids.length; i++)
@@ -33,15 +30,8 @@ $(document).ready(function()
         $("#syncfromsapbtn").click(
             function()
             {
+                SAPSFEmployeeSync._clearSyncOutput();
                 SAPSFEmployeeSync.getSyncEmployeesFromSAPSF(SAPSFEmployeeSync.uidsToSyncFromSAPSF);
-            }
-        );
-
-        //init sync
-        $("#lvsyncbtn").click(
-            function()
-            {
-                SAPSFEmployeeSync.syncLvs($("#studiensemester").val());
             }
         );
     }
@@ -87,24 +77,23 @@ var SAPSFEmployeeSync = {
                                 }
                             });
 
-                            var successtext = uidstr === '' ? uidstr : "Folgende uids erfolgreich gesynct: " + uidstr;
+                            if (uidstr !== '')
+                                SAPSFEmployeeSync._writeSyncSuccess("Folgende uids erfolgreich gesynct: <br />" + uidstr);
 
-                            if (errorstr === '')
-                                FHC_DialogLib.alertSuccess(successtext);
-                            else
-                                FHC_DialogLib.alertWarning(successtext + "<br /> Folgende Fehler sind beim Syncen aufgetreten:<br />" + errorstr);
+                            if (errorstr !== '')
+                                SAPSFEmployeeSync._writeSyncError("Folgende Fehler sind aufgetreten:<br />" + errorstr);
                         }
                         else
-                            FHC_DialogLib.alertInfo("Keine Mitarbeiter für sync gefunden.");
+                            SAPSFEmployeeSync._writeSyncInfo("Keine Mitarbeiter für sync gefunden.");
                     }
                     else
                     {
-                        FHC_DialogLib.alertError("Employees not synced, error:<br />" + FHC_AjaxClient.getError(data));
+                        SAPSFEmployeeSync._writeSyncError("Employees not synced, error:<br />" + FHC_AjaxClient.getError(data));
                     }
                 },
                 errorCallback: function(jqXHR, textStatus, errorThrown)
                 {
-                    FHC_DialogLib.alertError("error when syncing employees");
+                    SAPSFEmployeeSync._writeSyncError("error when syncing employees");
                 }
             }
         );
@@ -117,10 +106,47 @@ var SAPSFEmployeeSync = {
     },
     _refreshUids: function()
     {
-        var uidstr = SAPSFEmployeeSync.uidsToSyncFromSAPSF.join('<br />');
+        var uidstr = '';
+
+        for (var i = 0; i < SAPSFEmployeeSync.uidsToSyncFromSAPSF.length; i++)
+        {
+            var uid = SAPSFEmployeeSync.uidsToSyncFromSAPSF[i];
+            uidstr += uid;
+            uidstr += '&nbsp;<span id="uid_' + uid + '" class="minusspan text-danger"><i class="fa fa-times" title="entfernen"></i></span><br />';
+        }
 
         $("#enteredUidsFromSAP").html(
             uidstr
         )
+
+        $(".minusspan").click(
+            function()
+            {
+                var spanuid = $(this).prop("id");
+                spanuid = spanuid.substr(spanuid.indexOf("_") + 1);
+                SAPSFEmployeeSync.uidsToSyncFromSAPSF.splice(jQuery.inArray(spanuid, SAPSFEmployeeSync.uidsToSyncFromSAPSF), 1);
+                SAPSFEmployeeSync._refreshUids();
+            }
+        )
+    },
+    _writeSyncOutput: function(text, colorclass)
+    {
+        $("#syncoutput").append("<p class='" + colorclass + "'>" + text + "</p>");
+    },
+    _writeSyncSuccess: function(text)
+    {
+        SAPSFEmployeeSync._writeSyncOutput(text, 'text-success');
+    },
+    _writeSyncError: function(text)
+    {
+        SAPSFEmployeeSync._writeSyncOutput(text, 'text-danger');
+    },
+    _writeSyncInfo(text)
+    {
+        SAPSFEmployeeSync._writeSyncOutput(text, 'text-info');
+    },
+    _clearSyncOutput()
+    {
+        $("#syncoutput").empty();
     }
 };
