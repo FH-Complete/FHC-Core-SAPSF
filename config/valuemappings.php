@@ -43,13 +43,10 @@ $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['fixangestellt'] = 
 );
 
 $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['standort_id'] = array(
-	'100200' => 3,
-	'100001' => 4,
-	'100300' => 5361
-/*	'EB' => 5361,
-	'GF06' => 4,
-	'HOE' => 3*/
-	//'GMBH' => 3
+	'100200' => 3, // technikum höchstädtplatz
+	'100001' => 4, // mariahilfer str gst
+	'100300' => 5361, // energy base
+	'200000' => 4640 // gmbh
 );
 
 /*$config['valuemappings']['fromsapsf']['User']['kontaktmail']['zustellung'] = array(
