@@ -42,11 +42,12 @@ class QueryUserModel extends SAPSFQueryModel
 	 * @param array $selects fields to retrieve for each user
 	 * @param array $expands fields to expand
 	 * @param string $lastModifiedDateTime date when users were last modified
-	 * @param null $lastModifiedDateTimeProps additional properties checked for lastModifiedDateTime
-	 * @param null $uids
+	 * @param array $lastModifiedDateTimeProps additional properties checked for lastModifiedDateTime
+	 * @param bool $setEffectiveDates if true, from and to date are set
+	 * @param array $uids if only particular uids need to be retrieved
 	 * @return object userdata
 	 */
-	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null, $uids = null)
+	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null, $setEffectiveDates = true, $uids = null)
 	{
 		$this->_setEntity('User');
 		$this->_setSelects($selects);
@@ -104,7 +105,8 @@ class QueryUserModel extends SAPSFQueryModel
 			$this->_setFilter('userId', $uids, 'in');
 		}
 
-		$this->_setEffectiveDates();
+		if ($setEffectiveDates === true)
+			$this->_setEffectiveDates();
 
 		return $this->_query();
 	}

@@ -33,6 +33,7 @@ class EditUserModel extends SAPSFEditOperationsModel
 		$results = array();
 		$entitydata = array();
 
+		// restructure - upserts only possible for one entity at a time
 		foreach ($userdata as $uid => $sapsfobj)
 		{
 			foreach ($sapsfobj as $sapsfentity => $sapsfdata)
@@ -44,7 +45,6 @@ class EditUserModel extends SAPSFEditOperationsModel
 			}
 		}
 
-		// restructure - one upsert only possible for one entity
 		foreach ($entitydata as $entity => $sapsfdata)
 		{
 			foreach ($sapsfdata as $sd)

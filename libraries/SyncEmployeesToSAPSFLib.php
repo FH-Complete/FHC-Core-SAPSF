@@ -63,9 +63,11 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 
 		if (hasData($mitarbeiter))
 		{
+			$mitarbeiterobjname = 'mitarbeiter';
 			$fhcmailprivate = 'kontaktmailprivate';
 			$fhcmailbusiness = 'kontaktmail';
 			$fhcmailtechnical = 'kontaktmailtech';
+			$fhctelbusiness = 'kontakttelefon';
 			$fhctelprivate = 'kontakttelprivate';
 			$fhctelmobile = 'kontakttelmobile';
 
@@ -76,10 +78,10 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 			$sapsfstartDateName = $this->_predicates[self::PERSONALINFOTYPE][1];
 			$sapsfEmailTypeName = $this->_predicates[self::MAILTYPE][1];
 			$sapsfPhoneTypeName = $this->_predicates[self::PHONETYPE][1];
-			$sapsfOfficeName = $this->_conffieldmappings['mitarbeiter'][self::PERSONALINFOTYPE]['ort_kurzbz'];
+			$sapsfOfficeName = $this->_conffieldmappings[$mitarbeiterobjname][self::PERSONALINFOTYPE]['ort_kurzbz'];
 
-			$mailfieldmapping = $this->ci->syncfromsapsflib->getFieldMappings('User', 'kontaktmail', array('kontakt'))['kontakt'];
-			$phonefieldmapping = $this->ci->syncfromsapsflib->getFieldMappings('User', 'kontakttelefon', array('kontakt'))['kontakt'];
+			$mailfieldmapping = $this->ci->syncfromsapsflib->getFieldMappings('User', $fhcmailbusiness, array('kontakt'))['kontakt'];
+			$phonefieldmapping = $this->ci->syncfromsapsflib->getFieldMappings('User', $fhctelbusiness, array('kontakt'))['kontakt'];
 			$officefieldmapping = $this->_navigationfields[self::PERSONALINFOTYPE][$sapsfOfficeName];
 
 			$mail_expl = explode('/', $mailfieldmapping);
@@ -100,10 +102,10 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 					  $phonenav .'/'.$sapsfPhoneTypeName,
 					  $officefieldmapping . '/'.$sapsfOfficeName,
 					  $officefieldmapping . '/'.$sapsfstartDateName,
-					  $officefieldmapping . '/'.self::SAPSF_END_DATE_NAME,
+					  $officefieldmapping . '/'.self::SAPSF_END_DATE_NAME
 					), // selects
 				array(self::PERSON_KEY_NAV,  $emailnav, $phonenav, $officefieldmapping), // expands
-				null, null, $uids
+				null, null, false, $uids //no lastmodifieddate and no from - to dates
 			);
 
 			if (isError($sapsfemployees))
@@ -119,7 +121,10 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 						if ($sapsfemployee->{$sapsfUidName} == $ma->uid)
 						{
 							$matosync = $this->_convertEmployeeToSapsf($ma);
-							$syncdate = $this->ci->syncfromsapsflib->convertDateToSAPSF(date('Y-m-d H:i:s'));
+							$fhcdate = isset($ma->updateamum) ? $ma->updateamum : $ma->insertamum;
+							if (isEmptyString($fhcdate))
+								$fhcdate = date('Y-m-d H:i:s');
+							$syncdate = $this->ci->syncfromsapsflib->convertDateToSAPSF($fhcdate);
 
 							$sapsfvals = array(
 								$sapsfPersonIdName => $sapsfemployee->{self::PERSON_KEY_NAV}->{$sapsfPersonIdName},
@@ -132,8 +137,8 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 							$phoneTypes = getPropertyByArray($sapsfemployee, $phonefieldmapping_arr);
 							$phoneTypes = isset($phoneTypes->results) ? $phoneTypes->results : array();
 
-							$jobInfos = getPropertyByArray($sapsfemployee, $officefieldmapping_arr);
-							$jobInfos = isset($jobInfos->results) ? $jobInfos->results : array();
+							$personalInfos = getPropertyByArray($sapsfemployee, $officefieldmapping_arr);
+							$personalInfos = isset($personalInfos->results) ? $personalInfos->results : array();
 
 							foreach ($matosync as $entity => $mats)
 							{
@@ -151,7 +156,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 							$hasMobilePhone = false;
 							$hasPrivateMail = false;
 							$hasBusinessMail = false;
-							$hasValidJobInfo = false;
+							$personalInfoDatesToUpdate = array();
 							$privateMailTypCode = $this->_confvaluedefaults[$fhcmailprivate][self::MAILTYPE][$sapsfEmailTypeName];
 							$businessMailTypCode = $this->_confvaluedefaults[$fhcmailbusiness][self::MAILTYPE][$sapsfEmailTypeName];
 							$privateTelTypCode = $this->_confvaluedefaults[$fhctelprivate][self::PHONETYPE][$sapsfPhoneTypeName];
@@ -181,15 +186,21 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 								}
 							}
 
-							foreach ($jobInfos as $jobInfo)
+							foreach ($personalInfos as $personalInfo)
 							{
-								$start = $this->_convertSAPSFTimestampToDateTime($jobInfo->{$sapsfstartDateName});
-								$ende = $this->_convertSAPSFTimestampToDateTime($jobInfo->{self::SAPSF_END_DATE_NAME});
+								$start = $this->_convertSAPSFTimestampToDateTime($personalInfo->{$sapsfstartDateName});
+								$ende = $this->_convertSAPSFTimestampToDateTime($personalInfo->{self::SAPSF_END_DATE_NAME});
 
-								if ($start < $syncdate && $ende > $syncdate)
+								if ($ende > $syncdate)
 								{
-									$hasValidJobInfo = true;
-									break;
+									if (isEmptyString($personalInfo->{$sapsfOfficeName})
+										|| $personalInfo->{$sapsfOfficeName} != $matosync[self::PERSONALINFOTYPE][$mitarbeiterobjname][self::DATA_INDEX][$sapsfOfficeName])
+									{
+										if ($start < $syncdate) // current office
+											$personalInfoDatesToUpdate[] = $syncdate;
+										else
+											$personalInfoDatesToUpdate[] = $start;
+									}
 								}
 							}
 
@@ -203,8 +214,21 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 							if (!$hasMobilePhone)
 								unset($matosync[self::PHONETYPE][$fhctelmobile]);
 
-							if (!$hasValidJobInfo)
+							if (isEmptyArray($personalInfoDatesToUpdate))
 								unset($matosync[self::PERSONALINFOTYPE]);
+							else
+							{
+								// special case office: update all future personalInfos if there are any (otherwise future entries will overwrite the change)
+								$currPersonal = $matosync[self::PERSONALINFOTYPE][$mitarbeiterobjname];
+								$idx = 0;
+								foreach ($personalInfoDatesToUpdate as $personalInfoDate)
+								{
+									$mitarbeiterobjnameIdx = $idx > 0 ? $mitarbeiterobjname."_$idx" : $mitarbeiterobjname;
+									$currPersonal[self::PREDICATE_INDEX][$sapsfstartDateName] = $personalInfoDate;
+									$matosync[self::PERSONALINFOTYPE][$mitarbeiterobjnameIdx] = $currPersonal;
+									$idx++;
+								}
+							}
 
 							// not sync required data if empty
 							foreach ($matosync as $sapsfproperty => $values)
