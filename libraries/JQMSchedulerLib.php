@@ -10,6 +10,7 @@ class JQMSchedulerLib
 	private $_ci; // Code igniter instance
 
 	const JOB_TYPE_SYNC_EMPLOYEES_FROM_SAPSF = 'SyncEmployeesFromSAPSF';
+	const JOB_TYPE_SYNC_HOURLY_RATES_FROM_SAPSF = 'SyncHourlyRatesFromSAPSF';
 	const JOB_TYPE_SYNC_EMPLOYEES_TO_SAPSF = 'SyncEmployeesToSAPSF';
 
 	/**
@@ -41,10 +42,11 @@ class JQMSchedulerLib
 			$jobInput = null;
 
 			$qry = 'SELECT mitarbeiter_uid AS "uid" FROM public.tbl_mitarbeiter
-						WHERE tbl_mitarbeiter.updateamum >= NOW() - INTERVAL \' %s hours\'
-						OR EXISTS (SELECT 1 FROM bis.tbl_bisverwendung
+						WHERE (tbl_mitarbeiter.updateamum >= NOW() - INTERVAL \' %s hours\'
+								OR EXISTS (SELECT 1 FROM bis.tbl_bisverwendung
 									WHERE tbl_bisverwendung.beginn = CURRENT_DATE
-									AND tbl_bisverwendung.mitarbeiter_uid = tbl_mitarbeiter.mitarbeiter_uid)
+									AND tbl_bisverwendung.mitarbeiter_uid = tbl_mitarbeiter.mitarbeiter_uid))
+						AND tbl_mitarbeiter.personalnummer >= 0
 						ORDER BY mitarbeiter_uid';
 
 			$dbModel = new DB_Model();
@@ -68,41 +70,38 @@ class JQMSchedulerLib
 			return error('Invalid daysInPast parameter');
 	}
 
-	public function checkUidInput($uids)
+	/**
+	 * Gets uids of employees with hourly ratesto sync, criteria:
+	 * - fixangestellt AND
+	 * - does not exist in sap_stundensatz sync table yet
+	 * @return mixed
+	 */
+	public function getHourlyRatesToSAPSF()
 	{
-		$valid = false;
+		$jobInput = null;
 
-		if (!isset($uids))
-			$valid = true;
-		elseif (is_array($uids))
+		$qry = 'SELECT mitarbeiter_uid AS "uid" FROM public.tbl_mitarbeiter
+					WHERE tbl_mitarbeiter.fixangestellt
+					AND NOT EXISTS (SELECT 1 FROM sync.tbl_sap_stundensatz
+								WHERE tbl_sap_stundensatz.mitarbeiter_uid = tbl_mitarbeiter.mitarbeiter_uid)
+					AND tbl_mitarbeiter.personalnummer >= 0
+					ORDER BY mitarbeiter_uid';
+
+		$dbModel = new DB_Model();
+
+		$maToSyncResult = $dbModel->execReadOnlyQuery(
+			$qry
+		);
+
+		// If error occurred while retrieving new users from database then return the error
+		if (isError($maToSyncResult)) return $maToSyncResult;
+
+		// If new users are present
+		if (hasData($maToSyncResult))
 		{
-			$valid = true;
-			foreach ($uids as $uid)
-			{
-				if (!isset($uid->uid))
-				{
-					$valid = false;
-					break;
-				}
-			}
+			$jobInput = json_encode(getData($maToSyncResult));
 		}
 
-		return $valid;
-	}
-
-	public function createSyncEmployeesInput($uids)
-	{
-		$syncinput = null;
-
-		if (isset($uids) && $this->checkUidInput($uids))
-		{
-			foreach ($uids as $uid)
-			{
-				$uidobj = new stdClass();
-				$syncinput[] = $uidobj;
-			}
-		}
-
-		return $syncinput;
+		return success($jobInput);
 	}
 }
