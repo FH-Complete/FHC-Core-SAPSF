@@ -52,7 +52,7 @@ class QueryUserModel extends SAPSFQueryModel
 		$this->_setEntity('User');
 		$this->_setSelects($selects);
 		$this->_setExpands($expands);
-		$this->_setOrderBys(array('lastName', 'firstName'));
+		$this->_setOrderBys(array('userId'));
 
 		// get all modified after given date
 		if (isset($lastModifiedDateTime))

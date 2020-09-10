@@ -79,3 +79,28 @@ function printAndDie($obj)
 	print_r($obj);
 	die();
 }
+
+/**
+ * Checks an array of strings for its validity.
+ * @param $arr array of strings
+ * @return bool
+ */
+function checkStringArray($arr)
+{
+	$valid = false;
+
+	if (is_array($arr))
+	{
+		$valid = true;
+		foreach ($arr as $str)
+		{
+			if (!is_string($str))
+			{
+				$valid = false;
+				break;
+			}
+		}
+	}
+
+	return $valid;
+}
