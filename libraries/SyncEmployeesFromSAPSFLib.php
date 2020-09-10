@@ -49,6 +49,15 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				)
 			)
 		),
+		'benutzer' => array(
+			'aktiv' => array(
+				'function' => '_selectAktivForFhc',
+				'extraParams' => array(
+					array('table' => 'sapaktiv', 'name' => 'sapaktiv'),
+					array('table' => 'sapaktiv', 'name' => 'sapstartdatum')
+				)
+			)
+		),
 		'kontaktmail' => array(
 			'kontakt' => array(
 				'function' => '_selectEmailForFhc',
@@ -61,7 +70,18 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			'kontakt' => array(
 				'function' => '_selectPhoneForFhc',
 				'extraParams' => array(
-					array('table' => 'telefondaten', 'name' => 'telefontyp'),
+					array('table' => 'telefondaten', 'name' => 'telefontyp', 'fhcfield' => 'kontakttelprivate'),
+					array('table' => 'telefondaten', 'name' => 'landesvorwahl'),
+					array('table' => 'telefondaten', 'name' => 'ortsvorwahl'),
+					array('table' => 'telefondaten', 'name' => 'telefonklappe')
+				)
+			)
+		),
+		'kontakttelmobile' => array(
+			'kontakt' => array(
+				'function' => '_selectPhoneForFhc',
+				'extraParams' => array(
+					array('table' => 'telefondaten', 'name' => 'telefontyp', 'fhcfield' => 'kontakttelmobile'),
 					array('table' => 'telefondaten', 'name' => 'landesvorwahl'),
 					array('table' => 'telefondaten', 'name' => 'ortsvorwahl'),
 					array('table' => 'telefondaten', 'name' => 'telefonklappe')
@@ -123,7 +143,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 		$selects = $this->getSelectsFromFieldMappings($objtype);
 		$expands = $this->getExpandsFromFieldMappings($objtype);
-		$lastmodifiedprops = isset($lastModifiedDateTime) ? $this->getLastModifiedDateTimeProps() : null;
+		$lastmodifiedprops = isset($lastModifiedDateTime) ? $this->_sapsflastmodifiedfields : null;
+		$startdateprops = isset($lastModifiedDateTime) ? $this->_sapsfstartdatefields: null;
 
 		$uidsToSync = array();
 		$maToSync = array();
@@ -131,7 +152,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		// full sync
 		if (isset($newJobObj->syncAll) && $newJobObj->syncAll)
 		{
-			$employees = $this->ci->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops);
+			$employees = $this->ci->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops, $startdateprops);
 
 			if (isError($employees))
 			{
@@ -324,11 +345,13 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			if (isset($params['telefonklappe']))
 				$params['telefonklappe'] = is_string($params['telefonklappe']) ? array($params['telefonklappe']) : $params['telefonklappe'];
 
+			$fhcphonetype = $params['fhcfield'];
+
 			if (is_array($phones))
 			{
 				for ($i = 0; $i < count($phones); $i++)
 				{
-					if (isset($params['telefontyp'][$i]) && $params['telefontyp'][$i] == $this->_sapsfvaluedefaults['kontakttelprivate']['PerPhone']['phoneType'] && !isEmptyString($phones[$i]))
+					if (isset($params['telefontyp'][$i]) && $params['telefontyp'][$i] == $this->_sapsfvaluedefaults[$fhcphonetype]['PerPhone']['phoneType'] && !isEmptyString($phones[$i]))
 					{
 						$phone = $params['landesvorwahl'][$i] . ' ' . $params['ortsvorwahl'][$i] . ' ' . $phones[$i] . (isset($params['telefonklappe'][$i]) ? '-' . $params['telefonklappe'][$i] : '');
 						break;
@@ -403,6 +426,33 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			'sap_stundensatz_typ',
 			$this->_sapsfvaluedefaults['sap_kalkulatorischer_stundensatz']['HourlyRates']['hourlyRatesType']
 		);
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+
+	/**
+	 * Sets correct aktiv boolean for fhc.
+	 * If FAS-aktiv in SAPSF is false, set to false.
+	 * Otherwise use SAPSF-aktiv. If there is a future start date in SAPSF, it still counts as active.
+	 * @param $aktiv fas-aktiv in SAPSF
+	 * @param $params contains other necessary parameter, like sapaktiv and start date of employment
+	 * @return bool the value to be saved in FAS aktiv field
+	 */
+	protected function _selectAktivForFhc($aktiv, $params)
+	{
+		$fasaktiv = isset($params['sapaktiv']) && is_bool($params['sapaktiv']) ? $params['sapaktiv'] : true;
+
+		if ($aktiv === false)
+			$fasaktiv = false;
+		elseif (isset($params['sapstartdatum']))
+		{
+			$sapstartdate = $this->_convertDateToFhc($params['sapstartdatum']);
+
+			if ($sapstartdate > date('Y-m-d')) // if there is a future start date, it counts as aktiv
+				$fasaktiv = true;
+		}
+
+		return $fasaktiv;
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -615,7 +665,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	private function _updatePersonContacts($person_id, $maobj)
 	{
 		$kontaktmail = $maobj['kontaktmail'];
-		$kontakttelefon = $maobj['kontakttelefon'];
+		$kontakttelefone = array($maobj['kontakttelefon'], $maobj['kontakttelmobile']);
 		$kontaktnotfall = $maobj['kontaktnotfall'];
 
 		// update email - assuming there is only one!
@@ -645,30 +695,33 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			}
 		}
 
-		// update phone - assuming there is only one!
-		$this->ci->KontaktModel->addSelect('kontakt_id');
-		$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
-		$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
-		$kontakttelefon['person_id'] = $person_id;
-
-		$kontakttelToUpdate = $this->ci->KontaktModel->loadWhere(array(
-				'kontakttyp' => $kontakttelefon['kontakttyp'],
-				'person_id' => $person_id,
-				'zustellung' => true)
-		);
-
-		if (!isEmptyString($kontakttelefon['kontakt']))
+		foreach ($kontakttelefone as $kontakttelefon)
 		{
-			if (hasData($kontakttelToUpdate))
+			// update phone - assuming there is only one!
+			$this->ci->KontaktModel->addSelect('kontakt_id');
+			$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
+			$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
+			$kontakttelefon['person_id'] = $person_id;
+
+			$kontakttelToUpdate = $this->ci->KontaktModel->loadWhere(array(
+					'kontakttyp' => $kontakttelefon['kontakttyp'],
+					'person_id' => $person_id,
+					'zustellung' => true)
+			);
+
+			if (!isEmptyString($kontakttelefon['kontakt']))
 			{
-				$kontakt_id = getData($kontakttelToUpdate)[0]->kontakt_id;
-				//$this->_stamp('update', $kontaktmail); no stamp because sync to SAPSF can assume it changed -> sync loop
-				$kontakttelres = $this->ci->KontaktModel->update($kontakt_id, $kontakttelefon);
-			}
-			else
-			{
-				$this->_stamp('insert', $kontakttelefon);
-				$kontakttelres = $this->ci->KontaktModel->insert($kontakttelefon);
+				if (hasData($kontakttelToUpdate))
+				{
+					$kontakt_id = getData($kontakttelToUpdate)[0]->kontakt_id;
+					//$this->_stamp('update', $kontaktmail); no stamp because sync to SAPSF can assume it changed -> sync loop
+					$kontakttelres = $this->ci->KontaktModel->update($kontakt_id, $kontakttelefon);
+				}
+				else
+				{
+					$this->_stamp('insert', $kontakttelefon);
+					$kontakttelres = $this->ci->KontaktModel->insert($kontakttelefon);
+				}
 			}
 		}
 

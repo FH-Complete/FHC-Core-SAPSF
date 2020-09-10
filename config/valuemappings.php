@@ -15,6 +15,11 @@ $config['valuemappings']['fromsapsf']['User']['person']['anrede'] = array(
 	'Divers' => ''
 );
 
+$config['valuemappings']['fromsapsf']['User']['sapaktiv']['sapaktiv'] = array(
+	't' => true,
+	'f' => false
+);
+
 $yesnofield = array('N' => false, 'Y' => true);
 
 $config['valuemappings']['fromsapsf']['User']['benutzer']['aktiv'] = $yesnofield;

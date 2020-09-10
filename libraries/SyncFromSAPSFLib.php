@@ -21,6 +21,7 @@ class SyncFromSAPSFLib
 	protected $_confvaluemappings;
 	protected $_fhcconffields;
 	protected $_sapsflastmodifiedfields;
+	protected $_sapsfstartdatefields;
 	protected $_sapsfnontimebasedfields;
 
 	/**
@@ -49,6 +50,7 @@ class SyncFromSAPSFLib
 		$this->_sapsfvaluedefaults = $this->ci->config->item('sapsfdefaults');
 		$this->_fhcconffields = $this->ci->config->item('fhcfields');
 		$this->_sapsflastmodifiedfields = $this->ci->config->item('sapsflastmodifiedfields');
+		$this->_sapsfstartdatefields = $this->ci->config->item('sapsfstartdatefields');
 		$this->_sapsfnontimebasedfields = $this->ci->config->item('sapsfnontimebasedfields');
 
 		// load models

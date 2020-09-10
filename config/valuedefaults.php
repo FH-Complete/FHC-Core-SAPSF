@@ -15,6 +15,12 @@ $config['fhcdefaults']['User']['kontakttelefon'] = array(
 	'zustellung' => true
 );
 
+$config['fhcdefaults']['User']['kontakttelmobile'] = array(
+	'kontakt' => '',
+	'kontakttyp' => 'mobil',
+	'zustellung' => true
+);
+
 $config['fhcdefaults']['User']['kontaktnotfall'] = array(
 	'kontakt' => '',
 	'kontakttyp' => 'notfallkontakt',
@@ -36,7 +42,7 @@ $config['fhcdefaults']['User']['person'] = array(
 );
 
 $config['fhcdefaults']['User']['benutzer'] = array(
-	'aktiv' => false
+	'aktiv' => null
 );
 
 $config['fhcdefaults']['User']['kztyp'] = array(

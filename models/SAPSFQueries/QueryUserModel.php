@@ -47,7 +47,7 @@ class QueryUserModel extends SAPSFQueryModel
 	 * @param array $uids if only particular uids need to be retrieved
 	 * @return object userdata
 	 */
-	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null, $setEffectiveDates = true, $uids = null)
+	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null, $startDateProps = null, $setEffectiveDates = true, $uids = null)
 	{
 		$this->_setEntity('User');
 		$this->_setSelects($selects);
@@ -57,48 +57,41 @@ class QueryUserModel extends SAPSFQueryModel
 		// get all modified after given date
 		if (isset($lastModifiedDateTime))
 		{
-			$lastModFilterStr = 'lastModifiedDateTime ge datetime?';
+			$filterDateStr = 'lastModifiedDateTime ge datetime?';
+			$filterDates = array($lastModifiedDateTime);
 
-			if (isset($lastModifiedDateTimeProps))
+			if (!isEmptyArray($lastModifiedDateTimeProps))
 			{
 				foreach ($lastModifiedDateTimeProps as $prop)
 				{
-					$lastModFilterStr .= ' or ';
-					$lastModFilterStr .= $prop . "/lastModifiedDateTime ge datetime?";
+					$filterDateStr .= ' or ';
+					$filterDateStr .= $prop . "/lastModifiedDateTime ge datetime?";
+					$filterDates[] = $lastModifiedDateTime;
 				}
 			}
-			else
-				$lastModifiedDateTimeProps = array();
 
-			$lastModifiedDates = array_pad(array(), count($lastModifiedDateTimeProps) + 1, $lastModifiedDateTime);
-			$this->_setFilterString($lastModFilterStr, $lastModifiedDates);
-		}
-
-		//get all which are active in sapsf OR have "fas aktiv" checked
-/*		$benutzerfields = $this->config->item('fieldmappings')['fromsapsf']['User']['benutzer'];
-		foreach ($benutzerfields as $sapsfield => $fhcfield)
-		{
-			if ($fhcfield === 'aktiv')
+			// get time-based data by startdate instead of lastmodifieddate. startdate must be >= lastSyncDate and <= today
+			if (!isEmptyArray($startDateProps))
 			{
-				$benutzerfieldname = $sapsfield;
-				break;
+				$first = true;
+				$filterDatesCnt = count($filterDates);
+				foreach ($startDateProps as $prop)
+				{
+					if (!$first || $filterDatesCnt > 0)
+						$filterDateStr .= ' or ';
+					$filterDateStr .= "(" . $prop . "/startDate ge ? and " . $prop . "/startDate le ?)";
+
+					$filterDates[] = substr($lastModifiedDateTime, 0, 10);
+					$filterDates[] = date('Y-m-d');
+
+					$first = false;
+				}
 			}
+
+			$this->_setFilterString($filterDateStr, $filterDates);
 		}
 
-		$valuemappings = $this->config->item('valuemappings')['fromsapsf']['User']['benutzer']['aktiv'];
-		foreach ($valuemappings as $sapsfield => $fhcfield)
-		{
-			if ($fhcfield === true)
-			{
-				$yesval = $sapsfield;
-				break;
-			}
-		}
-
-		if (isset($benutzerfieldname) && isset($yesval))
-		{*/
 		$this->_setFilter('status', array('active', 'inactive'), 'in');
-		//}
 
 		if (isset($uids))
 		{

@@ -373,16 +373,14 @@ class SAPSFQueryModel extends SAPSFClientModel
 	{
 		$futureDays = $this->config->item('FHC-Core-SAPSFSyncparams')['daysInFuture'];
 
-		if (!isset($futureDays) || !is_numeric($futureDays) || $futureDays <= 0)
-			return;
-
 		$fromDate = date('Y-m-d');
-		$toDate = date('Y-m-d', strtotime($fromDate . "+$futureDays days"));
+		$toDate = is_numeric($futureDays) ? date('Y-m-d', strtotime($fromDate . "+$futureDays days")) : null;
 
 		if ($this->_checkEffectiveDates($fromDate, $toDate))
 		{
 			$this->_setQueryOption(self::FROMDATEOPTION, $fromDate);
-			$this->_setQueryOption(self::TODATEOPTION, $toDate);
+			if (isset($toDate))
+				$this->_setQueryOption(self::TODATEOPTION, $toDate);
 		}
 		else
 		{
@@ -691,6 +689,18 @@ class SAPSFQueryModel extends SAPSFClientModel
 
 	private function _checkEffectiveDates($fromDate, $toDate)
 	{
-		return validateDateFormat($fromDate) && validateDateFormat($toDate) && $fromDate <= $toDate;
+		$valid = false;
+
+		if (validateDateFormat($fromDate))
+		{
+			if (isset($toDate))
+			{
+				$valid = validateDateFormat($toDate) && $fromDate <= $toDate;
+			}
+			else
+				$valid = true;
+		}
+
+		return $valid;
 	}
 }

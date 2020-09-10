@@ -44,9 +44,10 @@ $config['fieldmappings']['fromsapsf']['User']['telefondaten'] = array(
 	// MUST BE PLACED BEFORE KONTAKTPHONE so it's populated before!
 );
 
-$config['fieldmappings']['fromsapsf']['User']['kontakttelefon'] = array(
-	'empInfo/personNav/phoneNav/phoneNumber' => 'kontakt'
-);
+$phonemapping = array('empInfo/personNav/phoneNav/phoneNumber' => 'kontakt');
+
+$config['fieldmappings']['fromsapsf']['User']['kontakttelefon'] = $phonemapping;
+$config['fieldmappings']['fromsapsf']['User']['kontakttelmobile'] = $phonemapping;
 
 $config['fieldmappings']['fromsapsf']['User']['kontaktnotfall'] = array(
 	'empInfo/personNav/emergencyContactNav/phone' => 'kontakt',
@@ -71,6 +72,13 @@ $config['fieldmappings']['fromsapsf']['User']['mitarbeiter'] = array(
 	'empInfo/personNav/personalInfoNav/customString14Nav/externalCode' => 'ausbildungcode',
 	'empInfo/jobInfoNav/employeeTypeNav/externalCode' => 'fixangestellt',
 	'empInfo/jobInfoNav/location' => 'standort_id'
+);
+
+$config['fieldmappings']['fromsapsf']['User']['sapaktiv'] = array(
+	'status' => 'sapaktiv',
+	'empInfo/jobInfoNav/startDate' => 'sapstartdatum'
+	// not synced, just needed to set aktiv in fas
+	// MUST BE PLACED BEFORE benutzer so it's populated before!
 );
 
 $config['fieldmappings']['fromsapsf']['User']['benutzer'] = array(

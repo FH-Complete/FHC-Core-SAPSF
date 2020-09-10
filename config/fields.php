@@ -144,7 +144,11 @@ $config['sapsflastmodifiedfields'] = array(
 	"empInfo/personNav/nationalIdNav",
 	"empInfo/personNav/emailNav",
 	"empInfo/personNav/phoneNav",
-	"empInfo/personNav/emergencyContactNav",
+	"empInfo/personNav/emergencyContactNav"
+);
+
+// fields to be checked for start date
+$config['sapsfstartdatefields'] = array(
 	"empInfo/personNav/personalInfoNav",
 	"empInfo/jobInfoNav",
 	"empInfo/compInfoNav/empPayCompRecurringNav"
