@@ -12,6 +12,8 @@ class SyncEmployees extends Auth_Controller
 		parent::__construct(
 			array(
 				'index' => 'basis/mitarbeiter:rw',
+				'syncEmployeesFromSAPSF' => 'basis/mitarbeiter:rw',
+				'syncEmployeesToSAPSF' => 'basis/mitarbeiter:rw',
 				'getSyncEmployeesFromSAPSF' => 'basis/mitarbeiter:rw',
 				'postSyncEmployeesToSAPSF' => 'basis/mitarbeiter:rw'
 			)
@@ -29,27 +31,44 @@ class SyncEmployees extends Auth_Controller
 				'dbLogType' => 'job', // required
 				'dbExecuteUser' => $this->_uid)
 		);
-
-		$this->load->library('extensions/FHC-Core-SAPSF/SyncFromSAPSFLib');
-		$this->load->library('extensions/FHC-Core-SAPSF/SyncToSAPSFLib');
-		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
-		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesToSAPSFLib');
+		$this->load->library('WidgetLib');
 	}
 
 	public function index()
 	{
-		$this->load->library('WidgetLib');
-
 		$this->load->view(
-			'extensions/FHC-Core-SAPSF/manualSAPSFEmployeeSync'
+			'extensions/FHC-Core-SAPSF/manualEmployeeSyncFromSAPSF'
 		);
 	}
 
 	/**
-	 * Synchronizes employees to fhc with passed uids.
+	 * Shows GUI to sync from SAPSF.
+	 */
+	public function syncEmployeesFromSAPSF()
+	{
+		$this->load->view(
+			'extensions/FHC-Core-SAPSF/manualEmployeeSyncFromSAPSF'
+		);
+	}
+
+	/**
+	 * Shows GUI to sync to SAPSF.
+	 */
+	public function syncEmployeesToSAPSF()
+	{
+		$this->load->view(
+			'extensions/FHC-Core-SAPSF/manualEmployeeSyncToSAPSF'
+		);
+	}
+
+	/**
+	 * Synchronizes employees (passed uids) from SAPSF to fhcomplete.
 	 */
 	public function getSyncEmployeesFromSAPSF()
 	{
+		$this->load->library('extensions/FHC-Core-SAPSF/SyncFromSAPSFLib');
+		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
+
 		$uids = $this->input->get('uids');
 		$result = null;
 
@@ -101,8 +120,16 @@ class SyncEmployees extends Auth_Controller
 		$this->outputJson($result);
 	}
 
+	/**
+	 * Synchronizes employees (passed uids) from fhcomplete to SAPSF.
+	 */
 	public function postSyncEmployeesToSAPSF()
 	{
+		$this->load->model('extensions/FHC-Core-SAPSF/SAPSFEditOperations/EditUserModel', 'EditUserModel');
+
+		$this->load->library('extensions/FHC-Core-SAPSF/SyncToSAPSFLib');
+		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesToSAPSFLib');
+
 		$uids = $this->input->get('uids');
 		$result = null;
 
@@ -133,17 +160,19 @@ class SyncEmployees extends Auth_Controller
 							{
 								foreach (getData($arr) as $item)
 								{
+									$resobj = new stdClass();
 									if (isSuccess($item))
 									{
 										$key = getData($item);
-										$resobj = new stdClass();
 										$resobj->key = $key;
-										$syncedMitarbeiter[] = $resobj;
 									}
 									else
 									{
-										$this->_logError("An error occurred while updating users data of SAPSF", getError($item));
+										$error = getError($item);
+										$resobj->error = $error;
+										$this->_logError("An error occurred while updating users data of SAPSF", $error);
 									}
+									$syncedMitarbeiter[] = $resobj;
 								}
 							}
 						}
@@ -169,14 +198,6 @@ class SyncEmployees extends Auth_Controller
 	{
 		$this->_log(LogLib::INFO, 'Employeesync info', $response, $parameters);
 	}
-
-	/**
-	 * Writes a cronjob debug log
-	 */
-/*	private function logDebug($response, $parameters = null)
-	{
-		$this->_log(LogLib::DEBUG, 'Cronjob debug', $response, $parameters);
-	}*/
 
 	/**
 	 * Writes a cronjob warning log

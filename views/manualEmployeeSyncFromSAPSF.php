@@ -11,13 +11,16 @@ $this->load->view(
 		'dialoglib' => true,
 		'ajaxlib' => true,
 		'navigationwidget' => true,
-		'customJSs' => array('public/extensions/FHC-Core-SAPSF/js/manualSAPSFEmployeeSync.js'),
+		'customJSs' => array(
+		    'public/extensions/FHC-Core-SAPSF/js/manualEmployeeSyncLib.js',
+		    'public/extensions/FHC-Core-SAPSF/js/manualEmployeeSyncFromSAPSF.js'
+        ),
 		'customCSSs' => array('public/extensions/FHC-Core-SAPSF/css/manualSAPSFEmployeeSync.css')
 	)
 );
 ?>
 
-	<body>
+<body>
 	<div id="wrapper">
 
 		<?php echo $this->widgetlib->widget('NavigationWidget'); ?>
@@ -38,14 +41,13 @@ $this->load->view(
                             <button class="btn btn-default" id="addfromsapuidbtn"><i class="fa fa-plus"></i>&nbsp;uids hinzufügen</button>
                         </span>
                         </div>
-                        <!--<h4>Zu:</h4>-->
                         <p></p>
                         <div class="well well-sm wellminheight">
                             <div id="enteredUidsFromSAP" class="panel panel-body">
                             </div>
                         </div>
                         <button class="btn btn-default" id="syncfromsapbtn">
-                            <i class="fa fa-refresh"></i>&nbsp;Mitarbeiter synchronisieren
+                            <i class="fa fa-refresh"></i>&nbsp;Von SAPSF synchronisieren
                         </button>
                     </div>
                     <div class="col-xs-4">
@@ -61,6 +63,6 @@ $this->load->view(
 			</div>
 		</div>
 	</div>
-	</body>
+</body>
 
 <?php $this->load->view('templates/FHC-Footer'); ?>
