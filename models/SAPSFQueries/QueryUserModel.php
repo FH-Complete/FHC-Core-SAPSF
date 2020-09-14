@@ -23,7 +23,6 @@ class QueryUserModel extends SAPSFQueryModel
 	 * @param $userId
 	 * @param $selects array fields to retrieve for this user
 	 * @param array $expands fields to expand
-	 * @param string $lastModifiedDateTime date when user was last modified
 	 * @return object userdata
 	 */
 	public function getByUserId($userId, $selects = array(), $expands = array())
@@ -43,11 +42,12 @@ class QueryUserModel extends SAPSFQueryModel
 	 * @param array $expands fields to expand
 	 * @param string $lastModifiedDateTime date when users were last modified
 	 * @param array $lastModifiedDateTimeProps additional properties checked for lastModifiedDateTime
-	 * @param bool $setEffectiveDates if true, from and to date are set
+	 * @param string $fromDate beginning with this date time-based values are retrieved
+	 * @param array $startDateProps time-based values
 	 * @param array $uids if only particular uids need to be retrieved
 	 * @return object userdata
 	 */
-	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null, $startDateProps = null, $setEffectiveDates = true, $uids = null)
+	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null, $fromDate = null, $startDateProps = null, $uids = null)
 	{
 		$this->_setEntity('User');
 		$this->_setSelects($selects);
@@ -98,8 +98,10 @@ class QueryUserModel extends SAPSFQueryModel
 			$this->_setFilter('userId', $uids, 'in');
 		}
 
-		if ($setEffectiveDates === true)
-			$this->_setEffectiveDates();
+		if (isset($fromDate))
+		{
+			$this->_setEffectiveDates(substr($fromDate, 0, 10));
+		}
 
 		return $this->_query();
 	}

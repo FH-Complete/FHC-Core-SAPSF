@@ -131,6 +131,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	public function getEmployeesForSync($objtype, $newJobObj, $lastDoneJobs = null)
 	{
 		$lastModifiedDateTime = null;
+		$lastjobtime = null;
+
 		if (hasData($lastDoneJobs))
 		{
 			$lastJobsData = getData($lastDoneJobs);
@@ -152,7 +154,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		// full sync
 		if (isset($newJobObj->syncAll) && $newJobObj->syncAll)
 		{
-			$employees = $this->ci->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops, $startdateprops);
+			$employees = $this->ci->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops, $lastjobtime, $startdateprops);
 
 			if (isError($employees))
 			{

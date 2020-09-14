@@ -368,17 +368,20 @@ class SAPSFQueryModel extends SAPSFClientModel
 
 	/**
 	 * Set effective dates (from, to)
+	 * @param null $fromDate
 	 */
-	protected function _setEffectiveDates()
+	protected function _setEffectiveDates($fromDate = null)
 	{
 		$futureDays = $this->config->item('FHC-Core-SAPSFSyncparams')['daysInFuture'];
 
-		$fromDate = date('Y-m-d');
+		if (isset($fromDate))
+		$fromDate = !isEmptyString($fromDate) ? $fromDate : date('Y-m-d');
 		$toDate = is_numeric($futureDays) ? date('Y-m-d', strtotime($fromDate . "+$futureDays days")) : null;
 
 		if ($this->_checkEffectiveDates($fromDate, $toDate))
 		{
-			$this->_setQueryOption(self::FROMDATEOPTION, $fromDate);
+			if (isset($fromDate))
+				$this->_setQueryOption(self::FROMDATEOPTION, $fromDate);
 			if (isset($toDate))
 				$this->_setQueryOption(self::TODATEOPTION, $toDate);
 		}
@@ -691,15 +694,22 @@ class SAPSFQueryModel extends SAPSFClientModel
 	{
 		$valid = false;
 
-		if (validateDateFormat($fromDate))
+		if (isset($fromDate))
 		{
-			if (isset($toDate))
+			if (validateDateFormat($fromDate))
 			{
-				$valid = validateDateFormat($toDate) && $fromDate <= $toDate;
+				if (isset($toDate))
+				{
+					$valid = validateDateFormat($toDate) && $fromDate <= $toDate;
+				}
+				else
+					$valid = true;
 			}
-			else
-				$valid = true;
 		}
+		elseif (isset($toDate))
+			$valid = validateDateFormat($toDate);
+		else
+			$valid = true;
 
 		return $valid;
 	}
