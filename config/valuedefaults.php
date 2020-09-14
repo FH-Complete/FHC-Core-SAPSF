@@ -17,7 +17,7 @@ $config['fhcdefaults']['User']['kontakttelefon'] = array(
 
 $config['fhcdefaults']['User']['kontakttelmobile'] = array(
 	'kontakt' => '',
-	'kontakttyp' => 'mobil',
+	'kontakttyp' => 'firmenhandy',
 	'zustellung' => true
 );
 
