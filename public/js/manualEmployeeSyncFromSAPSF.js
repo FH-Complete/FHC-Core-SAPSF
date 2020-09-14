@@ -9,7 +9,6 @@ $(document).ready(function()
 			function()
 			{
 				SAPSFEmployeeSyncLib.addUids('addfromsapuidinput', 'enteredUidsFromSAP');
-
 			}
 		);
 
@@ -24,7 +23,6 @@ $(document).ready(function()
 );
 
 var SAPSFEmployeeSync = {
-
 
 	getSyncEmployeesFromSAPSF: function(uids)
 	{

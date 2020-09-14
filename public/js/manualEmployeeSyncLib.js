@@ -9,11 +9,11 @@ var SAPSFEmployeeSyncLib = {
 		var uidinput = $("#" + inputid).val();
 		if (SAPSFEmployeeSyncLib._checkUid(uidinput))
 		{
-			var uids = uidinput.replaceAll(/(\s|,)+/g, ',').split(',');
+			var uids = uidinput.replace(/(\s|,)+/g, ',').split(',');
 
 			for (var i = 0; i < uids.length; i++)
 			{
-				if (jQuery.inArray(uids[i], SAPSFEmployeeSyncLib.uidsToSync) < 0)
+				if (jQuery.inArray(uids[i], SAPSFEmployeeSyncLib.uidsToSync) < 0 && uids[i] !== '')
 					SAPSFEmployeeSyncLib.uidsToSync.push(uids[i]);
 			}
 			SAPSFEmployeeSyncLib._refreshUids(canvasid);
@@ -42,7 +42,7 @@ var SAPSFEmployeeSyncLib = {
 
 		$("#" + canvasid).html(
 			uidstr
-		)
+		);
 
 		$(".minusspan").click(
 			function()
@@ -66,11 +66,11 @@ var SAPSFEmployeeSyncLib = {
 	{
 		SAPSFEmployeeSyncLib._writeSyncOutput(text, 'text-danger');
 	},
-	_writeSyncInfo(text)
+	_writeSyncInfo: function(text)
 	{
 		SAPSFEmployeeSyncLib._writeSyncOutput(text, 'text-info');
 	},
-	_clearSyncOutput()
+	_clearSyncOutput: function()
 	{
 		$("#syncoutput").empty();
 	}
