@@ -10,21 +10,20 @@ $this->load->view(
 		'sbadmintemplate' => true,
 		'dialoglib' => true,
 		'ajaxlib' => true,
-		'navigationwidget' => true,
 		'customJSs' => array(
-		    'public/extensions/FHC-Core-SAPSF/js/manualEmployeeSyncLib.js',
+			'public/extensions/FHC-Core-SAPSF/js/manualEmployeeSyncLib.js',
 		    'public/extensions/FHC-Core-SAPSF/js/manualEmployeeSyncFromSAPSF.js'
         ),
-		'customCSSs' => array('public/extensions/FHC-Core-SAPSF/css/manualSAPSFEmployeeSync.css')
+		'customCSSs' => array(
+		        'public/extensions/FHC-Core-SAPSF/css/manualSAPSFEmployeeSync.css',
+		        'public/css/sbadmin2/admintemplate_contentonly.css'
+        )
 	)
 );
 ?>
 
 <body>
 	<div id="wrapper">
-
-		<?php echo $this->widgetlib->widget('NavigationWidget'); ?>
-
 		<div id="page-wrapper">
 			<div class="container-fluid">
 				<div class="row">

@@ -31,7 +31,6 @@ class SyncEmployees extends Auth_Controller
 				'dbLogType' => 'job', // required
 				'dbExecuteUser' => $this->_uid)
 		);
-		$this->load->library('WidgetLib');
 	}
 
 	public function index()
