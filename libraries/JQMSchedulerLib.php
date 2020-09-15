@@ -80,8 +80,14 @@ class JQMSchedulerLib
 	{
 		$jobInput = null;
 
-		$qry = 'SELECT mitarbeiter_uid AS "uid" FROM public.tbl_mitarbeiter
-					WHERE tbl_mitarbeiter.fixangestellt
+		$qry = 'SELECT
+					mitarbeiter_uid AS "uid"
+				FROM
+					public.tbl_mitarbeiter
+					JOIN public.tbl_benutzer on(uid=mitarbeiter_uid)
+				WHERE
+					tbl_mitarbeiter.fixangestellt
+					AND tbl_benutzer.aktiv
 					AND NOT EXISTS (SELECT 1 FROM sync.tbl_sap_stundensatz
 								WHERE tbl_sap_stundensatz.mitarbeiter_uid = tbl_mitarbeiter.mitarbeiter_uid)
 					AND tbl_mitarbeiter.personalnummer >= 0
