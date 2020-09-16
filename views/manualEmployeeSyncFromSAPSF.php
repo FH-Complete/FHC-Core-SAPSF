@@ -27,9 +27,12 @@ $this->load->view(
 		<div id="page-wrapper">
 			<div class="container-fluid">
 				<div class="row">
-					<div class="col-xs-12">
+					<div class="col-xs-8">
 						<h3 class="page-header">SAP Success Factors Mitarbeiter Synchronisation</h3>
 					</div>
+                    <div class="col-xs-4">
+                        <div class="headerright text-right"><a href="<?php echo site_url('/extensions/FHC-Core-SAPSF/SyncEmployees/syncEmployeesToSAPSF') ?>">Zur Sync FHC -> Success Factors wechseln</a></div>
+                    </div>
 				</div>
                 <div class="row">
                     <div class="col-xs-8 form-group">
