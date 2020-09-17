@@ -68,6 +68,9 @@ class SAPSFQueryModel extends SAPSFClientModel
 			while(true)
 			{
 				$result = $this->_call($this->_odataQueryString, SAPSFClientLib::HTTP_GET_METHOD);
+				// reset properties
+				$this->_initialiseProperties();
+
 				if (hasData($result))
 				{
 					$resultdata = getData($result);
@@ -89,9 +92,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 					return $result;
 			}
 		}
-
-		// reset properties
-		$this->_initialiseProperties();
 
 		return success($totalresultdata);
     }
@@ -374,8 +374,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 	{
 		$futureDays = $this->config->item('FHC-Core-SAPSFSyncparams')['daysInFuture'];
 
-		if (isset($fromDate))
-		$fromDate = !isEmptyString($fromDate) ? $fromDate : date('Y-m-d');
+		$fromDate = !isEmptyString($fromDate) && strlen($fromDate) >= 10 ? substr($fromDate, 0, 10)  : date('Y-m-d');
 		$toDate = is_numeric($futureDays) ? date('Y-m-d', strtotime($fromDate . "+$futureDays days")) : null;
 
 		if ($this->_checkEffectiveDates($fromDate, $toDate))

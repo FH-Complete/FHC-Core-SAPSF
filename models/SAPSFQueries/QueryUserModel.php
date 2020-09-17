@@ -98,10 +98,7 @@ class QueryUserModel extends SAPSFQueryModel
 			$this->_setFilter('userId', $uids, 'in');
 		}
 
-		if (isset($fromDate))
-		{
-			$this->_setEffectiveDates(substr($fromDate, 0, 10));
-		}
+		$this->_setEffectiveDates($fromDate);
 
 		return $this->_query();
 	}

@@ -241,16 +241,44 @@ class FhcDbModel extends DB_Model
 		{
 			$uid = $stundensatz['mitarbeiter_uid'];
 
+			$this->MitarbeiterModel->addSelect('1');
 			$maExists = $this->MitarbeiterModel->loadWhere(array('mitarbeiter_uid' => $uid));
 
 			if (hasData($maExists))
 			{
-				$stdResult = $this->StundensatzModel->insert($stundensatz);
+				$this->StundensatzModel->addLimit(1);
+				$this->StundensatzModel->addOrder('insertamum', 'DESC');
+				$stundensatzExists = $this->StundensatzModel->loadWhere(array('mitarbeiter_uid' => $uid));
 
-				if (hasData($stdResult))
-					$result = success($uid);
+				$insertSt = false;
+
+				if (isError($stundensatzExists))
+					$result = error("Error when querying employee $uid");
 				else
-					$result = error('Error when inserting kalk. Stundensatz');
+				{
+					if (hasData($stundensatzExists))
+					{
+						$stsatz = getData($stundensatzExists)[0]->sap_kalkulatorischer_stundensatz;
+						$newstsatz = isset($stundensatz['sap_kalkulatorischer_stundensatz']) ? $stundensatz['sap_kalkulatorischer_stundensatz'] : null;
+
+						if ($stsatz != $newstsatz) // do not save if same Stundensatz already there
+						{
+							$insertSt = true;
+						}
+					}
+					else
+						$insertSt = true;
+
+					if ($insertSt)
+					{
+						$stdResult = $this->StundensatzModel->insert($stundensatz);
+
+						if (hasData($stdResult))
+							$result = success($uid);
+						else
+							$result = error('Error when inserting kalk. Stundensatz');
+					}
+				}
 			}
 			else
 				$result = error("Employee $uid does not exist");

@@ -71,9 +71,10 @@ class JQMSchedulerLib
 	}
 
 	/**
-	 * Gets uids of employees with hourly ratesto sync, criteria:
+	 * Gets uids of employees with hourly rates for sync from SAPSF, criteria:
 	 * - fixangestellt AND
-	 * - does not exist in sap_stundensatz sync table yet
+	 * - aktiv AND
+	 * - does not exist or exists with NULL in sap_stundensatz sync table
 	 * @return mixed
 	 */
 	public function getHourlyRatesToSAPSF()
@@ -88,8 +89,11 @@ class JQMSchedulerLib
 				WHERE
 					tbl_mitarbeiter.fixangestellt
 					AND tbl_benutzer.aktiv
-					AND NOT EXISTS (SELECT 1 FROM sync.tbl_sap_stundensatz
-								WHERE tbl_sap_stundensatz.mitarbeiter_uid = tbl_mitarbeiter.mitarbeiter_uid)
+					AND NOT EXISTS(SELECT * FROM (SELECT tbl_sap_stundensatz.sap_kalkulatorischer_stundensatz
+									FROM sync.tbl_sap_stundensatz
+									WHERE tbl_sap_stundensatz.mitarbeiter_uid = tbl_mitarbeiter.mitarbeiter_uid
+									ORDER BY tbl_sap_stundensatz.insertamum DESC
+									LIMIT 1) k WHERE sap_kalkulatorischer_stundensatz IS NOT NULL) 
 					AND tbl_mitarbeiter.personalnummer >= 0
 					ORDER BY mitarbeiter_uid';
 

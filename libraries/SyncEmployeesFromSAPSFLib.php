@@ -174,11 +174,11 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 
 		// include additional, manually passed uids
+
+		$uids = array_diff($uids, $uidsToSync);
+
 		foreach ($uids as $uid)
 		{
-			if (in_array($uid, $uidsToSync))
-				continue;
-
 			$employee = $this->ci->QueryUserModel->getByUserId($uid, $selects, $expands);
 
 			if (isError($employee))
@@ -229,28 +229,23 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 */
 	public function syncEmployeesWithFhc($employees)
 	{
-		if ($this->_syncpreview === false)
+		$convEmployees = $this->_convertEmployeesForFhc($employees, self::OBJTYPE);
+
+		if ($this->_syncpreview !== false)
+			printAndDie($convEmployees);
+
+		$results = array();
+
+		if (is_array($convEmployees))
 		{
-			$convEmployees = $this->_convertEmployeesForFhc($employees, self::OBJTYPE);
-
-			$results = array();
-
-			if (is_array($convEmployees))
+			foreach ($convEmployees as $employee)
 			{
-				foreach ($convEmployees as $employee)
-				{
-					$result = $this->_saveMitarbeiter($employee);
-					$results[] = $result;
-				}
+				$result = $this->_saveMitarbeiter($employee);
+				$results[] = $result;
 			}
+		}
 
-			return success($results);
-		}
-		else
-		{
-			$mas = $this->_convertEmployeesForFhc($employees, self::OBJTYPE);
-			printAndDie($mas);
-		}
+		return success($results);
 	}
 
 	/**
@@ -261,28 +256,23 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 */
 	public function syncHourlyRateWithFhc($hourlyrates)
 	{
-		if ($this->_syncpreview === false)
+		$convEmployees = $this->_convertEmployeesForFhc($hourlyrates, self::HOURLY_RATE_OBJ);
+
+		if ($this->_syncpreview !== false)
+			printAndDie($convEmployees);
+
+		$results = array();
+
+		if (is_array($convEmployees))
 		{
-			$convEmployees = $this->_convertEmployeesForFhc($hourlyrates, self::HOURLY_RATE_OBJ);
-
-			$results = array();
-
-			if (is_array($convEmployees))
+			foreach ($convEmployees as $employee)
 			{
-				foreach ($convEmployees as $employee)
-				{
-					$result = $this->ci->FhcDbModel->saveKalkStundensatz($employee);
-					$results[] = $result;
-				}
+				$result = $this->ci->FhcDbModel->saveKalkStundensatz($employee);
+				$results[] = $result;
 			}
+		}
 
-			return success($results);
-		}
-		else
-		{
-			$mas = $this->_convertEmployeesForFhc($hourlyrates, self::HOURLY_RATE_OBJ);
-			printAndDie($mas);
-		}
+		return success($results);
 	}
 
 	/**
