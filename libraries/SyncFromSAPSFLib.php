@@ -255,7 +255,7 @@ class SyncFromSAPSFLib
 										$value = $value->results[0]->{$props[$i]};
 									elseif (isset($value->results[0]->startDate))
 									{
-										$value = $this->_extractFirstResult($value, $props[$i]);
+										$value = $this->_extractFirstResult($value->results, $props[$i]);
 									}
 								}
 							}
@@ -266,9 +266,10 @@ class SyncFromSAPSFLib
 							{
 								if (count($value->results) == 1) // take first result
 									$sfvalue = $value->results[0]->{$field};
-								elseif (isset($value->results[0]->startDate) && !in_array($field, $this->_sapsfnontimebasedfields)) // if results are time-based
+								elseif (isset($value->results[0]->startDate)/* && !in_array($sffield, $this->_sapsfnontimebasedfields)*/) // if results are time-based
 								{
-									$sfvalue = $this->_extractFirstResult($value, $field);
+									$typefield = isset($this->_sapsfnontimebasedfields[$sffield]) ? $this->_sapsfnontimebasedfields[$sffield] : null;
+									$sfvalue = $this->_extractFirstResultByType($value->results, $field, $typefield);
 								}
 								else // or take all results
 								{
@@ -331,6 +332,8 @@ class SyncFromSAPSFLib
 				}
 			}
 		}
+		//printAndDie($fhcemployee);
+
 
 		return $fhcemployee;
 	}
@@ -570,13 +573,14 @@ class SyncFromSAPSFLib
 	 * based on startDate property.
 	 * @param $results
 	 * @param $property the property to extract
+	 * @param $typefield
 	 * @return mixed the extracted property data
 	 */
 	private function _extractFirstResult($results, $property)
 	{
-		$min = (int)filter_var($results->results[0]->startDate, FILTER_SANITIZE_NUMBER_INT);
-		$minObj = $results->results[0]->{$property};
-		foreach ($results->results as $result)
+		$min = (int)filter_var($results/*->results*/[0]->startDate, FILTER_SANITIZE_NUMBER_INT);
+		$minObj = $results/*->results*/[0]->{$property};
+		foreach ($results/*->results*/ as $result)
 		{
 			$millisec = (int)filter_var($result->startDate, FILTER_SANITIZE_NUMBER_INT);
 			if ($millisec < $min)
@@ -586,5 +590,36 @@ class SyncFromSAPSFLib
 			}
 		}
 		return $minObj;
+	}
+
+	private function _extractFirstResultByType($results, $property, $typeproperty)
+	{
+		if (!isset($typeproperty))
+			return $this->_extractFirstResult($results, $property);
+		var_dump($typeproperty);
+		var_dump($property);
+
+		$typeResults = array();
+		$firstResults = array();
+
+		foreach ($results/*->results*/ as $result)
+		{
+			var_dump($result);
+			if (isset($result->{$typeproperty}))
+			{
+				$typeResults[$result->{$typeproperty}][] = $result;
+			}
+		}
+
+		var_dump($typeResults);
+
+		foreach ($typeResults as $typeResult)
+		{
+			$firstResults[] = $this->_extractFirstResult($typeResult, $property);
+		}
+
+		var_dump($firstResults);
+
+		return $firstResults;
 	}
 }

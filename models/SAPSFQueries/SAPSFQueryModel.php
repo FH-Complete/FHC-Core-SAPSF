@@ -59,6 +59,8 @@ class SAPSFQueryModel extends SAPSFClientModel
 		$this->_setFormat();
 		$this->_generateQueryString();
 
+		echo $this->_odataQueryString;
+
 		if ($this->_hasError())
 		{
 			return error(implode("; ", $this->_errors));

@@ -2,6 +2,7 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 require_once('include/functions.inc.php');// needed for activation key generation
+require_once 'SyncFromSAPSFLib.php';
 
 /**
  * This library contains the logic used to perform data synchronization between FHC and SAP Success Factors
@@ -96,7 +97,16 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_startdate')
 				)
 			)
-		),
+		)/*,
+		'adresse' => array(
+			'typ' => array(
+				'function' => '_selectHauptadresseForFhc',
+				'extraParams' => array(
+					array('table' => 'adresse', 'name' => 'sap_stundensatz_typ'),
+					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_startdate')
+				)
+			)
+		)*/
 	);
 
 	/**
@@ -174,7 +184,6 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 
 		// include additional, manually passed uids
-
 		$uids = array_diff($uids, $uidsToSync);
 
 		foreach ($uids as $uid)
@@ -273,30 +282,6 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 
 		return success($results);
-	}
-
-	/**
-	 * Converts given employee data to fhc format.
-	 * @param $sapsfemployees
-	 * @param $objtype
-	 * @return array converted employees
-	 */
-	private function _convertEmployeesForFhc($sapsfemployees, $objtype)
-	{
-		$mas = array();
-
-		if (hasData($sapsfemployees))
-		{
-			$employees = getData($sapsfemployees);
-
-			foreach ($employees as $employee)
-			{
-				$ma = $this->_convertSapsfObjToFhc($employee, $objtype);
-				$mas[] = $ma;
-			}
-		}
-
-		return $mas;
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -420,7 +405,21 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		);
 	}
 
-	//------------------------------------------------------------------------------------------------------------------
+	/**
+	 * Selects correct Hauptadresse to be inserted in fhc.
+	 * @param $adressen
+	 * @param $params contains Stundensatz type
+	 * @return string the kalkulatorischer Stundensatz to insert in fhc
+	 */
+	protected function _selectHauptadresseForFhc($adressen, $params)
+	{
+		return $this->_selectFieldForFhc(
+			$adressen,
+			$params,
+			'sap_stundensatz_typ',
+			$this->_sapsfvaluedefaults['sap_kalkulatorischer_stundensatz']['HourlyRates']['hourlyRatesType']
+		);
+	}
 
 	/**
 	 * Sets correct aktiv boolean for fhc.
@@ -451,7 +450,31 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	// Private methods
 
 	/**
-	 * Selects a value out of a data array based on extraparameters
+	 * Converts given employee data to fhc format.
+	 * @param $sapsfemployees
+	 * @param $objtype
+	 * @return array converted employees
+	 */
+	private function _convertEmployeesForFhc($sapsfemployees, $objtype)
+	{
+		$mas = array();
+
+		if (hasData($sapsfemployees))
+		{
+			$employees = getData($sapsfemployees);
+
+			foreach ($employees as $employee)
+			{
+				$ma = $this->_convertSapsfObjToFhc($employee, $objtype);
+				$mas[] = $ma;
+			}
+		}
+
+		return $mas;
+	}
+
+	/**
+	 * Selects a value out of a data array based on extraparameters.
 	 * @param $data
 	 * @param $params extraparameters
 	 * @param $fieldname of the extraparameters
@@ -461,7 +484,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	private function _selectFieldForFhc($data, $params, $fieldname, $sffieldtype)
 	{
 		$returnvalue = null;
-		$fieldresults = array();
+		//$fieldresults = array();
 		if (isset($data) && isset($params[$fieldname]))
 		{
 			$data = is_string($data) ? array($data) : $data;
@@ -476,14 +499,24 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 						$params[$fieldname][$i] == $sffieldtype)
 					{
 						// multiple field values with same type -> handle later
-						$fieldresults[$i] = $data[$i];
+						$returnvalue = $data[$i];
+						break;
 					}
 				}
+/*				foreach ($data as )
+				{
+					if (isset($params[$fieldname][$i]) &&
+						$params[$fieldname][$i] == $sffieldtype)
+					{
+						// multiple field values with same type -> handle later
+						$fieldresults[$i] = $data[$i];
+					}
+				}*/
 			}
 			else
 				$returnvalue = $data;
 
-			if (count($fieldresults) > 0)
+/*			if (count($fieldresults) > 0)
 			{
 				if (isset($params['startdate'])) // if multiple values, try to get chronologically first, otherwise take just first
 				{
@@ -502,7 +535,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				}
 				else
 					$returnvalue = array_shift($fieldresults);
-			}
+			}*/
 		}
 
 		return $returnvalue;

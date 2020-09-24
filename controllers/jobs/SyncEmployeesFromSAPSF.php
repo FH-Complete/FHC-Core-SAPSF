@@ -11,7 +11,6 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 	{
 		parent::__construct();
 
-		$this->load->library('extensions/FHC-Core-SAPSF/SyncFromSAPSFLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
 	}
 

@@ -54,6 +54,21 @@ $config['fieldmappings']['fromsapsf']['User']['kontaktnotfall'] = array(
 	'empInfo/personNav/emergencyContactNav/name' => 'anmerkung'
 );
 
+$adressmappings = array(
+	'empInfo/personNav/homeAddressNavDEFLT/addressType' => 'typ',
+	'empInfo/personNav/homeAddressNavDEFLT/country' => 'nation',
+	'empInfo/personNav/homeAddressNavDEFLT/zipCode' => 'plz',
+	'empInfo/personNav/homeAddressNavDEFLT/city' => 'ort',
+	'empInfo/personNav/homeAddressNavDEFLT/address1' => 'strasse',
+	'empInfo/personNav/homeAddressNavDEFLT/address2' => 'strasse',
+	//'empInfo/personNav/homeAddressNavDEFLT/county' => 'anmerkung',
+	//'empInfo/personNav/homeAddressNavDEFLT/province' => 'anmerkung',
+	'empInfo/personNav/homeAddressNavDEFLT/stateNav/externalCode' => 'gemeinde'
+);
+
+$config['fieldmappings']['fromsapsf']['User']['adresse'] = $adressmappings;
+$config['fieldmappings']['fromsapsf']['User']['nebenandresse'] = $adressmappings;
+
 $stundensatztyp = array(
 	'empInfo/compInfoNav/empPayCompRecurringNav/payComponent' => 'sap_stundensatz_typ',
 	'empInfo/compInfoNav/empPayCompRecurringNav/startDate' => 'sap_stundensatz_startdate'

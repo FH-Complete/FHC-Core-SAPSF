@@ -54,6 +54,12 @@ $config['valuemappings']['fromsapsf']['User']['mitarbeiter']['standort_id'] = ar
 	'200000' => 4640 // gmbh
 );
 
+$config['valuemappings']['fromsapsf']['User']['adresse']['typ'] = array(
+	'Hauptwohnsitz' => 'h',
+	'Nebenwohnsitz' => 'n'
+);
+
+
 /*$config['valuemappings']['fromsapsf']['User']['kontaktmail']['zustellung'] = array(
 	1404 => true,
 	2470 => false

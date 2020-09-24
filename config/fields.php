@@ -156,6 +156,19 @@ $config['sapsfstartdatefields'] = array(
 
 // non-time-based values, when descending into results, not chronologically first is taken, but all results
 $config['sapsfnontimebasedfields'] = array(
-	"paycompvalue",
-	"payComponent"
+	'empInfo/compInfoNav/empPayCompRecurringNav/paycompvalue' => 'payComponent',
+	'empInfo/compInfoNav/empPayCompRecurringNav/payComponent' => 'payComponent'
+
+
+/*	"empInfo/compInfoNav/empPayCompRecurringNav/paycompvalue",
+	"empInfo/compInfoNav/empPayCompRecurringNav/payComponent",
+	'empInfo/personNav/homeAddressNavDEFLT/addressType' => 'typ',
+	'empInfo/personNav/homeAddressNavDEFLT/country' => 'nation',
+	'empInfo/personNav/homeAddressNavDEFLT/zipCode' => 'plz',
+	'empInfo/personNav/homeAddressNavDEFLT/city' => 'ort',
+	'empInfo/personNav/homeAddressNavDEFLT/address1' => 'strasse',
+	'empInfo/personNav/homeAddressNavDEFLT/address2' => 'strasse',
+	//'empInfo/personNav/homeAddressNavDEFLT/county' => 'anmerkung',
+	//'empInfo/personNav/homeAddressNavDEFLT/province' => 'anmerkung',
+	'empInfo/personNav/homeAddressNavDEFLT/stateNav/externalCode' => 'gemeinde'*/
 );

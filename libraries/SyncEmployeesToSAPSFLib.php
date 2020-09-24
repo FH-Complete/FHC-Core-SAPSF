@@ -94,7 +94,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 			$emailnav = implode('/',$mailfieldmapping_arr);
 			$phonenav = implode('/', $phonefieldmapping_arr);
 
-			// only update employees which are in sapsf too
+			// only update employees which are already in sapsf
 			$sapsfemployees = $this->ci->QueryUserModel->getAll(
 				array($sapsfUidName,
 					  self::PERSON_KEY_NAV.'/'.$sapsfPersonIdName,
@@ -186,6 +186,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 								}
 							}
 
+							// get dates for updating personalInfo (each entry in future should be updated)
 							foreach ($personalInfos as $personalInfo)
 							{
 								$start = $this->_convertSAPSFTimestampToDateTime($personalInfo->{$sapsfstartDateName});
@@ -218,7 +219,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 								unset($matosync[self::PERSONALINFOTYPE]);
 							else
 							{
-								// special case office: update all future personalInfos if there are any (otherwise future entries will overwrite the change)
+								// special case office: update all future personalInfos if there are any (otherwise existing future entries will overwrite the change)
 								$currPersonal = $matosync[self::PERSONALINFOTYPE][$mitarbeiterobjname];
 								$idx = 0;
 								foreach ($personalInfoDatesToUpdate as $personalInfoDate)
@@ -375,8 +376,9 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	private function _convertToTechMail($uid)
 	{
 		$mail = null;
-			if (!isEmptyString($uid))
-				$mail = $uid.self::EMAIL_POSTFIX;
+
+		if (!isEmptyString($uid))
+			$mail = $uid.self::EMAIL_POSTFIX;
 
 		return $mail;
 	}

@@ -65,7 +65,6 @@ class SyncEmployees extends Auth_Controller
 	 */
 	public function getSyncEmployeesFromSAPSF()
 	{
-		$this->load->library('extensions/FHC-Core-SAPSF/SyncFromSAPSFLib');
 		$this->load->library('extensions/FHC-Core-SAPSF/SyncEmployeesFromSAPSFLib');
 
 		$uids = $this->input->get('uids');
