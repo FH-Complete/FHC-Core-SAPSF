@@ -294,7 +294,14 @@ class FhcDbModel extends DB_Model
 	 */
 	public function getNationByIso3Code($isocode)
 	{
-		$this->NationModel->addSelect('nation_code');
-		return $this->NationModel->loadWhere(array('iso3166_1_a3' => $isocode));
+		$result = null;
+
+		if (isset($isocode))
+		{
+			$this->NationModel->addSelect('nation_code');
+			$result = $this->NationModel->loadWhere(array('iso3166_1_a3' => $isocode));
+		}
+
+		return $result;
 	}
 }

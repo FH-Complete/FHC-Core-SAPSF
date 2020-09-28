@@ -24,13 +24,10 @@ $config['fhcfields']['User'] = array(
 			array('name' => 'Geburtsdatum',
 			'type' => 'date'),
 		'svnr' =>
-			array('length' => 10),
+			array('length' => 10), // has to be exactly 10 chars
 		'ersatzkennzeichen' =>
 			array('unique' => true,
 				'pk' => 'person_id')
-		//'sprache' => array('ref' => 'public.tbl_sprache'),
-		//'anmerkung' => array(),
-		//'foto' => array('type' => 'base64')
 	),
 	'mitarbeiter' => array(
 		'mitarbeiter_uid' =>
@@ -60,15 +57,6 @@ $config['fhcfields']['User'] = array(
 		'aktiv' => array('required' => true,
 						'type' => 'boolean')
 	),
-/*	'adresse' => array('nation' => array('required' => true,
-
-		'ref' => 'bis.tbl_nation',
-		'reffield' => 'nation_code'),
-		'ort' => array('required' => true),
-		'strasse' => array('required' => true),
-		'plz' => array('name' => 'Postleitzahl'),
-		'gemeinde' => array()
-	),*/
 	'kontaktmail' => array('kontakt' =>
 		array(
 			'required' => true,
@@ -81,11 +69,41 @@ $config['fhcfields']['User'] = array(
 			'notnull' => true
 		)
 	),
+	'kontakttelmobile' => array('kontakt' =>
+		array(
+			'name' => 'Telefonmobilkontakt',
+			'notnull' => true
+		),
+	),
 	'kontaktnotfall' => array('kontakt' =>
 		array(
 			'name' => 'Notfallkontakt',
 			'notnull' => true
 		)
+	),
+	'adresse' => array(
+		'strasse' =>
+		array(
+			'name' => 'Hauptadresse',
+			'notnull' => true
+		),
+		'nation' =>
+			array(
+				'name' => 'Hauptadressenation',
+				'notnull' => true
+		)
+	),
+	'nebenadresse' => array(
+		'strasse' =>
+			array(
+				'name' => 'Nebenadresse',
+				'notnull' => true
+			),
+		'nation' =>
+			array(
+				'name' => 'Nebenadressenation',
+				'notnull' => true
+			)
 	)
 );
 
@@ -151,24 +169,19 @@ $config['sapsflastmodifiedfields'] = array(
 $config['sapsfstartdatefields'] = array(
 	"empInfo/personNav/personalInfoNav",
 	"empInfo/jobInfoNav",
-	"empInfo/compInfoNav/empPayCompRecurringNav"
+	"empInfo/compInfoNav/empPayCompRecurringNav",
+	"empInfo/personNav/homeAddressNavDEFLT"
 );
 
-// non-time-based values, when descending into results, not chronologically first is taken, but all results
-$config['sapsfnontimebasedfields'] = array(
+// fields which are not only retrieved by start date (time-based), but also by type
+// [sapsffieldname] => [sapsftypefieldname]
+$config['sapsftypetimebasedfields'] = array(
 	'empInfo/compInfoNav/empPayCompRecurringNav/paycompvalue' => 'payComponent',
-	'empInfo/compInfoNav/empPayCompRecurringNav/payComponent' => 'payComponent'
-
-
-/*	"empInfo/compInfoNav/empPayCompRecurringNav/paycompvalue",
-	"empInfo/compInfoNav/empPayCompRecurringNav/payComponent",
-	'empInfo/personNav/homeAddressNavDEFLT/addressType' => 'typ',
-	'empInfo/personNav/homeAddressNavDEFLT/country' => 'nation',
-	'empInfo/personNav/homeAddressNavDEFLT/zipCode' => 'plz',
-	'empInfo/personNav/homeAddressNavDEFLT/city' => 'ort',
-	'empInfo/personNav/homeAddressNavDEFLT/address1' => 'strasse',
-	'empInfo/personNav/homeAddressNavDEFLT/address2' => 'strasse',
-	//'empInfo/personNav/homeAddressNavDEFLT/county' => 'anmerkung',
-	//'empInfo/personNav/homeAddressNavDEFLT/province' => 'anmerkung',
-	'empInfo/personNav/homeAddressNavDEFLT/stateNav/externalCode' => 'gemeinde'*/
+	'empInfo/compInfoNav/empPayCompRecurringNav/payComponent' => 'payComponent',
+	'empInfo/personNav/homeAddressNavDEFLT/addressType' => 'addressType',
+	'empInfo/personNav/homeAddressNavDEFLT/country' => 'addressType',
+	'empInfo/personNav/homeAddressNavDEFLT/zipCode' => 'addressType',
+	'empInfo/personNav/homeAddressNavDEFLT/city' => 'addressType',
+	'empInfo/personNav/homeAddressNavDEFLT/address1' => 'addressType',
+	'empInfo/personNav/homeAddressNavDEFLT/address2' => 'addressType'
 );

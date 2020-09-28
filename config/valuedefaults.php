@@ -27,6 +27,24 @@ $config['fhcdefaults']['User']['kontaktnotfall'] = array(
 	'zustellung' => true
 );
 
+$config['fhcdefaults']['User']['adresse'] = array(
+	'typ' => 'h',
+	'zustelladresse' => true,
+	'heimatadresse' => true,
+	'nation' => 'XXX',
+	'plz' => '',
+	'strasse' => ''
+);
+
+$config['fhcdefaults']['User']['nebenadresse'] = array(
+	'typ' => 'n',
+	'zustelladresse' => false,
+	'heimatadresse' => false,
+	'nation' => 'XXX',
+	'plz' => '',
+	'strasse' => ''
+);
+
 $config['fhcdefaults']['User']['mitarbeiter'] = array(
 	'standort_id' => 3,
 	'fixangestellt' => false,

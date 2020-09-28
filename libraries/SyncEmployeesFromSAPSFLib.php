@@ -97,16 +97,9 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_startdate')
 				)
 			)
-		)/*,
-		'adresse' => array(
-			'typ' => array(
-				'function' => '_selectHauptadresseForFhc',
-				'extraParams' => array(
-					array('table' => 'adresse', 'name' => 'sap_stundensatz_typ'),
-					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_startdate')
-				)
-			)
-		)*/
+		),
+		'adresse' => array(),
+		'nebenadresse' => array()
 	);
 
 	/**
@@ -115,6 +108,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	public function __construct()
 	{
 		parent::__construct();
+
+		$this->_setAdresseConvertFunctions();
 
 		$this->ci->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
 
@@ -289,8 +284,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 	/**
 	 * Selects correct email string to be inserted in fhc.
-	 * @param $mails contains all mails present in sapsf
-	 * @param $params contain emailtyp information
+	 * @param $mails array contains all mails present in sapsf
+	 * @param $params array contain emailtyp information
 	 * @return string the mail kontakt to insert in fhc
 	 */
 	protected function _selectEmailForFhc($mails, $params)
@@ -322,7 +317,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			if (isset($params['telefonklappe']))
 				$params['telefonklappe'] = is_string($params['telefonklappe']) ? array($params['telefonklappe']) : $params['telefonklappe'];
 
-			$fhcphonetype = $params['fhcfield'];
+			$fhcphonetype = $params['misc']['telefondaten']['fhcfield'];
 
 			if (is_array($phones))
 			{
@@ -343,8 +338,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 	/**
 	 * Selects correct Kennzeichen (svnr, ersatzkennzeichen) to be inserted in fhc.
-	 * @param $kzval contains Kennzeichen
-	 * @param $params contain kztyp information
+	 * @param $kzval array contains Kennzeichen
+	 * @param $params array contain kztyp information
 	 * @return string the kz to insert in fhc
 	 */
 	protected function _selectKzForFhc($kzval, $params)
@@ -357,14 +352,14 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			{
 				for ($i = 0; $i < count($kzval); $i++)
 				{
-					if (isset($params['kztyp'][$i]) && $params['kztyp'][$i] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
+					if (isset($params['kztyp'][$i]) && $params['kztyp'][$i] == $this->_confvaluedefaults['User']['kztyp'][$params['misc']['kztyp']['fhcfield']])
 					{
 						$kz = str_replace(' ', '', $kzval[$i]);
 						break;
 					}
 				}
 			}
-			elseif (isset($params['kztyp']) && $params['kztyp'] == $this->_confvaluedefaults['User']['kztyp'][$params['fhcfield']])
+			elseif (isset($params['kztyp']) && $params['kztyp'] == $this->_confvaluedefaults['User']['kztyp'][$params['misc']['kztyp']['fhcfield']])
 			{
 				$kz = str_replace(' ', '', $kzval);
 			}
@@ -375,8 +370,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 	/**
 	 * Selects correct kalkulatorischer Stundensatz to be inserted in fhc.
-	 * @param $stundensaetze
-	 * @param $params contains Stundensatz type
+	 * @param $stundensaetze array
+	 * @param $params array contains Stundensatz type
 	 * @return string the kalkulatorischer Stundensatz to insert in fhc
 	 */
 	protected function _selectStundensatzForFhc($stundensaetze, $params)
@@ -391,8 +386,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 	/**
 	 * Selects correct kalkulatorischer Stundensatz to be inserted in fhc.
-	 * @param $stundensaetze
-	 * @param $params contains Stundensatz type
+	 * @param $stundensaetze array
+	 * @param $params array contains Stundensatz type
 	 * @return string the kalkulatorischer Stundensatz to insert in fhc
 	 */
 	protected function _selectKalkStundensatzForFhc($stundensaetze, $params)
@@ -406,19 +401,67 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	}
 
 	/**
-	 * Selects correct Hauptadresse to be inserted in fhc.
-	 * @param $adressen
-	 * @param $params contains Stundensatz type
-	 * @return string the kalkulatorischer Stundensatz to insert in fhc
+	 * Selects correct adresse field to be inserted in fhc.
+	 * @param $adressen array the adresse fields
+	 * @param $params array contains adresse type
+	 * @return string the adresse field to insert in fhc
 	 */
-	protected function _selectHauptadresseForFhc($adressen, $params)
+	protected function _selectAdresseForFhc($adressen, $params)
 	{
 		return $this->_selectFieldForFhc(
 			$adressen,
 			$params,
-			'sap_stundensatz_typ',
-			$this->_sapsfvaluedefaults['sap_kalkulatorischer_stundensatz']['HourlyRates']['hourlyRatesType']
+			'typ',
+			isset($params['misc']['adressedaten']['adressetyp']) ? $params['misc']['adressedaten']['adressetyp'] : null
 		);
+	}
+
+	/**
+	 * Selects correct adresse nation to be inserted in fhc.
+	 * @param $adressen array the adresse nation fields
+	 * @param $params array contains adresse type
+	 * @return string the adresse nation field to insert in fhc
+	 */
+	protected function _selectAdresseNationForFhc($adressen, $params)
+	{
+		$nation = $this->_selectFieldForFhc(
+			$adressen,
+			$params,
+			'typ',
+			isset($params['misc']['adressedaten']['adressetyp']) ? $params['misc']['adressedaten']['adressetyp'] : null
+		);
+
+		return $this->_convertNationToFhc($nation);
+	}
+
+	/**
+	 * Selects correct adresse strasse to be inserted in fhc.
+	 * @param $adressen array the adresse strasse fields
+	 * @param $params array contains adresse type
+	 * @return string the adresse strasse field to insert in fhc
+	 */
+	protected function _selectStrasseForFhc($adressen, $params)
+	{
+		$adresse = $this->_selectFieldForFhc(
+			$adressen,
+			$params,
+			'typ',
+			isset($params['misc']['adressedaten']['adressetyp']) ? $params['misc']['adressedaten']['adressetyp'] : null
+		);
+
+		if (isset($params['hausnr']) && !isEmptyString($params['hausnr']))
+		{
+			$hausnr = $this->_selectFieldForFhc(
+				$params['hausnr'],
+				$params,
+				'typ',
+				isset($params['misc']['adressedaten']['adressetyp']) ? $params['misc']['adressedaten']['adressetyp'] : null
+			);
+
+			$adresse .= ' ' . $hausnr;
+		}
+
+		return $adresse;
 	}
 
 	/**
@@ -448,6 +491,68 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 	//------------------------------------------------------------------------------------------------------------------
 	// Private methods
+
+	/**
+	 * Sets the convert functions for Hauptadresse and Nebenadresse.
+	 */
+	private function _setAdresseConvertFunctions()
+	{
+		$adresseConvFunctions =
+		array(
+			'nation' => array(
+				'function' => '_selectAdresseNationForFhc',
+				'extraParams' => array(
+					array('table' => 'adressedaten', 'name' => 'typ', 'adressetyp' => 'h')
+				)
+			),
+			'plz' => array(
+				'function' => '_selectAdresseForFhc',
+				'extraParams' => array(
+					array('table' => 'adressedaten', 'name' => 'typ', 'adressetyp' => 'h')
+				)
+			),
+			'ort' => array(
+				'function' => '_selectAdresseForFhc',
+				'extraParams' => array(
+					array('table' => 'adressedaten', 'name' => 'typ', 'adressetyp' => 'h')
+				)
+			),
+			'strasse' => array(
+				'function' => '_selectStrasseForFhc',
+				'extraParams' => array(
+					array('table' => 'adressedaten', 'name' => 'typ', 'adressetyp' => 'h'),
+					array('table' => 'adressedaten', 'name' => 'hausnr')
+				)
+			),
+			'gemeinde' => array(
+				'function' => '_selectAdresseForFhc',
+				'extraParams' => array(
+					array('table' => 'adressedaten', 'name' => 'typ', 'adressetyp' => 'h')
+				)
+			),
+			'name' => array(
+				'function' => '_selectAdresseForFhc',
+				'extraParams' => array(
+					array('table' => 'adressedaten', 'name' => 'typ', 'adressetyp' => 'h')
+				)
+			)
+		);
+
+		// nebenadresse and hauptadresse have almost same structure, so they are set separately
+		$this->_convertfunctions['adresse'] = $adresseConvFunctions;
+
+		foreach ($adresseConvFunctions as $field => $function)
+		{
+			foreach ($adresseConvFunctions[$field]['extraParams'] as $idx => $param)
+			{
+				if ($param['name'] == 'typ')
+					$adresseConvFunctions[$field]['extraParams'][$idx]['adressetyp'] = 'n';
+
+			}
+		}
+
+		$this->_convertfunctions['nebenadresse'] = $adresseConvFunctions;
+	}
 
 	/**
 	 * Converts given employee data to fhc format.
@@ -493,49 +598,19 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 			if (is_array($data))
 			{
+				// get correct value according to fielddtype
 				for ($i = 0; $i < count($data); $i++)
 				{
 					if (isset($params[$fieldname][$i]) &&
 						$params[$fieldname][$i] == $sffieldtype)
 					{
-						// multiple field values with same type -> handle later
 						$returnvalue = $data[$i];
 						break;
 					}
 				}
-/*				foreach ($data as )
-				{
-					if (isset($params[$fieldname][$i]) &&
-						$params[$fieldname][$i] == $sffieldtype)
-					{
-						// multiple field values with same type -> handle later
-						$fieldresults[$i] = $data[$i];
-					}
-				}*/
 			}
 			else
 				$returnvalue = $data;
-
-/*			if (count($fieldresults) > 0)
-			{
-				if (isset($params['startdate'])) // if multiple values, try to get chronologically first, otherwise take just first
-				{
-					$min = (int)filter_var(array_shift($params['startdate']), FILTER_SANITIZE_NUMBER_INT);
-					$minObj = array_shift($fieldresults);
-					foreach ($fieldresults as $idx => $fieldresult)
-					{
-						$millisec = (int)filter_var($params['startdate'][$idx], FILTER_SANITIZE_NUMBER_INT);
-						if ($millisec < $min)
-						{
-							$minObj = $fieldresults[$idx];
-							$min = $millisec;
-						}
-					}
-					$returnvalue = $minObj;
-				}
-				else
-					$returnvalue = array_shift($fieldresults);
-			}*/
 		}
 
 		return $returnvalue;
@@ -692,6 +767,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		$kontaktmail = $maobj['kontaktmail'];
 		$kontakttelefone = array($maobj['kontakttelefon'], $maobj['kontakttelmobile']);
 		$kontaktnotfall = $maobj['kontaktnotfall'];
+		$adressen = array($maobj['adresse'], $maobj['nebenadresse']);
 
 		// update email - assuming there is only one!
 		$this->ci->KontaktModel->addSelect('kontakt_id');
@@ -776,6 +852,37 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			{
 				$this->_stamp('insert', $kontaktnotfall);
 				$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
+			}
+		}
+
+		// update adressen
+		foreach ($adressen as $adresse)
+		{
+			// update adress - assuming there is only one!
+			$this->ci->AdresseModel->addSelect('adresse_id');
+			$this->ci->AdresseModel->addOrder('insertamum', 'DESC');
+			$this->ci->AdresseModel->addOrder('adresse_id', 'DESC');
+			$adresse['person_id'] = $person_id;
+
+			$adresseToUpdate = $this->ci->AdresseModel->loadWhere(array(
+					'typ' => $adresse['typ'],
+					'person_id' => $person_id,
+					'zustelladresse' => $adresse['zustelladresse'])
+			);
+
+			if (!isEmptyString($adresse['strasse']))
+			{
+				if (hasData($adresseToUpdate))
+				{
+					$adresse_id = getData($adresseToUpdate)[0]->adresse_id;
+					$this->_stamp('update', $adresse);
+					$kontakaddrres = $this->ci->AdresseModel->update($adresse_id, $adresse);
+				}
+				else
+				{
+					$this->_stamp('insert', $adresse);
+					$kontaktaddrres = $this->ci->AdresseModel->insert($adresse);
+				}
 			}
 		}
 	}

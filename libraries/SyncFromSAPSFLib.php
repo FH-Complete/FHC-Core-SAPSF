@@ -10,8 +10,6 @@ class SyncFromSAPSFLib
 	const TOTIMEZONE = 'Europe/Vienna'; // local timezone
 	const IMPORTUSER = 'SAPSF'; // user for insertion/update
 
-	const UNKNOWN_NATION_CODE = 'XXX';
-
 	protected $_syncpreview; // if false, sync, otherwise only output
 
 	protected $_convertfunctions;
@@ -22,7 +20,7 @@ class SyncFromSAPSFLib
 	protected $_fhcconffields;
 	protected $_sapsflastmodifiedfields;
 	protected $_sapsfstartdatefields;
-	protected $_sapsfnontimebasedfields;
+	protected $_sapsftypetimebasedfields;
 
 	/**
 	 * SyncFromSAPSFLib constructor.
@@ -42,16 +40,16 @@ class SyncFromSAPSFLib
 		$this->ci->config->load('extensions/FHC-Core-SAPSF/fields');
 
 		$this->_syncpreview = $this->ci->config->item('FHC-Core-SAPSFSyncparams')['syncpreview'];
-		$this->_conffieldmappings = $this->ci->config->item('fieldmappings');
-		$this->_conffieldmappings = $this->_conffieldmappings['fromsapsf'];
-		$this->_confvaluemappings = $this->ci->config->item('valuemappings');
-		$this->_confvaluemappings = $this->_confvaluemappings['fromsapsf'];
+		$conffieldmappings = $this->ci->config->item('fieldmappings');
+		$this->_conffieldmappings = $conffieldmappings['fromsapsf'];
+		$confvaluemappings = $this->ci->config->item('valuemappings');
+		$this->_confvaluemappings = $confvaluemappings['fromsapsf'];
 		$this->_confvaluedefaults = $this->ci->config->item('fhcdefaults');
 		$this->_sapsfvaluedefaults = $this->ci->config->item('sapsfdefaults');
 		$this->_fhcconffields = $this->ci->config->item('fhcfields');
 		$this->_sapsflastmodifiedfields = $this->ci->config->item('sapsflastmodifiedfields');
 		$this->_sapsfstartdatefields = $this->ci->config->item('sapsfstartdatefields');
-		$this->_sapsfnontimebasedfields = $this->ci->config->item('sapsfnontimebasedfields');
+		$this->_sapsftypetimebasedfields = $this->ci->config->item('sapsftypetimebasedfields');
 
 		// load models
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
@@ -184,15 +182,6 @@ class SyncFromSAPSFLib
 		return $valuenames;
 	}
 
-	/**
-	 * Get properties which should be checked for lastModifiedDate from config.
-	 * @return array
-	 */
-	public function getLastModifiedDateTimeProps()
-	{
-		return $this->_sapsflastmodifiedfields;
-	}
-
 	//------------------------------------------------------------------------------------------------------------------
 	// Protected methods
 
@@ -255,7 +244,16 @@ class SyncFromSAPSFLib
 										$value = $value->results[0]->{$props[$i]};
 									elseif (isset($value->results[0]->startDate))
 									{
-										$value = $this->_extractFirstResult($value->results, $props[$i]);
+										$navtypefield = isset($this->_sapsftypetimebasedfields[$navfield]) ? $this->_sapsftypetimebasedfields[$navfield] : null;
+
+										if (isset($navtypefield))
+										{
+											$value = $this->_extractLastResultByType($value->results, $props[$i], $navtypefield);
+										}
+										else
+										{
+											$value = $this->_extractLastResult($value->results, $props[$i]);
+										}
 									}
 								}
 							}
@@ -268,8 +266,9 @@ class SyncFromSAPSFLib
 									$sfvalue = $value->results[0]->{$field};
 								elseif (isset($value->results[0]->startDate)/* && !in_array($sffield, $this->_sapsfnontimebasedfields)*/) // if results are time-based
 								{
-									$typefield = isset($this->_sapsfnontimebasedfields[$sffield]) ? $this->_sapsfnontimebasedfields[$sffield] : null;
-									$sfvalue = $this->_extractFirstResultByType($value->results, $field, $typefield);
+									// take only chronologically last results for each type
+									$typefield = isset($this->_sapsftypetimebasedfields[$sffield]) ? $this->_sapsftypetimebasedfields[$sffield] : null;
+									$sfvalue = $this->_extractLastResultByType($value->results, $field, $typefield);
 								}
 								else // or take all results
 								{
@@ -280,20 +279,34 @@ class SyncFromSAPSFLib
 									}
 								}
 							}
+							elseif (is_array($value) && isset($value[0]->{$field}))
+							{
+								foreach ($value as $val)
+								{
+									$sfvalue[] = $val->{$field};
+								}
+							}
 						}
+					}
+
+					if (is_array($sfvalue))
+					{
+						foreach ($sfvalue as $idx => $sfval)
+						{
+							if (isset($this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfval]))
+							{
+								$sfvalue[$idx] = $this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfval];
+							}
+						}
+					}
+					elseif (isset($this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue]))
+					{
+						$sfvalue = $this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue];
 					}
 
 					// set sapsf value if it is not null
 					if (isset($sfvalue))
 						$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
-
-					// check if there is a valuemapping
-					$mapped = null;
-					if (!is_array($sfvalue) && isset($this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue]))
-					{
-						$mapped = $this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue];
-						$fhcemployee[$fhctable][$fhcfield] = $mapped;
-					}
 
 					// check for convertfunctions, execute with passed extra parameters if found
 					if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
@@ -308,32 +321,43 @@ class SyncFromSAPSFLib
 							{
 								if (isset($param['table']) && isset($param['name']) && isset($fhcemployee[$param['table']][$param['name']]))
 								{
-									$params[$param['name']] = $fhcemployee[$param['table']][$param['name']];
-									if (isset($param['fhcfield']))
-										$params['fhcfield'] = $param['fhcfield'];
+									$paramtbl = $param['table'];
+									$paramname = $param['name'];
+									$params[$paramname] = $fhcemployee[$paramtbl][$paramname];
+									unset($param['table']);
+									unset($param['name']);
+
+									// miscellaneous parameters passed to function
+									foreach ($param as $miscname => $misc)
+									{
+										$params['misc'][$paramtbl][$miscname] = $misc;
+									}
 								}
 							}
 						}
 
-						$funcval = isset($mapped) ? $mapped : $sfvalue;
 						$funcresult = $this->{$this->_convertfunctions[$fhctable][$fhcfield]['function']}(
-							$funcval,
+							$sfvalue,
 							$params
 						);
 
-						// if there is a null function result set only if null/empty values are permitted
-						if ($funcresult == null && (!isset($this->_confvaluedefaults[$objtype][$fhctable]) ||
-														!array_key_exists($fhcfield, $this->_confvaluedefaults[$objtype][$fhctable]) ||
-														!isEmptyString($this->_confvaluedefaults[$objtype][$fhctable][$fhcfield])))
-							unset($fhcemployee[$fhctable][$fhcfield]);
+						// if there is null function result set only if there is no default value already.
+						if ($funcresult == null)
+						{
+							if (!isset($this->_confvaluedefaults[$objtype][$fhctable]) ||
+								!array_key_exists($fhcfield, $this->_confvaluedefaults[$objtype][$fhctable]))
+								unset($fhcemployee[$fhctable][$fhcfield]);
+							elseif ($this->_confvaluedefaults[$objtype][$fhctable][$fhcfield] === '')
+								$fhcemployee[$fhctable][$fhcfield] = '';
+							else
+								$fhcemployee[$fhctable][$fhcfield] = $funcresult;
+						}
 						else
-							$fhcemployee[$fhctable][$fhcfield] =  $funcresult;
+							$fhcemployee[$fhctable][$fhcfield] = $funcresult;
 					}
 				}
 			}
 		}
-		//printAndDie($fhcemployee);
-
 
 		return $fhcemployee;
 	}
@@ -363,7 +387,7 @@ class SyncFromSAPSFLib
 					$errortext = '';
 					$required = isset($params['required']) && $params['required'];
 
-					if (isset($fhcobj[$table][$field]))
+					if (array_key_exists($field, $fhcobj[$table]))
 					{
 						$value = $fhcobj[$table][$field];
 
@@ -372,117 +396,118 @@ class SyncFromSAPSFLib
 							$haserror = true;
 							$errortext = 'is missing';
 						}
-						else
-						{
-							// right data type?
-							$wrongdatatype = false;
-							if (isset($params['type']))
-							{
-								switch($params['type'])
-								{
-									case 'integer':
-										if (!is_numeric($value))
-										{
-											$wrongdatatype = true;
-										}
-										break;
-									case 'boolean':
-										if (!is_bool($value))
-										{
-											$wrongdatatype = true;
-										}
-										break;
-									case 'date':
-										if (!validateDateFormat($value))
-										{
-											$wrongdatatype = true;
-										}
-										break;
-									case 'base64':
-										if (!base64_encode(base64_decode($value, true)) === $value)
-											$wrongdatatype = true;
-										break;
-									case 'string':
-										if (!is_string($value))
-										{
-											$wrongdatatype = true;
-										}
-										break;
-								}
-							}
-							elseif (!is_string($value))
-							{
-								$wrongdatatype = true;
-							}
-							else
-							{
-								$params['type'] = 'string';
-							}
-
-							if ($wrongdatatype)
-							{
-								$haserror = true;
-								$errortext = 'has wrong data type';
-							}
-							// right string length?
-							$rightlength = true;
-							if (!$haserror && ($params['type'] === 'string' || $params['type'] === 'base64'))
-							{
-								$rightlength = $this->ci->FhcDbModel->checkStrLength($table, $field, $value);;
-
-								if ($rightlength && isset($params['length']) && is_numeric($params['length']))
-									$rightlength = $params['length'] == strlen($value);
-							}
-							elseif ($params['type'] === 'integer' && is_integer($value))
-							{
-								$rightlength = $this->ci->FhcDbModel->checkIntLength($value);
-							}
-
-							if (!$rightlength)
-							{
-								$haserror = true;
-								$errortext = "has wrong length ($value)";
-							}
-
-							// unique constraint violated?
-							if (!$haserror && isset($params['unique']) && $params['unique'] === true && isset($params['pk']))
-							{
-								$exceptions = isset($fhcobj[$table][$params['pk']]) ? array($params['pk'] => $fhcobj[$table][$params['pk']]) : null;
-								$valueexists = $this->ci->FhcDbModel->valueExists($table, $field, $value, $exceptions);
-
-								if (hasData($valueexists))
-								{
-									$haserror = true;
-									$errortext = "already exists ($value)";
-								}
-							}
-							// value referenced with foreign key exists?
-							if (!$haserror && isset($params['ref']))
-							{
-								$fkfield = isset($params['reffield']) ? $params['reffield'] : $field;
-								$foreignkeyexists = $this->ci->FhcDbModel->valueExists($params['ref'], $fkfield, $value);
-
-								if (!hasData($foreignkeyexists))
-								{
-									$haserror = true;
-									$errortext = 'has no match in FHC';
-								}
-							}
-						}
-					}
-					else
-					{
-						if ($required)
-						{
-							$haserror = true;
-							$errortext = 'is missing';
-						}
-						elseif (isset($params['notnull']) && $params['notnull'] === true)
+						elseif(isset($params['notnull']) && $params['notnull'] === true && $value === null)
 						{
 							// notnull constraint violated
 							$haserror = true;
 							$errortext = "cannot be null";
 						}
+						else
+						{
+							// right data type?
+							$wrongdatatype = false;
+
+							if ($value !== null)
+							{
+								if (isset($params['type']))
+								{
+									switch ($params['type'])
+									{
+										case 'integer':
+											if (!is_numeric($value))
+											{
+												$wrongdatatype = true;
+											}
+											break;
+										case 'boolean':
+											if (!is_bool($value))
+											{
+												$wrongdatatype = true;
+											}
+											break;
+										case 'date':
+											if (!validateDateFormat($value))
+											{
+												$wrongdatatype = true;
+											}
+											break;
+										case 'base64':
+											if (!base64_encode(base64_decode($value, true)) === $value)
+												$wrongdatatype = true;
+											break;
+										case 'string':
+											if (!is_string($value))
+											{
+												$wrongdatatype = true;
+											}
+											break;
+									}
+								}
+								elseif (!is_string($value))
+								{
+									$wrongdatatype = true;
+								}
+								else
+								{
+									$params['type'] = 'string';
+								}
+
+								if ($wrongdatatype)
+								{
+									$haserror = true;
+									$errortext = 'has wrong data type';
+								}
+								// right string/int length?
+								$rightlength = true;
+								if (!$haserror && ($params['type'] === 'string' || $params['type'] === 'base64'))
+								{
+									$rightlength = $this->ci->FhcDbModel->checkStrLength($table, $field, $value);;
+
+									if ($rightlength && isset($params['length']) && is_numeric($params['length']))
+										$rightlength = $params['length'] == strlen($value);
+								}
+								elseif ($params['type'] === 'integer' && is_integer($value))
+								{
+									$rightlength = $this->ci->FhcDbModel->checkIntLength($value);
+								}
+
+								if (!$rightlength)
+								{
+									$haserror = true;
+									$errortext = "has wrong length ($value)";
+								}
+
+								// unique constraint violated?
+								if (!$haserror && isset($params['unique']) && $params['unique'] === true && isset($params['pk']))
+								{
+									$exceptions = isset($fhcobj[$table][$params['pk']]) ? array($params['pk'] => $fhcobj[$table][$params['pk']]) : null;
+									$valueexists = $this->ci->FhcDbModel->valueExists($table, $field, $value, $exceptions);
+
+									if (hasData($valueexists))
+									{
+										$haserror = true;
+										$errortext = "already exists ($value)";
+									}
+								}
+								// value referenced with foreign key exists?
+								if (!$haserror && isset($params['ref']))
+								{
+									$fkfield = isset($params['reffield']) ? $params['reffield'] : $field;
+									$foreignkeyexists = $this->ci->FhcDbModel->valueExists($params['ref'], $fkfield, $value);
+
+									if (!hasData($foreignkeyexists))
+									{
+										$haserror = true;
+										$errortext = 'has no match in FHC';
+									}
+								}
+							}
+						}
+					}
+					elseif ($required)
+					{
+						$haserror = true;
+						$errortext = 'is missing';
 					}
 
 					if ($haserror)
@@ -544,12 +569,15 @@ class SyncFromSAPSFLib
 	 */
 	protected function _convertNationToFhc($sfnation)
 	{
+		$fhcnation = null;
 		$nation_code = $this->ci->FhcDbModel->getNationByIso3Code($sfnation);
 
 		if (hasData($nation_code))
-			return getData($nation_code)[0]->nation_code;
+			$fhcnation = getData($nation_code)[0]->nation_code;
 		else
-			return self::UNKNOWN_NATION_CODE;// TODO maybe not hardcoded...
+			$fhcnation = $this->_confvaluedefaults['User']['person']['staatsbuergerschaft'];
+
+		return $fhcnation;
 	}
 
 	/**
@@ -569,56 +597,57 @@ class SyncFromSAPSFLib
 	// Private methods
 
 	/**
-	 * Extracts the chronologically first result from an array of time-based objects,
+	 * Extracts the chronologically last result from an array of time-based objects,
 	 * based on startDate property.
-	 * @param $results
-	 * @param $property the property to extract
+	 * @param $results array
+	 * @param $property string the property to extract
 	 * @param $typefield
 	 * @return mixed the extracted property data
 	 */
-	private function _extractFirstResult($results, $property)
+	private function _extractLastResult($results, $property)
 	{
-		$min = (int)filter_var($results/*->results*/[0]->startDate, FILTER_SANITIZE_NUMBER_INT);
-		$minObj = $results/*->results*/[0]->{$property};
-		foreach ($results/*->results*/ as $result)
+		$max = (int)filter_var($results[0]->startDate, FILTER_SANITIZE_NUMBER_INT);
+		$maxObj = $results[0]->{$property};
+		foreach ($results as $result)
 		{
 			$millisec = (int)filter_var($result->startDate, FILTER_SANITIZE_NUMBER_INT);
-			if ($millisec < $min)
+			if ($millisec > $max)
 			{
-				$minObj = $result->{$property};
-				$min = $millisec;
+				$maxObj = $result->{$property};
+				$max = $millisec;
 			}
 		}
-		return $minObj;
+		return $maxObj;
 	}
 
-	private function _extractFirstResultByType($results, $property, $typeproperty)
+	/**
+	 * Extracts the chronologically last result from an array of time-based objects,
+	 * based on startDate property for each result type.
+	 * @param $results array
+	 * @param $property string the property to extract
+	 * @param $typeproperty the property indicating the result type
+	 * @return mixed the extracted property data, one result for each type.
+	 */
+	private function _extractLastResultByType($results, $property, $typeproperty)
 	{
 		if (!isset($typeproperty))
-			return $this->_extractFirstResult($results, $property);
-		var_dump($typeproperty);
-		var_dump($property);
+			return $this->_extractLastResult($results, $property);
 
 		$typeResults = array();
 		$firstResults = array();
 
-		foreach ($results/*->results*/ as $result)
+		foreach ($results as $result)
 		{
-			var_dump($result);
 			if (isset($result->{$typeproperty}))
 			{
 				$typeResults[$result->{$typeproperty}][] = $result;
 			}
 		}
 
-		var_dump($typeResults);
-
 		foreach ($typeResults as $typeResult)
 		{
-			$firstResults[] = $this->_extractFirstResult($typeResult, $property);
+			$firstResults[] = $this->_extractLastResult($typeResult, $property);
 		}
-
-		var_dump($firstResults);
 
 		return $firstResults;
 	}

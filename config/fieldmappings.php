@@ -54,20 +54,21 @@ $config['fieldmappings']['fromsapsf']['User']['kontaktnotfall'] = array(
 	'empInfo/personNav/emergencyContactNav/name' => 'anmerkung'
 );
 
-$adressmappings = array(
+$config['fieldmappings']['fromsapsf']['User']['adressedaten'] = array(
 	'empInfo/personNav/homeAddressNavDEFLT/addressType' => 'typ',
+	'empInfo/personNav/homeAddressNavDEFLT/address2' => 'hausnr'
+);
+
+$adressmappings = array(
 	'empInfo/personNav/homeAddressNavDEFLT/country' => 'nation',
 	'empInfo/personNav/homeAddressNavDEFLT/zipCode' => 'plz',
-	'empInfo/personNav/homeAddressNavDEFLT/city' => 'ort',
+	'empInfo/personNav/homeAddressNavDEFLT/city' => array('ort', 'gemeinde'),
 	'empInfo/personNav/homeAddressNavDEFLT/address1' => 'strasse',
-	'empInfo/personNav/homeAddressNavDEFLT/address2' => 'strasse',
-	//'empInfo/personNav/homeAddressNavDEFLT/county' => 'anmerkung',
-	//'empInfo/personNav/homeAddressNavDEFLT/province' => 'anmerkung',
-	'empInfo/personNav/homeAddressNavDEFLT/stateNav/externalCode' => 'gemeinde'
+	'empInfo/personNav/homeAddressNavDEFLT/addressType' => 'name'
 );
 
 $config['fieldmappings']['fromsapsf']['User']['adresse'] = $adressmappings;
-$config['fieldmappings']['fromsapsf']['User']['nebenandresse'] = $adressmappings;
+$config['fieldmappings']['fromsapsf']['User']['nebenadresse'] = $adressmappings;
 
 $stundensatztyp = array(
 	'empInfo/compInfoNav/empPayCompRecurringNav/payComponent' => 'sap_stundensatz_typ',
