@@ -13,8 +13,8 @@ $config['fieldmappings']['fromsapsf']['User']['kztyp'] = array(
 );
 
 $config['fieldmappings']['fromsapsf']['User']['person'] = array(
-	'firstName' => 'vorname',
-	'lastName' => 'nachname',
+	'empInfo/personNav/personalInfoNav/firstName' => 'vorname',
+	'empInfo/personNav/personalInfoNav/lastName' => 'nachname',
 	'empInfo/personNav/personalInfoNav/nationality' => 'staatsbuergerschaft',
 	'empInfo/personNav/dateOfBirth' => 'gebdatum',
 	'empInfo/personNav/countryOfBirth' => 'geburtsnation',

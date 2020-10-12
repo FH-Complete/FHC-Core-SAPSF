@@ -278,6 +278,9 @@ class FhcDbModel extends DB_Model
 						else
 							$result = error('Error when inserting kalk. Stundensatz');
 					}
+					else
+						$result = success("Stundensatz for $uid did not need to be inserted.");
+
 				}
 			}
 			else
