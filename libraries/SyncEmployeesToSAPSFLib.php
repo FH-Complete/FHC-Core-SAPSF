@@ -17,11 +17,18 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 	const PHONETYPE = 'PerPhone';
 
 	const PERSON_KEY_NAV = 'personKeyNav';
+	const KONTAKTTEL_NAME = 'kontakttel';
 	const SAPSF_IS_PRIMARY_NAME = 'isPrimary';
 	const SAPSF_END_DATE_NAME = 'endDate';
 	const EMAIL_POSTFIX = '@technikum-wien.at';
 
 	private $_convertfunctions = array(
+		'kontakttel' => array(
+			'firmentelefon_nummer' => '_convertToPhoneParts'
+		),
+		'kontakttelmobile' => array(
+			'firmenhandy' => '_convertToPhoneParts'
+		),
 		'kontaktmail' => array(
 			'uid' => '_convertToAliasMail'
 		),
@@ -79,6 +86,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 			$sapsfEmailTypeName = $this->_predicates[self::MAILTYPE][1];
 			$sapsfPhoneTypeName = $this->_predicates[self::PHONETYPE][1];
 			$sapsfOfficeName = $this->_conffieldmappings[$mitarbeiterobjname][self::PERSONALINFOTYPE]['ort_kurzbz'];
+			$sapsfNummerName = $this->_conffieldmappings[self::KONTAKTTEL_NAME][self::PHONETYPE]['firmentelefon_nummer'];
 
 			$mailfieldmapping = $this->ci->syncfromsapsflib->getFieldMappings('User', $fhcmailbusiness, array('kontakt'))['kontakt'];
 			$phonefieldmapping = $this->ci->syncfromsapsflib->getFieldMappings('User', $fhctelbusiness, array('kontakt'))['kontakt'];
@@ -212,7 +220,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 							if (!$hasPrivatePhone)
 								unset($matosync[self::PHONETYPE][$fhctelprivate]);
 
-							if (!$hasMobilePhone)
+							if (!$hasMobilePhone && !isset($matosync[self::PHONETYPE][$fhctelmobile][self::DATA_INDEX][$sapsfNummerName]))
 								unset($matosync[self::PHONETYPE][$fhctelmobile]);
 
 							if (isEmptyArray($personalInfoDatesToUpdate))
@@ -240,31 +248,44 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 									{
 										if (isset($this->_requiredfields[$sapsfproperty][$objname]))
 										{
+											$requiredExists = false;
 											$required = $this->_requiredfields[$sapsfproperty][$objname];
 
 											foreach ($required as $req)
 											{
 												$navprops = explode('/', $req);
 
-												if (!isset($matosync[$sapsfproperty][$navprops[0]][self::DATA_INDEX][$navprops[1]]) ||
-												isEmptyString($matosync[$sapsfproperty][$navprops[0]][self::DATA_INDEX][$navprops[1]]))
-												{
-													unset($matosync[$sapsfproperty][$objname]); // remove if required field not present
-													continue 2; // continue outer loop
+												if (isset($matosync[$sapsfproperty][$navprops[0]][self::DATA_INDEX][$navprops[1]]) &&
+												!isEmptyString($matosync[$sapsfproperty][$navprops[0]][self::DATA_INDEX][$navprops[1]]))
+												{ // at least one field has to be present
+													$requiredExists = true;
+													break;
 												}
 											}
+
+											if (!$requiredExists)
+												unset($matosync[$sapsfproperty][$objname]); // remove if required field not present
 										}
 									}
 								}
 							}
 
-							// set technical mail as primary if has no email and new technical mail is only one
+							// set technical mail as primary if there is no other mail
 							if (!$hasPrivateMail && !$hasBusinessMail
 								&& isset($matosync[self::MAILTYPE][$fhcmailtechnical][self::DATA_INDEX])
 								&& count($matosync[self::MAILTYPE]) == 1
 								&& !isEmptyArray($matosync[self::MAILTYPE][$fhcmailtechnical][self::DATA_INDEX]))
 							{
 								$matosync[self::MAILTYPE][$fhcmailtechnical][self::DATA_INDEX][self::SAPSF_IS_PRIMARY_NAME] = true;
+							}
+
+							// set firmenhandy as primary if there is no other phone
+							if (!$hasPrivatePhone
+								&& isset($matosync[self::PHONETYPE][$fhctelmobile][self::DATA_INDEX])
+								&& count($matosync[self::PHONETYPE]) == 1
+								&& !isEmptyArray($matosync[self::PHONETYPE][$fhctelmobile][self::DATA_INDEX]))
+							{
+								$matosync[self::PHONETYPE][$fhctelmobile][self::DATA_INDEX][self::SAPSF_IS_PRIMARY_NAME] = true;
 							}
 
 							if (!isEmptyArray($matosync))
@@ -311,13 +332,24 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 				{
 					foreach ($conffieldmappings as $fhcfield => $sffield)
 					{
-						/*if (isset($employee->{$fhcfield}))*/
-						//{
-							$value = isset($employee->{$fhcfield}) ? $employee->{$fhcfield} : '';
-							if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
-								$value = $this->{$this->_convertfunctions[$fhctable][$fhcfield]}($value);
+						$splitted = false;
+						$value = isset($employee->{$fhcfield}) ? $employee->{$fhcfield} : '';
+						if (isset($this->_convertfunctions[$fhctable][$fhcfield]))
+						{
+							$value = $this->{$this->_convertfunctions[$fhctable][$fhcfield]}($value);
 
-							//if (!isEmptyString($value))// data should not get lost in SAPSF if empty field
+							if (is_object($value) || is_array($value)) // if object/array, all properties are copied
+							{
+								$splitted = true;
+								foreach ($value as $key => $item)
+								{
+									$sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$key] = $item;
+								}
+							}
+						}
+
+						//if (!isEmptyString($value))// data should not get lost in SAPSF if empty field
+						if (!$splitted)
 							$sapsfemployee[$sapsfentity][$fhctable][self::DATA_INDEX][$sffield] = $value;
 						//}
 					}
@@ -381,5 +413,47 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 			$mail = $uid.self::EMAIL_POSTFIX;
 
 		return $mail;
+	}
+
+	/**
+	 * Splits a phone contact into vorwahl, ortsvorwahl and nummer.
+	 * @param $kontakt
+	 * @return object containing vorwahl, ortsvorwahl and nummer
+	 */
+	private function _convertToPhoneParts($kontakt)
+	{
+		$sapsfVorwahlName = $this->_conffieldmappings[self::KONTAKTTEL_NAME][self::PHONETYPE]['firmentelefon_vorwahl'];
+		$sapsfOrtsvorwahlName = $this->_conffieldmappings[self::KONTAKTTEL_NAME][self::PHONETYPE]['firmentelefon_ortsvorwahl'];
+		$sapsfNummerName = $this->_conffieldmappings[self::KONTAKTTEL_NAME][self::PHONETYPE]['firmentelefon_nummer'];
+		$teleobj = new stdClass();
+
+		// parse phone and get parts
+		$telparts = explode(' ', str_replace('-', ' ', $kontakt));
+		$counttelparts = count($telparts);
+
+		if ($counttelparts >= 3)
+		{
+			$teleobj->{$sapsfVorwahlName} = preg_replace('/[^0-9]/', '', $telparts[0]);
+			$teleobj->{$sapsfOrtsvorwahlName} = preg_replace('/[^0-9]/', '', $telparts[1]);
+			$teleobj->{$sapsfNummerName} = preg_replace('/[^0-9]/', '', implode('', array_slice($telparts, 2, $counttelparts)));
+		}
+		else // split phone reasonably if no separators...
+		{
+			$phone = preg_replace('/[^0-9]/', '', $kontakt);
+			if (strlen($phone) >= 5)
+			{
+				$vorwahl_length = 1;
+				if (substr($phone, 0, 2) == '43')
+					$vorwahl_length = 2;
+				if (substr($phone, 0, 4) == '0043')
+					$vorwahl_length = 4;
+
+				$teleobj->{$sapsfVorwahlName} = substr($phone, 0, $vorwahl_length);
+				$teleobj->{$sapsfOrtsvorwahlName} = substr($phone, $vorwahl_length, 3);
+				$teleobj->{$sapsfNummerName} = substr($phone, $vorwahl_length + 3, strlen($phone));
+			}
+		}
+
+		return $teleobj;
 	}
 }

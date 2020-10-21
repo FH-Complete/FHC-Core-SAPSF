@@ -78,7 +78,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				)
 			)
 		),
-		'kontakttelmobile' => array(
+/*		'kontakttelmobile' => array(
 			'kontakt' => array(
 				'function' => '_selectPhoneForFhc',
 				'extraParams' => array(
@@ -88,7 +88,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 					array('table' => 'telefondaten', 'name' => 'telefonklappe')
 				)
 			)
-		),
+		),*/
 		'sap_kalkulatorischer_stundensatz' => array(
 			'sap_kalkulatorischer_stundensatz' => array(
 				'function' => '_selectKalkStundensatzForFhc',
@@ -205,11 +205,13 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	{
 		$syncedMitarbeiterRes = array();
 
+		$errorno = 0;
 		foreach ($results as $result)
 		{
 			if (isError($result))
 			{
-				$syncedMitarbeiterRes[] = error(getError($result));
+				$syncedMitarbeiterRes['error_'.$errorno] = error(getError($result));
+				$errorno++;
 			}
 			elseif (hasData($result))
 			{
@@ -765,7 +767,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	private function _updatePersonContacts($person_id, $maobj)
 	{
 		$kontaktmail = $maobj['kontaktmail'];
-		$kontakttelefone = array($maobj['kontakttelefon'], $maobj['kontakttelmobile']);
+		$kontakttelefone = array($maobj['kontakttelefon']/*, $maobj['kontakttelmobile']*/);
 		$kontaktnotfall = $maobj['kontaktnotfall'];
 		$adressen = array($maobj['adresse'], $maobj['nebenadresse']);
 

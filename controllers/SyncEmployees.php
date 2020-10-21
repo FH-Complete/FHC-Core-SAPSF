@@ -194,7 +194,7 @@ class SyncEmployees extends Auth_Controller
 	 */
 	private function _logInfo($response, $parameters = null)
 	{
-		$this->_log(LogLib::INFO, 'Employeesync info', $response, $parameters);
+		$this->_log(LogLib::INFO, 'JQW - info', $response, $parameters);
 	}
 
 	/**
@@ -202,7 +202,7 @@ class SyncEmployees extends Auth_Controller
 	 */
 	private function _logWarning($response, $parameters = null)
 	{
-		$this->_log(LogLib::WARNING, 'Employeesync warning', $response, $parameters);
+		$this->_log(LogLib::WARNING, 'JQW - warning', $response, $parameters);
 	}
 
 	/**
@@ -210,7 +210,7 @@ class SyncEmployees extends Auth_Controller
 	 */
 	private function _logError($response, $parameters = null)
 	{
-		$this->_log(LogLib::ERROR, 'Employeesync error', $response, $parameters);
+		$this->_log(LogLib::ERROR, 'JQW - error', $response, $parameters);
 	}
 
 	/**
