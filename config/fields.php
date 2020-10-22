@@ -69,12 +69,12 @@ $config['fhcfields']['User'] = array(
 			'notnull' => true
 		)
 	),
-	'kontakttelmobile' => array('kontakt' =>
+	/*'kontakttelmobile' => array('kontakt' =>
 		array(
 			'name' => 'Telefonmobilkontakt',
 			'notnull' => true
 		),
-	),
+	),*/
 	'kontaktnotfall' => array('kontakt' =>
 		array(
 			'name' => 'Notfallkontakt',
@@ -125,11 +125,18 @@ $phonefields = array(
 	'kontakttel/extension'
 );
 
-$config['requiredsapsffields']['PerPhone']['kontakttel'] = $phonefields;
+$phonefields_kontakttel = $phonefields;
+
+$config['requiredsapsffields']['PerPhone']['kontakttel'] = $phonefields_kontakttel;
+
+$config['requiredsapsffields']['PerPhone']['kontakttelmobile'] = array(
+	'kontakttel/phoneNumber',
+	'kontakttelmobile/phoneNumber',
+	'kontakttelmobile/countryCode',
+	'kontakttelmobile/areaCode'
+);
 
 $config['requiredsapsffields']['PerPhone']['kontakttelprivate'] = $phonefields;
-
-$config['requiredsapsffields']['PerPhone']['kontakttelmobile'] = $phonefields;
 
 // entity predicate value ~ primary keys for SAPSF
 $config['sapsfpredicates']['User'] = array(

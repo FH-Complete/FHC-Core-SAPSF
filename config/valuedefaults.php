@@ -81,7 +81,7 @@ $config['sapsfdefaults']['kontaktmail']['PerEmail'] = array(
 
 // Private Mail
 $config['sapsfdefaults']['kontaktmailprivate']['PerEmail'] = array(
-	'emailType' => 28800,//1406 / 28800
+	'emailType' => 28800,//4655, 28800
 	'isPrimary' => false
 );
 
@@ -93,13 +93,13 @@ $config['sapsfdefaults']['kontaktmailtech']['PerEmail'] = array(
 
 // Business Phone
 $config['sapsfdefaults']['kontakttel']['PerPhone'] = array(
-	'phoneType' => 28489,//2354 / 28489
+	'phoneType' => 28489,//4339 / 28489
 	'isPrimary' => true
 );
 
 // Private Phone
 $config['sapsfdefaults']['kontakttelprivate']['PerPhone'] = array(
-	'phoneType' => 28491,//2358 / 28491
+	'phoneType' => 28491,//4339 / 28491
 	'isPrimary' => false
 );
 

@@ -37,7 +37,6 @@ var SAPSFEmployeeSync = {
 						if (FHC_AjaxClient.hasData(data))
 						{
 							var respdata = FHC_AjaxClient.getData(data);
-							console.log(respdata);
 							var successstr = '';
 							var errorstr = '';
 

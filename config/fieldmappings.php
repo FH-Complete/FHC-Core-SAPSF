@@ -47,7 +47,7 @@ $config['fieldmappings']['fromsapsf']['User']['telefondaten'] = array(
 $phonemapping = array('empInfo/personNav/phoneNav/phoneNumber' => 'kontakt');
 
 $config['fieldmappings']['fromsapsf']['User']['kontakttelefon'] = $phonemapping;
-$config['fieldmappings']['fromsapsf']['User']['kontakttelmobile'] = $phonemapping;
+//$config['fieldmappings']['fromsapsf']['User']['kontakttelmobile'] = $phonemapping;
 
 $config['fieldmappings']['fromsapsf']['User']['kontaktnotfall'] = array(
 	'empInfo/personNav/emergencyContactNav/phone' => 'kontakt',
@@ -115,10 +115,14 @@ $config['fieldmappings']['fromsapsf']['HourlyRate']['sap_kalkulatorischer_stunde
 );
 
 $config['fieldmappings']['tosapsf']['kontakttel']['PerPhone'] = array(
+	'firmentelefon_vorwahl' => 'countryCode', // only for getting sf name, overwritten by phone
+	'firmentelefon_ortsvorwahl' => 'areaCode', // only for getting sf name, overwritten by phone
 	'firmentelefon_nummer' => 'phoneNumber',
-	'firmentelefon_vorwahl' => 'countryCode',
-	'firmentelefon_ortsvorwahl' => 'areaCode',
 	'firmentelefon_telefonklappe' => 'extension'
+);
+
+$config['fieldmappings']['tosapsf']['kontakttelmobile']['PerPhone'] = array(
+	'firmenhandy' => 'phoneNumber'
 );
 
 $config['fieldmappings']['tosapsf']['kontaktmail']['PerEmail'] = array(

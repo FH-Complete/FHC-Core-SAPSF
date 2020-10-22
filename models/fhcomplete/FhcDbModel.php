@@ -203,20 +203,18 @@ class FhcDbModel extends DB_Model
 
 					if (hasData($telefon))
 					{
-						$telefonno = getData($telefon);
-						$vorwahl = $telefonno['kontakt'];
-						$telefonklappe = $telefonno['telefonklappe'];
-						// parse phone and get parts
-						$telparts = explode(' ', $vorwahl);
-						$counttelparts = count($telparts);
-						if ($counttelparts >= 3)
-						{
-							$ma->firmentelefon_vorwahl = $telparts[0];
-							$ma->firmentelefon_ortsvorwahl = $telparts[1];
-							$ma->firmentelefon_nummer = implode('', array_slice($telparts, 2, $counttelparts));
-							if (!isEmptyString($telefonklappe))
+						$telefon = getData($telefon);
+						$ma->firmentelefon_nummer = $telefon['kontakt'];
+						$telefonklappe = $telefon['telefonklappe'];
+						if (!isEmptyString($telefonklappe))
 								$ma->firmentelefon_telefonklappe = $telefonklappe;
-						}
+					}
+
+					$firmenhandy = $this->KontaktModel->getZustellKontakt($ma->person_id, 'firmenhandy');
+
+					if (hasData($firmenhandy))
+					{
+						$ma->firmenhandy = getData($firmenhandy)[0]->kontakt;
 					}
 
 					$mitarbeiterres[] = $ma;
