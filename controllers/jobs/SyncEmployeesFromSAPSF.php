@@ -54,7 +54,20 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 					$this->logInfo('No employees found for synchronisation');
 				else
 				{
-					$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employees);
+					$employeestosync = array();
+					$employeedata = getData($employees);
+
+					foreach ($employeedata as $idx => $employee)
+					{
+						if (isError($employee))
+						{
+							$this->logError($employee);
+						}
+						else
+							$employeestosync[] = $employee;
+					}
+
+					$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employeestosync);
 
 					if (hasData($results))
 					{
@@ -119,7 +132,22 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 			}
 			else
 			{
-				$results = $this->syncemployeesfromsapsflib->syncHourlyRateWithFhc($hourlyrates);
+				$hourlyratestosync = array();
+				$hourlyratesdata = getData($hourlyrates);
+
+				foreach ($hourlyratesdata as $idx => $hourlyrate)
+				{
+					if (isError($hourlyrate))
+					{
+						$this->logError($hourlyrate);
+					}
+					else
+					{
+						$hourlyratestosync[] = $hourlyrate;
+					}
+				}
+
+				$results = $this->syncemployeesfromsapsflib->syncHourlyRateWithFhc($hourlyratestosync);
 
 				if (hasData($results))
 				{

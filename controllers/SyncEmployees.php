@@ -88,12 +88,27 @@ class SyncEmployees extends Auth_Controller
 				$this->_logInfo('No employees found for synchronisation');
 			else
 			{
-				$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employees);
+				$employeestosync = array();
+				$syncedMitarbeiter = array();
+				$employeedata = getData($employees);
+
+				foreach ($employeedata as $idx => $employee)
+				{
+					if (isError($employee))
+					{
+						$this->_logError($employee);
+						$syncedMitarbeiter[$idx] = getError($employee);
+					}
+					else
+						$employeestosync[] = $employee;
+				}
+
+				$results = $this->syncemployeesfromsapsflib->syncEmployeesWithFhc($employeestosync);
 
 				if (hasData($results))
 				{
 					$results = getData($results);
-					$syncedMitarbeiter = array();
+
 					$syncedMitarbeiterRes = $this->syncemployeesfromsapsflib->getSyncedEmployees($results);
 
 					foreach ($syncedMitarbeiterRes as $key => $res)
