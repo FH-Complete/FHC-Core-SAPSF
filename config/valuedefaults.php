@@ -75,31 +75,31 @@ $config['fhcdefaults']['User']['kztyp'] = array(
 
 // Business Mail
 $config['sapsfdefaults']['kontaktmail']['PerEmail'] = array(
-	'emailType' => 29298,//1404 / 29298
+	'emailType' => 29298,//4654 / 29298
 	'isPrimary' => true
 );
 
 // Private Mail
 $config['sapsfdefaults']['kontaktmailprivate']['PerEmail'] = array(
-	'emailType' => 28800,//1406 / 28800
+	'emailType' => 28800,//4655 / 28800
 	'isPrimary' => false
 );
 
 // Technische Mail
 $config['sapsfdefaults']['kontaktmailtech']['PerEmail'] = array(
-	'emailType' => 28799,//1406 / 28800
+	'emailType' => 28799,//4655 / 28799
 	'isPrimary' => false
 );
 
 // Business Phone
 $config['sapsfdefaults']['kontakttel']['PerPhone'] = array(
-	'phoneType' => 28489,//2354 / 28489
+	'phoneType' => 28489,//4337 / 28489
 	'isPrimary' => true
 );
 
 // Private Phone
 $config['sapsfdefaults']['kontakttelprivate']['PerPhone'] = array(
-	'phoneType' => 28491,//2358 / 28491
+	'phoneType' => 28491,//4339 / 28491
 	'isPrimary' => false
 );
 
