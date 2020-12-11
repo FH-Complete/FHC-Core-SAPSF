@@ -172,7 +172,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 				foreach ($empData as $emp)
 				{
-					$maToSync[] = $emp;
+					$maToSync[] = success($emp);
 					$uidsToSync[] = $emp->userId;
 				}
 			}
@@ -185,12 +185,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		{
 			$employee = $this->ci->QueryUserModel->getByUserId($uid, $selects, $expands);
 
-			if (isError($employee))
-				return error(getError($employee));
-			elseif (hasData($employee))
-			{
-				$maToSync[] = getData($employee);
-			}
+			$maToSync[] = $employee;
 		}
 
 		return success($maToSync);
@@ -371,7 +366,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	}
 
 	/**
-	 * Selects correct kalkulatorischer Stundensatz to be inserted in fhc.
+	 * Selects correct Lektorenstundensatz to be inserted in fhc.
 	 * @param $stundensaetze array
 	 * @param $params array contains Stundensatz type
 	 * @return string the kalkulatorischer Stundensatz to insert in fhc
@@ -566,13 +561,11 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	{
 		$mas = array();
 
-		if (hasData($sapsfemployees))
+		foreach ($sapsfemployees as $employee)
 		{
-			$employees = getData($sapsfemployees);
-
-			foreach ($employees as $employee)
+			if (hasData($employee))
 			{
-				$ma = $this->_convertSapsfObjToFhc($employee, $objtype);
+				$ma = $this->_convertSapsfObjToFhc(getData($employee), $objtype);
 				$mas[] = $ma;
 			}
 		}
@@ -591,7 +584,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	private function _selectFieldForFhc($data, $params, $fieldname, $sffieldtype)
 	{
 		$returnvalue = null;
-		//$fieldresults = array();
+
 		if (isset($data) && isset($params[$fieldname]))
 		{
 			$data = is_string($data) ? array($data) : $data;

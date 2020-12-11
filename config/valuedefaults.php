@@ -75,7 +75,7 @@ $config['fhcdefaults']['User']['kztyp'] = array(
 
 // Business Mail
 $config['sapsfdefaults']['kontaktmail']['PerEmail'] = array(
-	'emailType' => 29298,//1404 / 29298
+	'emailType' => 29298,//4654 / 29298
 	'isPrimary' => true
 );
 
@@ -87,7 +87,7 @@ $config['sapsfdefaults']['kontaktmailprivate']['PerEmail'] = array(
 
 // Technische Mail
 $config['sapsfdefaults']['kontaktmailtech']['PerEmail'] = array(
-	'emailType' => 28799,//1406 / 28800
+	'emailType' => 28799,//4655 / 28799
 	'isPrimary' => false
 );
 

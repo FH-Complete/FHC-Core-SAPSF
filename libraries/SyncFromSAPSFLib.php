@@ -255,6 +255,20 @@ class SyncFromSAPSFLib
 											$value = $this->_extractLastResult($value->results, $props[$i]);
 										}
 									}
+									elseif (isset($value->results[0]->{$props[$i]}->results)) // in case of nested results
+									{
+										$gatheredResults = array();
+
+										foreach ($value->results as $topResult) // gather all the results
+										{
+											foreach ($topResult->{$props[$i]}->results as $bottomResult)
+											{
+												$gatheredResults[] = $bottomResult;
+											}
+										}
+										$value = new stdClass();
+										$value->results = $gatheredResults;
+									}
 								}
 							}
 
@@ -289,6 +303,7 @@ class SyncFromSAPSFLib
 						}
 					}
 
+					// set values from valuemappings
 					if (is_array($sfvalue))
 					{
 						foreach ($sfvalue as $idx => $sfval)
@@ -361,7 +376,7 @@ class SyncFromSAPSFLib
 
 		return $fhcemployee;
 	}
-	
+
 	/**
 	 * Checks if fhcomplete object has errors, e.g. missing fields, thus cannot be inserted in db.
 	 * @param $fhcobj
