@@ -107,6 +107,22 @@ $config['fhcfields']['User'] = array(
 	)
 );
 
+$config['fhcfields']['CostCenter'] = array(
+	'benutzerfunktion' => array(
+		'oe_kurzbz' =>
+			array('required' => true,
+				'name' => 'Organisationseinheit',
+				'ref' => 'public.tbl_organisationseinheit'),
+		'datum_von' =>
+			array('required' => true,
+				'name' => 'Startdatum',
+				'type' => 'date'),
+		'uid' =>
+			array('required' => true,
+				'ref' => 'public.tbl_benutzer')
+	)
+);
+
 $emailfield = 'kontaktmail/emailAddress';
 
 // required sapsf fields, excluded from sync if not present
@@ -163,7 +179,7 @@ $config['sapsfnavigationfields']['PerPersonal'] = array(
 	'customString4' => 'empInfo/personNav/personalInfoNav'
 );
 
-// fields to be checked for lastModifiedDate
+// fields to be checked for lastModifiedDate in GET query
 $config['sapsflastmodifiedfields'] = array(
 	"empInfo/personNav",
 	"empInfo/personNav/nationalIdNav",
@@ -172,12 +188,19 @@ $config['sapsflastmodifiedfields'] = array(
 	"empInfo/personNav/emergencyContactNav"
 );
 
-// fields to be checked for start date
+// fields to be checked for start date in GET query
 $config['sapsfstartdatefields'] = array(
 	"empInfo/personNav/personalInfoNav",
 	"empInfo/jobInfoNav",
 	"empInfo/compInfoNav/empPayCompRecurringNav",
 	"empInfo/personNav/homeAddressNavDEFLT"
+);
+
+$config['timebasedfieldexceptions'] = array(
+	'empInfo/jobInfoNav/costCenter',
+	//'empInfo/jobInfoNav/businessUnit',
+	'empInfo/jobInfoNav/startDate',
+	'empInfo/jobInfoNav/endDate'
 );
 
 // fields which are not only retrieved by start date (time-based), but also by type

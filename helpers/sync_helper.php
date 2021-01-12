@@ -34,6 +34,7 @@ function mergeEmployeesArray($jobs)
 			}
 		}
 	}
+
 	return $resultObj;
 }
 

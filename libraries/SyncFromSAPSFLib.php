@@ -8,7 +8,6 @@ class SyncFromSAPSFLib
 {
 	const FROMTIMEZONE = 'UTC'; // timezone on remote server
 	const TOTIMEZONE = 'Europe/Vienna'; // local timezone
-	const IMPORTUSER = 'SAPSF'; // user for insertion/update
 
 	protected $_syncpreview; // if false, sync, otherwise only output
 
@@ -17,7 +16,6 @@ class SyncFromSAPSFLib
 	protected $_conffieldmappings;
 	protected $_confvaluedefaults;
 	protected $_confvaluemappings;
-	protected $_fhcconffields;
 	protected $_sapsflastmodifiedfields;
 	protected $_sapsfstartdatefields;
 	protected $_sapsftypetimebasedfields;
@@ -46,10 +44,10 @@ class SyncFromSAPSFLib
 		$this->_confvaluemappings = $confvaluemappings['fromsapsf'];
 		$this->_confvaluedefaults = $this->ci->config->item('fhcdefaults');
 		$this->_sapsfvaluedefaults = $this->ci->config->item('sapsfdefaults');
-		$this->_fhcconffields = $this->ci->config->item('fhcfields');
 		$this->_sapsflastmodifiedfields = $this->ci->config->item('sapsflastmodifiedfields');
 		$this->_sapsfstartdatefields = $this->ci->config->item('sapsfstartdatefields');
 		$this->_sapsftypetimebasedfields = $this->ci->config->item('sapsftypetimebasedfields');
+		$this->_timebasedfieldexceptions = $this->ci->config->item('timebasedfieldexceptions');
 
 		// load models
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');
@@ -272,13 +270,14 @@ class SyncFromSAPSFLib
 								}
 							}
 
+							// $value can contain finite non-timebased field or results array.
 							if (isset($value->{$field}))
 								$sfvalue = $value->{$field};
 							elseif (isset($value->results[0]) && property_exists($value->results[0], $field)) // if value has results array with the field
 							{
 								if (count($value->results) == 1) // take first result
 									$sfvalue = $value->results[0]->{$field};
-								elseif (isset($value->results[0]->startDate)/* && !in_array($sffield, $this->_sapsfnontimebasedfields)*/) // if results are time-based
+								elseif (isset($value->results[0]->startDate) && !in_array($sffield, $this->_timebasedfieldexceptions)) // if results are time-based
 								{
 									// take only chronologically last results for each type
 									$typefield = isset($this->_sapsftypetimebasedfields[$sffield]) ? $this->_sapsftypetimebasedfields[$sffield] : null;
@@ -319,7 +318,7 @@ class SyncFromSAPSFLib
 						$sfvalue = $this->_confvaluemappings[$objtype][$fhctable][$fhcfield][$sfvalue];
 					}
 
-					// set sapsf value if it is not null
+					// set sapsf value if present
 					if (isset($sfvalue))
 						$fhcemployee[$fhctable][$fhcfield] = $sfvalue;
 
@@ -334,6 +333,7 @@ class SyncFromSAPSFLib
 
 							foreach ($allparams as $param)
 							{
+								// property of SAPSF object with given "table" and name is passed as function param
 								if (isset($param['table']) && isset($param['name']) && isset($fhcemployee[$param['table']][$param['name']]))
 								{
 									$paramtbl = $param['table'];
@@ -356,7 +356,7 @@ class SyncFromSAPSFLib
 							$params
 						);
 
-						// if there is null function result set only if there is no default value already.
+						// if function result is null, set only if there is no default value already.
 						if ($funcresult == null)
 						{
 							if (!isset($this->_confvaluedefaults[$objtype][$fhctable]) ||
@@ -378,177 +378,9 @@ class SyncFromSAPSFLib
 	}
 
 	/**
-	 * Checks if fhcomplete object has errors, e.g. missing fields, thus cannot be inserted in db.
-	 * @param $fhcobj
-	 * @param $objtype
-	 * @param $fhcobjidname
-	 * @param $fhcobjid
-	 * @return StdClass object with properties boolean for has Error and array with errormessages
-	 */
-	protected function _fhcObjHasError($fhcobj, $objtype, $fhcobjid)
-	{
-		$hasError = new StdClass();
-		$hasError->error = false;
-		$hasError->errorMessages = array();
-		$allfields = $this->_fhcconffields[$objtype];
-
-		foreach ($allfields as $table => $fields)
-		{
-			if (array_key_exists($table, $fhcobj))
-			{
-				foreach ($fields as $field => $params)
-				{
-					$haserror = false;
-					$errortext = '';
-					$required = isset($params['required']) && $params['required'];
-
-					if (array_key_exists($field, $fhcobj[$table]))
-					{
-						$value = $fhcobj[$table][$field];
-
-						if ($required && (!isset($value) || $value === ''))
-						{
-							$haserror = true;
-							$errortext = 'is missing';
-						}
-						elseif(isset($params['notnull']) && $params['notnull'] === true && $value === null)
-						{
-							// notnull constraint violated
-							$haserror = true;
-							$errortext = "cannot be null";
-						}
-						else
-						{
-							// right data type?
-							$wrongdatatype = false;
-
-							if ($value !== null)
-							{
-								if (isset($params['type']))
-								{
-									switch ($params['type'])
-									{
-										case 'integer':
-											if (!is_numeric($value))
-											{
-												$wrongdatatype = true;
-											}
-											break;
-										case 'boolean':
-											if (!is_bool($value))
-											{
-												$wrongdatatype = true;
-											}
-											break;
-										case 'date':
-											if (!validateDateFormat($value))
-											{
-												$wrongdatatype = true;
-											}
-											break;
-										case 'base64':
-											if (!base64_encode(base64_decode($value, true)) === $value)
-												$wrongdatatype = true;
-											break;
-										case 'string':
-											if (!is_string($value))
-											{
-												$wrongdatatype = true;
-											}
-											break;
-									}
-								}
-								elseif (!is_string($value))
-								{
-									$wrongdatatype = true;
-								}
-								else
-								{
-									$params['type'] = 'string';
-								}
-
-								if ($wrongdatatype)
-								{
-									$haserror = true;
-									$errortext = 'has wrong data type';
-								}
-								// right string/int length?
-								$rightlength = true;
-								if (!$haserror && ($params['type'] === 'string' || $params['type'] === 'base64'))
-								{
-									$rightlength = $this->ci->FhcDbModel->checkStrLength($table, $field, $value);;
-
-									if ($rightlength && isset($params['length']) && is_numeric($params['length']))
-										$rightlength = $params['length'] == strlen($value);
-								}
-								elseif ($params['type'] === 'integer' && is_integer($value))
-								{
-									$rightlength = $this->ci->FhcDbModel->checkIntLength($value);
-								}
-
-								if (!$rightlength)
-								{
-									$haserror = true;
-									$errortext = "has wrong length ($value)";
-								}
-
-								// unique constraint violated?
-								if (!$haserror && isset($params['unique']) && $params['unique'] === true && isset($params['pk']))
-								{
-									$exceptions = isset($fhcobj[$table][$params['pk']]) ? array($params['pk'] => $fhcobj[$table][$params['pk']]) : null;
-									$valueexists = $this->ci->FhcDbModel->valueExists($table, $field, $value, $exceptions);
-
-									if (hasData($valueexists))
-									{
-										$haserror = true;
-										$errortext = "already exists ($value)";
-									}
-								}
-								// value referenced with foreign key exists?
-								if (!$haserror && isset($params['ref']))
-								{
-									$fkfield = isset($params['reffield']) ? $params['reffield'] : $field;
-									$foreignkeyexists = $this->ci->FhcDbModel->valueExists($params['ref'], $fkfield, $value);
-
-									if (!hasData($foreignkeyexists))
-									{
-										$haserror = true;
-										$errortext = 'has no match in FHC';
-									}
-								}
-							}
-						}
-					}
-					elseif ($required)
-					{
-						$haserror = true;
-						$errortext = 'is missing';
-					}
-
-					if ($haserror)
-					{
-						$fieldname = isset($params['name']) ? $params['name'] : ucfirst($field);
-
-						$hasError->errorMessages[] = "id ".$fhcobjid.": ".ucfirst($table).": $fieldname ".$errortext;
-						$hasError->error = true;
-					}
-				}
-			}
-			else
-			{
-				$hasError->errorMessages[] = "data missing: $table";
-				$hasError->error = true;
-			}
-		}
-
-		return $hasError;
-	}
-
-	/**
 	 * Converts unix timestamp date from SAPSF to fhc datetime format
 	 * @param $unixstr
 	 * @return string fhc datetime
-	 * @throws Exception
 	 */
 	protected function _convertDateToFhc($unixstr)
 	{
@@ -574,7 +406,32 @@ class SyncFromSAPSFLib
 
 		// Date time with specific timezone
 		$fhc_date->setTimezone(new DateTimeZone(self::TOTIMEZONE));
-		return $fhc_date->format('Y-m-d');
+
+		$fhc_date_str = $fhc_date->format('Y-m-d');
+
+		return substr($fhc_date_str, 0, 4) == '9999' ? null : $fhc_date_str; // if starting with 9999, infinite validity
+	}
+
+	/**
+	 * Converts multiple unix timestamp dates from SAPSF to fhc datetime format
+	 * @param $dates as unixstrings if given as string, it is converted as one date
+	 * @return array fhc datetimes
+	 */
+	protected function _convertDatesToFhc($dates)
+	{
+		$results = array();
+
+		if (is_string($dates))
+			$results[] = $this->_convertDateToFhc($dates);
+		elseif (is_array($dates))
+		{
+			foreach ($dates as $date)
+			{
+				$results[] = $this->_convertDateToFhc($date);
+			}
+		}
+
+		return $results;
 	}
 
 	/**
@@ -593,19 +450,6 @@ class SyncFromSAPSFLib
 			$fhcnation = $this->_confvaluedefaults['User']['person']['staatsbuergerschaft'];
 
 		return $fhcnation;
-	}
-
-	/**
-	 * Sets timestamp and importuser for insert/update.
-	 * @param $modtype
-	 * @param $arr
-	 */
-	protected function _stamp($modtype, &$arr)
-	{
-		$idx = $modtype . 'amum';
-		$arr[$idx] = date('Y-m-d H:i:s', time());
-		$idx = $modtype . 'von';
-		$arr[$idx] = self::IMPORTUSER;
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

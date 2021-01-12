@@ -11,14 +11,16 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 {
 	const OBJTYPE = 'User';
 	const HOURLY_RATE_OBJ = 'HourlyRate';
+	const COST_CENTER_OBJ = 'CostCenter';
 	const SAPSF_EMPLOYEES_FROM_SAPSF = 'SyncEmployeesFromSAPSF';
 	const SAPSF_HOURLY_RATES_FROM_SAPSF = 'SyncHourlyRatesFromSAPSF';
+	const SAPSF_COSTCENTERS_FROM_SAPSF = 'SyncCostcenterFromSAPSF';
 
 	protected $_convertfunctions = array( // extraParams -> additional parameters coming from SF which are needed by function
 		'mitarbeiter' =>array(
 			'stundensatz' => array(
 				'function' => '_selectStundensatzForFhc',
-				'extraParams' => array(
+				'extraParams' => array( // property of SAPSF object with given "table" and name is passed as function param
 					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_typ'),
 					array('table' => 'sap_stundensatz_typ', 'name' => 'sap_stundensatz_startdate')
 				)
@@ -98,7 +100,21 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				)
 			)
 		),
-		'adresse' => array(),
+		'benutzerfunktion' => array(
+			'oe_kurzbz' => array(
+				'function' => '_convertKostenstelleForFhc',
+				'extraParams' => null
+			),
+			'datum_von' => array(
+				'function' => '_convertDatesToFhc',
+				'extraParams' => null
+			),
+			'datum_bis' => array(
+				'function' => '_convertDatesToFhc',
+				'extraParams' => null
+			)
+		),
+		'adresse' => array(), // filled in constructor
 		'nebenadresse' => array()
 	);
 
@@ -113,14 +129,11 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 		$this->ci->load->helper('extensions/FHC-Core-SAPSF/sync_helper');
 
+		$this->ci->load->library('extensions/FHC-Core-SAPSF/SaveFromSAPSFLib');
+
 		//load models
-		$this->ci->load->model('person/person_model', 'PersonModel');
-		$this->ci->load->model('ressource/mitarbeiter_model', 'MitarbeiterModel');
-		$this->ci->load->model('person/benutzer_model', 'BenutzerModel');
-		$this->ci->load->model('person/adresse_model', 'AdresseModel');
-		$this->ci->load->model('person/kontakt_model', 'KontaktModel');
-		$this->ci->load->model('codex/Nation_model', 'NationModel');
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/SAPSFQueries/QueryUserModel', 'QueryUserModel');
+		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/SAPOrganisationsstruktur_model', 'SAPOrganisationsstrukturModel');
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -133,24 +146,20 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 * @param $lastDoneJobs object jobs executed last
 	 * @return object the mitarbeiter to sync on success, error otherwise
 	 */
-	public function getEmployeesForSync($objtype, $newJobObj, $lastDoneJobs = null)
+	public function getEmployeesForSync($objtype, $newJobObj, $lastjobtime = null)
 	{
 		$lastModifiedDateTime = null;
-		$lastjobtime = null;
 
-		if (hasData($lastDoneJobs))
-		{
-			$lastJobsData = getData($lastDoneJobs);
-			$lastjobtime = $lastJobsData[0]->starttime;
-			$lastModifiedDateTime = $this->convertDateToSAPSF($lastjobtime);
-		}
+		$lastModifiedDateTime = isEmptyString($lastjobtime) ? null : $this->convertDateToSAPSF($lastjobtime);
 
 		// input uids if only certain users should be synced
 		$uids = checkStringArray($newJobObj->uids) ? $newJobObj->uids : array();
 
 		$selects = $this->getSelectsFromFieldMappings($objtype);
 		$expands = $this->getExpandsFromFieldMappings($objtype);
+		// properties to be filtered by lastmodified date
 		$lastmodifiedprops = isset($lastModifiedDateTime) ? $this->_sapsflastmodifiedfields : null;
+		// properties to be filtered by start date
 		$startdateprops = isset($lastModifiedDateTime) ? $this->_sapsfstartdatefields: null;
 
 		$uidsToSync = array();
@@ -159,7 +168,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		// full sync
 		if (isset($newJobObj->syncAll) && $newJobObj->syncAll)
 		{
-			$employees = $this->ci->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastmodifiedprops, $lastjobtime, $startdateprops);
+			$employees = $this->ci->QueryUserModel->getAll($selects, $expands, $lastModifiedDateTime, $lastjobtime, $lastmodifiedprops,  $startdateprops);
 
 			if (isError($employees))
 			{
@@ -196,7 +205,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 	 * @param $results
 	 * @return array
 	 */
-	public function getSyncedEmployees($results)
+	public function getSyncedEmployees($results, $idtype = 'uid')
 	{
 		$syncedMitarbeiterRes = array();
 
@@ -210,12 +219,12 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			}
 			elseif (hasData($result))
 			{
-				$employeeid = getData($result);
-				if (is_string($employeeid))
+				$syncid = getData($result);
+				if (is_string($syncid) || is_numeric($syncid))
 				{
 					$employee = new stdClass();
-					$employee->uid = $employeeid;
-					$syncedMitarbeiterRes[$employeeid] = success($employee);
+					$employee->{$idtype} = $syncid;
+					$syncedMitarbeiterRes[$syncid] = success($employee);
 				}
 			}
 		}
@@ -241,7 +250,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		{
 			foreach ($convEmployees as $employee)
 			{
-				$result = $this->_saveMitarbeiter($employee);
+				$result =  $this->ci->savefromsapsflib->saveMitarbeiter($employee);
 				$results[] = $result;
 			}
 		}
@@ -270,6 +279,34 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			{
 				$result = $this->ci->FhcDbModel->saveKalkStundensatz($employee);
 				$results[] = $result;
+			}
+		}
+
+		return success($results);
+	}
+
+	/**
+	 * Starts costcenter sync.
+	 * Converts given cost center data to fhc format and saves the cost center object.
+	 * @param $costcenters
+	 * @return object
+	 */
+	public function syncCostcentersWithFhc($costcenters)
+	{
+		$convEmployees = $this->_convertEmployeesForFhc($costcenters, self::COST_CENTER_OBJ);
+
+		if ($this->_syncpreview !== false)
+			printAndDie($convEmployees);
+
+		$results = array();
+
+		if (is_array($convEmployees))
+		{
+			foreach ($convEmployees as $employee)
+			{
+				$saveResult = $this->ci->savefromsapsflib->saveKostenstellenfunktionen($employee);
+
+				$results[] = $saveResult;
 			}
 		}
 
@@ -486,6 +523,38 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		return $fasaktiv;
 	}
 
+	/**
+	 * Converts SAPSF cost center to FHC const center using a matching table.
+	 * @param $costcenter from SAPSF
+	 * @return array
+	 */
+	protected function _convertKostenstelleForFhc($costcenter)
+	{
+		$kostenstellen = array();
+		$fhc_kostenstellen = array();
+
+		if (is_string($costcenter))
+		{
+			$kostenstellen[] = $costcenter;
+		}
+		elseif (is_array($costcenter))
+		{
+			$kostenstellen = array_merge($kostenstellen, $costcenter);
+		}
+
+		foreach ($kostenstellen as $kostenstelle)
+		{
+			$kstOeResult = $this->ci->SAPOrganisationsstrukturModel->loadWhere(array('oe_kurzbz_sap' => $kostenstelle));
+
+			if (hasData($kstOeResult))
+				$fhc_kostenstellen[] = getData($kstOeResult)[0]->oe_kurzbz;
+			else
+				$fhc_kostenstellen[] = $kostenstelle;
+		}
+
+		return $fhc_kostenstellen;
+	}
+
 	//------------------------------------------------------------------------------------------------------------------
 	// Private methods
 
@@ -609,276 +678,5 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 
 		return $returnvalue;
-	}
-
-	/**
-	 * Saves Mitarbeiter in fhc database.
-	 * @param $maobj
-	 * @return object
-	 */
-	private function _saveMitarbeiter($maobj)
-	{
-		$uid = isset($maobj['benutzer']['uid']) ? $maobj['benutzer']['uid'] : '';
-		$person_id = null;
-
-		$this->ci->BenutzerModel->addSelect('uid, person_id');
-		$benutzerexists = $this->ci->BenutzerModel->loadWhere(array('uid' =>$uid));
-
-		if (hasData($benutzerexists))
-		{
-			// set person_id so pk is present and unique values can be checked
-			$person_id = getData($benutzerexists)[0]->person_id;
-			if (isset($maobj['person']))
-				$maobj['person']['person_id'] = $person_id;
-		}
-
-		$errors = $this->_fhcObjHasError($maobj, self::OBJTYPE, $uid);
-		if ($errors->error)
-			return error(implode(", ", $errors->errorMessages));
-
-		$person = $maobj['person'];
-		$mitarbeiter = $maobj['mitarbeiter'];
-		$benutzer = $maobj['benutzer'];
-		$uid = $benutzer['uid'];
-
-		$this->ci->db->trans_begin();
-
-		$this->ci->BenutzerModel->addSelect('uid, person_id, aktiv');
-		$benutzerexists = $this->ci->BenutzerModel->loadWhere(array('uid' =>$uid));
-
-		if (hasData($benutzerexists))
-		{
-			$prevaktiv = getData($benutzerexists)[0]->aktiv;
-			$updateaktiv = $prevaktiv !== $benutzer['aktiv'];
-
-			// update benutzer
-			unset($benutzer['uid']); // avoiding update error
-			$this->_stamp('update', $benutzer);
-			if ($updateaktiv)
-			{
-				$benutzer['updateaktivvon'] = self::IMPORTUSER;
-				$benutzer['updateaktivam'] = date('Y-m-d');
-			}
-
-			$this->ci->BenutzerModel->update(array('uid' => $uid), $benutzer);
-
-			// if benutzer exists, person must exist -> update person
-			$this->_stamp('update', $person);
-			$this->ci->PersonModel->update($person_id, $person);
-
-			$this->_updatePersonContacts($person_id, $maobj);
-
-			// Mitarbeiter may not exist even if there is a Benutzer - update only if already exists, otherwise insert
-			$mitarbeiterexists = $this->ci->MitarbeiterModel->load(array('mitarbeiter_uid' => $uid));
-			if (hasData($mitarbeiterexists))
-			{
-				//$this->_stamp('update', $mitarbeiter); no stamp so it is not marked as new for ToSAPSFSync
-				$mitarbeiterres = $this->ci->MitarbeiterModel->update(array('mitarbeiter_uid' => $uid), $mitarbeiter);
-			}
-			else
-			{
-				$this->_stamp('insert', $mitarbeiter);
-				$mitarbeiterres = $this->ci->MitarbeiterModel->insert($mitarbeiter);
-			}
-		}
-		else
-		{
-			// no benutzer found - checking if person with same svnr already exists
-			if (isset($person['svnr']) && !isEmptyString($person['svnr']))
-			{
-				$this->ci->PersonModel->addSelect('person_id');
-				$hasSvnr = $this->ci->PersonModel->loadWhere(array('svnr' => $person['svnr']));
-
-				if (isSuccess($hasSvnr) && hasData($hasSvnr))
-				{
-					$person_id = getData($hasSvnr)[0]->person_id;
-					// update person if found svnr
-					$this->_stamp('update', $person);
-					$this->ci->PersonModel->update($person_id, $person);
-				}
-			}
-
-			if (!isset($person_id))
-			{
-				// new person
-				$this->_stamp('insert', $person);
-				$personres = $this->ci->PersonModel->insert($person);
-				if (hasData($personres))
-				{
-					$person_id = getData($personres);
-				}
-			}
-
-			if (isset($person_id))
-			{
-				$this->_updatePersonContacts($person_id, $maobj);
-
-				// generate benutzer
-				$benutzer['person_id'] = $person_id;
-				$benutzer['aktivierungscode'] = generateActivationKey();
-
-				$this->_stamp('insert', $benutzer);
-				$benutzerres = $this->ci->BenutzerModel->insert($benutzer);
-
-				// insert mitarbeiter
-				if (isSuccess($benutzerres))
-				{
-					$this->_stamp('insert', $mitarbeiter);
-					$mitarbeiterres = $this->ci->MitarbeiterModel->insert($mitarbeiter);
-				}
-			}
-		}
-
-		// generate and save alias
-		$this->ci->FhcDbModel->manageAliasForUid($uid);
-
-		// generate and save kurzbz
-		$this->ci->FhcDbModel->manageKurzbzForUid($uid);
-
-		// Transaction complete!
-		$this->ci->db->trans_complete();
-
-		// Check if everything went ok during the transaction
-		if ($this->ci->db->trans_status() === false)
-		{
-			$this->output .= "rolling back...";
-			$this->ci->db->trans_rollback();
-			return error("Database error occured while syncing " . $uid);
-		}
-		else
-		{
-			$this->ci->db->trans_commit();
-			return success($uid);
-		}
-	}
-
-	/**
-	 * Updates contacts of a person in fhc database, including mail, telefon, contact
-	 * @param $person_id
-	 * @param $maobj the employee to save in db
-	 */
-	private function _updatePersonContacts($person_id, $maobj)
-	{
-		$kontaktmail = $maobj['kontaktmail'];
-		$kontakttelefone = array($maobj['kontakttelefon']/*, $maobj['kontakttelmobile']*/);
-		$kontaktnotfall = $maobj['kontaktnotfall'];
-		$adressen = array($maobj['adresse'], $maobj['nebenadresse']);
-
-		// update email - assuming there is only one!
-		$this->ci->KontaktModel->addSelect('kontakt_id');
-		$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
-		$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
-		$kontaktmail['person_id'] = $person_id;
-
-		$kontaktmailToUpdate = $this->ci->KontaktModel->loadWhere(array(
-				'kontakttyp' => $kontaktmail['kontakttyp'],
-				'person_id' => $person_id,
-				'zustellung' => true)
-		);
-
-		if (!isEmptyString($kontaktmail['kontakt']))
-		{
-			if (hasData($kontaktmailToUpdate))
-			{
-				$kontakt_id = getData($kontaktmailToUpdate)[0]->kontakt_id;
-				$this->_stamp('update', $kontaktmail);
-				$kontaktmailres = $this->ci->KontaktModel->update($kontakt_id, $kontaktmail);
-			}
-			else
-			{
-				$this->_stamp('insert', $kontaktmail);
-				$kontaktmailres = $this->ci->KontaktModel->insert($kontaktmail);
-			}
-		}
-
-		foreach ($kontakttelefone as $kontakttelefon)
-		{
-			// update phone - assuming there is only one!
-			$this->ci->KontaktModel->addSelect('kontakt_id');
-			$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
-			$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
-			$kontakttelefon['person_id'] = $person_id;
-
-			$kontakttelToUpdate = $this->ci->KontaktModel->loadWhere(array(
-					'kontakttyp' => $kontakttelefon['kontakttyp'],
-					'person_id' => $person_id,
-					'zustellung' => true)
-			);
-
-			if (!isEmptyString($kontakttelefon['kontakt']))
-			{
-				if (hasData($kontakttelToUpdate))
-				{
-					$kontakt_id = getData($kontakttelToUpdate)[0]->kontakt_id;
-					//$this->_stamp('update', $kontaktmail); no stamp because sync to SAPSF can assume it changed -> sync loop
-					$kontakttelres = $this->ci->KontaktModel->update($kontakt_id, $kontakttelefon);
-				}
-				else
-				{
-					$this->_stamp('insert', $kontakttelefon);
-					$kontakttelres = $this->ci->KontaktModel->insert($kontakttelefon);
-				}
-			}
-		}
-
-		// update kontaktnotfall
-		$kontaktnotfall['person_id'] = $person_id;
-
-		$this->ci->KontaktModel->addSelect('kontakt_id');
-		$this->ci->KontaktModel->addOrder('insertamum', 'DESC');
-		$this->ci->KontaktModel->addOrder('kontakt_id', 'DESC');
-		$kontaktnotfallToUpdate = $this->ci->KontaktModel->loadWhere(
-			array(
-				'kontakttyp' => $kontaktnotfall['kontakttyp'],
-				'person_id' => $person_id,
-				'zustellung' => true
-			)
-		);
-
-		if (!isEmptyString($kontaktnotfall['kontakt']))
-		{
-			if (hasData($kontaktnotfallToUpdate))
-			{
-				$kontakt_id = getData($kontaktnotfallToUpdate)[0]->kontakt_id;
-				$this->_stamp('update', $kontaktnotfall);
-				$kontaktnotfallres = $this->ci->KontaktModel->update($kontakt_id, $kontaktnotfall);
-			}
-			else
-			{
-				$this->_stamp('insert', $kontaktnotfall);
-				$kontaktnotfallres = $this->ci->KontaktModel->insert($kontaktnotfall);
-			}
-		}
-
-		// update adressen
-		foreach ($adressen as $adresse)
-		{
-			// update adress - assuming there is only one!
-			$this->ci->AdresseModel->addSelect('adresse_id');
-			$this->ci->AdresseModel->addOrder('insertamum', 'DESC');
-			$this->ci->AdresseModel->addOrder('adresse_id', 'DESC');
-			$adresse['person_id'] = $person_id;
-
-			$adresseToUpdate = $this->ci->AdresseModel->loadWhere(array(
-					'typ' => $adresse['typ'],
-					'person_id' => $person_id,
-					'zustelladresse' => $adresse['zustelladresse'])
-			);
-
-			if (!isEmptyString($adresse['strasse']))
-			{
-				if (hasData($adresseToUpdate))
-				{
-					$adresse_id = getData($adresseToUpdate)[0]->adresse_id;
-					$this->_stamp('update', $adresse);
-					$kontakaddrres = $this->ci->AdresseModel->update($adresse_id, $adresse);
-				}
-				else
-				{
-					$this->_stamp('insert', $adresse);
-					$kontaktaddrres = $this->ci->AdresseModel->insert($adresse);
-				}
-			}
-		}
 	}
 }

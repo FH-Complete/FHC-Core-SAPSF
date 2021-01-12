@@ -27,7 +27,7 @@ var SAPSFEmployeeSyncLib = {
 	//------------ "private" methods -------------//
 	_checkUid: function(uidstr)
 	{
-		return uidstr.match(/^([a-zA-Z0-9]+(\s|,)*)+$/);
+		return uidstr.match(/^([a-zA-Z0-9_]+(\s|,)*)+$/);
 	},
 	_refreshUids: function(canvasid)
 	{

@@ -107,6 +107,14 @@ $config['fieldmappings']['fromsapsf']['User']['benutzer'] = array(
 	'empInfo/personNav/personalInfoNav/customStringxNav/externalCode' => 'hautpberuf'
 );*/
 
+$config['fieldmappings']['fromsapsf']['CostCenter']['benutzerfunktion'] = array(
+	'userId' => 'mitarbeiter_uid',
+	'empInfo/jobInfoNav/costCenter' => 'oe_kurzbz',
+	//'empInfo/jobInfoNav/businessUnit' => '',
+	'empInfo/jobInfoNav/startDate' => 'datum_von',
+	'empInfo/jobInfoNav/endDate' => 'datum_bis'
+);
+
 $config['fieldmappings']['fromsapsf']['HourlyRate']['sap_stundensatz_typ'] = $stundensatztyp;
 
 $config['fieldmappings']['fromsapsf']['HourlyRate']['sap_kalkulatorischer_stundensatz'] = array(

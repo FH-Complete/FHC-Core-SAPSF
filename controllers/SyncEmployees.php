@@ -241,16 +241,16 @@ class SyncEmployees extends Auth_Controller
 		switch($level)
 		{
 			case LogLib::INFO:
-				$this->loglib->logInfoDB($requestId, json_encode(success($data, LogLib::INFO)));
+				$this->loglib->logInfoDB(json_encode(success($data, LogLib::INFO)), $requestId);
 				break;
 /*			case LogLib::DEBUG:
 				$this->loglib->logDebugDB($requestId, json_encode(success($data, LogLib::DEBUG)));
 				break;*/
 			case LogLib::WARNING:
-				$this->loglib->logWarningDB($requestId, json_encode(error($data, LogLib::WARNING)));
+				$this->loglib->logWarningDB(json_encode(error($data, LogLib::WARNING)), $requestId);
 				break;
 			case LogLib::ERROR:
-				$this->loglib->logErrorDB($requestId, json_encode(error($data, LogLib::ERROR)));
+				$this->loglib->logErrorDB(json_encode(error($data, LogLib::ERROR)), $requestId);
 				break;
 		}
 	}

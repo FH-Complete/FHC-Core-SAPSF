@@ -37,17 +37,20 @@ class QueryUserModel extends SAPSFQueryModel
 	}
 
 	/**
-	 * Gets all users present in SAPSF.
+	 * Gets users present in SAPSF.
 	 * @param array $selects fields to retrieve for each user
 	 * @param array $expands fields to expand
 	 * @param string $lastModifiedDateTime date when users were last modified
+	 * @param string $fromDate starting with this date time-based values are retrieved
 	 * @param array $lastModifiedDateTimeProps additional properties checked for lastModifiedDateTime
-	 * @param string $fromDate beginning with this date time-based values are retrieved
 	 * @param array $startDateProps time-based values
 	 * @param array $uids if only particular uids need to be retrieved
 	 * @return object userdata
 	 */
-	public function getAll($selects = array(), $expands = array(), $lastModifiedDateTime = null, $lastModifiedDateTimeProps = null, $fromDate = null, $startDateProps = null, $uids = null)
+	public function getAll($selects = array(), $expands = array(),
+						   $lastModifiedDateTime = null,  $fromDate = null,
+						   $lastModifiedDateTimeProps = null, $startDateProps = null,
+						   $uids = null)
 	{
 		$this->_setEntity('User');
 		$this->_setSelects($selects);

@@ -21,3 +21,11 @@ WHERE
    NOT EXISTS (
        SELECT type FROM system.tbl_jobtypes WHERE type = 'SyncHourlyRatesFromSAPSF'
    );
+
+INSERT INTO system.tbl_jobtypes
+   (type, description)
+SELECT 'SyncCostcenterFromSAPSF', 'Save cost center data from SAP Success Factors'
+WHERE
+   NOT EXISTS (
+       SELECT type FROM system.tbl_jobtypes WHERE type = 'SyncCostcenterFromSAPSF'
+   );
