@@ -238,7 +238,7 @@ class SyncFromSAPSFLib
 								elseif (isset($value->results[0]->{$props[$i]}))
 								{
 									$noValues = count($value->results);
-									if ($noValues == 1) // if only one result, navigate into it. Otherwise choose first based on date.
+									if ($noValues == 1) // if only one result, navigate into it. Otherwise choose last based on date.
 										$value = $value->results[0]->{$props[$i]};
 									elseif (isset($value->results[0]->startDate))
 									{
