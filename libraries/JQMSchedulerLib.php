@@ -29,7 +29,7 @@ class JQMSchedulerLib
 	 * Gets uids of employees to sync, criteria:
 	 * - mitarbeiter updateamum modified recently OR
 	 * - startdate of employee contract is current date
-	 * @return mixed
+	 * @return object
 	 */
 	public function getSyncemployeesToSAPSF()
 	{
@@ -76,7 +76,7 @@ class JQMSchedulerLib
 	 * - fixangestellt AND
 	 * - aktiv AND
 	 * - does not exist or exists with NULL in sap_stundensatz sync table
-	 * @return mixed
+	 * @return object
 	 */
 	public function getHourlyRatesToSAPSF()
 	{
