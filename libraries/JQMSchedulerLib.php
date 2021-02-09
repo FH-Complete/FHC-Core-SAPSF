@@ -11,6 +11,7 @@ class JQMSchedulerLib
 
 	const JOB_TYPE_SYNC_EMPLOYEES_FROM_SAPSF = 'SyncEmployeesFromSAPSF';
 	const JOB_TYPE_SYNC_HOURLY_RATES_FROM_SAPSF = 'SyncHourlyRatesFromSAPSF';
+	const JOB_TYPE_SYNC_COSTCENTERS_FROM_SAPSF = 'SyncCostcenterFromSAPSF';
 	const JOB_TYPE_SYNC_EMPLOYEES_TO_SAPSF = 'SyncEmployeesToSAPSF';
 
 	/**

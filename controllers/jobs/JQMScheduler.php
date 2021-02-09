@@ -85,6 +85,29 @@ class JQMScheduler extends JQW_Controller
 	}
 
 	/**
+	 * Create jobsqueue entry with null input for daily employee cost center sync.
+	 */
+	public function syncCostcentersFromSAPSF()
+	{
+		$this->logInfo('Start job queue scheduler FHC-Core-SAPSF->syncCostcenterFromSAPSF');
+
+		// If an error occured then log it
+		// Add the new job to the jobs queue
+		$addNewJobResult = $this->addNewJobsToQueue(
+			JQMSchedulerLib::JOB_TYPE_SYNC_COSTCENTERS_FROM_SAPSF, // job type
+			$this->generateJobs( // gnerate the structure of the new job
+				JobsQueueLib::STATUS_NEW,
+				null
+			)
+		);
+
+		// If error occurred return it
+		if (isError($addNewJobResult)) $this->logError(getError($addNewJobResult));
+
+		$this->logInfo('End job queue scheduler FHC-Core-SAPSF->syncCostcenterFromSAPSF');
+	}
+
+	/**
 	 * Create jobsqueue entry for syncing to SAPSF, taking uids as input.
 	 */
 	public function syncEmployeesToSAPSF()

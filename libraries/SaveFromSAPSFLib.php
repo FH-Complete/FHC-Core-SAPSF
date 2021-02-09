@@ -205,53 +205,7 @@ class SaveFromSAPSFLib
 			$funktionenToInsert[] = $funktionToInsert;
 		}
 
-		//$results = array();
-		//$currFunktionen = array();
-		//$funktionenToInsert = array();
-
-		// check if Kostenstellenfunktion overlaps with an existing Funktion
-		/*$this->_ci->BenutzerfunktionModel->addSelect('oe_kurzbz, datum_von, datum_bis');
-		$currFunktionenResult = $this->_ci->BenutzerfunktionModel->loadWhere(array('uid' => $benutzerfunktion['mitarbeiter_uid'], 'funktion_kurzbz' => 'kstzuordnung'));
-
-		if (isError($currFunktionenResult))
-			return error("error when loading Benutzerfunktionen");
-
-		if (hasData($currFunktionenResult))
-		{
-			$currFunktionen = getData($currFunktionenResult);
-		}
-
-		foreach ($benutzerfunktion['oe_kurzbz'] as $idx => $oe_kurzbz)
-		{
-			if (!isset($benutzerfunktion['datum_von'][$idx]) || !isset($benutzerfunktion['datum_bis'][$idx]))
-				return error('Kein von/bis Datum für oe ' . $oe_kurzbz . ' vorhanden');
-
-			$overlap = false;
-
-			$newDatumVon = $benutzerfunktion['datum_von'][$idx];
-			$newDatumBis = $benutzerfunktion['datum_bis'][$idx];
-
-			foreach ($currFunktionen as $currFunktion)
-			{
-				// funktion already saved
-				if ($currFunktion->oe_kurzbz == $oe_kurzbz && $currFunktion->datum_von === $newDatumVon &&
-					($currFunktion->datum_bis === $newDatumBis || (is_null($currFunktion->datum_bis) &&  $this->_sapsfDateIsUnlimited($newDatumBis))))
-				{
-					$results[] = success("Cost center assignment $oe_kurzbz from $newDatumVon already exists");
-					$overlap = true;
-				}// if overlap, show error (still save other Funktionen though)
-				elseif (($newDatumVon >= $currFunktion->datum_von && ($newDatumVon <= $currFunktion->datum_bis || is_null($currFunktion->datum_bis)))
-					|| ($newDatumVon <= $currFunktion->datum_von && ($newDatumBis >= $currFunktion->datum_von || $this->_sapsfDateIsUnlimited($newDatumBis))))
-				{
-					$results[] = error("Cost center assignment $oe_kurzbz overlaps with existing assignment. Start date of new assignment: $newDatumVon, start date of existing: " . $currFunktion->datum_von);
-					$overlap = true;
-				}
-
-			}
-
-			// if no overlap, save the funktion as Standardkostenstellefunktion
-			if (!$overlap)
-			{*/
+		$this->_ci->db->trans_begin();
 
 		// delete all existing Standardkostenstelle assignments
 		$deleteFunktionenResult = $this->_ci->FhcDbModel->deleteKostenstellenFunktionen($benutzerfunktion['mitarbeiter_uid']);
@@ -267,7 +221,21 @@ class SaveFromSAPSFLib
 				return $insertres;
 		}
 
-		return success($uid);
+		// Transaction complete!
+		$this->_ci->db->trans_complete();
+
+		// Check if everything went ok during the transaction
+		if ($this->_ci->db->trans_status() === false)
+		{
+			$this->output .= "rolling back...";
+			$this->_ci->db->trans_rollback();
+			return error("Database error occured while saving Kostenstelle for " . $uid);
+		}
+		else
+		{
+			$this->_ci->db->trans_commit();
+			return success($uid);
+		}
 	}
 
 	/**
