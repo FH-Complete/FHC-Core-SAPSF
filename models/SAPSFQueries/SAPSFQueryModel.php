@@ -59,8 +59,6 @@ class SAPSFQueryModel extends SAPSFClientModel
 		$this->_setFormat();
 		$this->_generateQueryString();
 
-		//echo $this->_odataQueryString;
-
 		if ($this->_hasError())
 		{
 			return error(implode("; ", $this->_errors));
@@ -375,8 +373,9 @@ class SAPSFQueryModel extends SAPSFClientModel
 	protected function _setEffectiveDates($fromDate = null)
 	{
 		$futureDays = $this->config->item('FHC-Core-SAPSFSyncparams')['daysInFuture'];
+		$defaultFromDate = $this->config->item('FHC-Core-SAPSFSyncparams')['defaultFromDate'];
 
-		$fromDate = !isEmptyString($fromDate) && strlen($fromDate) >= 10 ? substr($fromDate, 0, 10)  : date('Y-m-d');
+		$fromDate = !isEmptyString($fromDate) && strlen($fromDate) >= 10 ? substr($fromDate, 0, 10)  : $defaultFromDate;
 		$toDate = is_numeric($futureDays) ? date('Y-m-d', strtotime($fromDate . "+$futureDays days")) : null;
 
 		if ($this->_checkEffectiveDates($fromDate, $toDate))

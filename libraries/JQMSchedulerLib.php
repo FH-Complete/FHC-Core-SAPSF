@@ -11,6 +11,7 @@ class JQMSchedulerLib
 
 	const JOB_TYPE_SYNC_EMPLOYEES_FROM_SAPSF = 'SyncEmployeesFromSAPSF';
 	const JOB_TYPE_SYNC_HOURLY_RATES_FROM_SAPSF = 'SyncHourlyRatesFromSAPSF';
+	const JOB_TYPE_SYNC_COSTCENTERS_FROM_SAPSF = 'SyncCostcenterFromSAPSF';
 	const JOB_TYPE_SYNC_EMPLOYEES_TO_SAPSF = 'SyncEmployeesToSAPSF';
 
 	/**
@@ -28,7 +29,7 @@ class JQMSchedulerLib
 	 * Gets uids of employees to sync, criteria:
 	 * - mitarbeiter updateamum modified recently OR
 	 * - startdate of employee contract is current date
-	 * @return mixed
+	 * @return object
 	 */
 	public function getSyncemployeesToSAPSF()
 	{
@@ -75,7 +76,7 @@ class JQMSchedulerLib
 	 * - fixangestellt AND
 	 * - aktiv AND
 	 * - does not exist or exists with NULL in sap_stundensatz sync table
-	 * @return mixed
+	 * @return object
 	 */
 	public function getHourlyRatesToSAPSF()
 	{

@@ -9,3 +9,6 @@ $config['FHC-Core-SAPSFSyncparams']['daysInFuture'] = null;
 
 // number of days to look in past for updateamum of Mitarbeiter for data when syncing to SAPSF.
 $config['FHC-Core-SAPSFSyncparams']['fhcMaHoursInPast'] = 24;
+
+// default start date, time-based results are synced from this date on
+$config['FHC-Core-SAPSFSyncparams']['defaultFromDate'] = '2020-01-01';

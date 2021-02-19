@@ -113,7 +113,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 					  $officefieldmapping . '/'.self::SAPSF_END_DATE_NAME
 					), // selects
 				array(self::PERSON_KEY_NAV,  $emailnav, $phonenav, $officefieldmapping), // expands
-				null, null, null, $uids //no lastmodifieddate and no from - to dates
+				null, null, null, null, $uids //no lastmodifieddate and no from - to dates
 			);
 
 			if (isError($sapsfemployees))

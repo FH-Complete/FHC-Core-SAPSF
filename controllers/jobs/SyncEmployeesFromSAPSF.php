@@ -45,8 +45,17 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 			}
 			else
 			{
+				$lastjobtime = null;
+
+				if (hasData($lastDoneJobs))
+				{
+					$lastJobsData = getData($lastDoneJobs);
+					$lastjobtime = $lastJobsData[0]->starttime;
+				}
+
 				$syncObj = mergeEmployeesArray($lastNewJobs);
-				$employees = $this->syncemployeesfromsapsflib->getEmployeesForSync(SyncEmployeesFromSAPSFLib::OBJTYPE, $syncObj, $lastDoneJobs);
+
+				$employees = $this->syncemployeesfromsapsflib->getEmployeesForSync(SyncEmployeesFromSAPSFLib::OBJTYPE, $syncObj, $lastjobtime);
 
 				if (isError($employees))
 					$this->logError('An error occurred while getting employees', getError($employees));
@@ -183,6 +192,85 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 	}
 
 	/**
+	 * Initiates costcenters synchronisation.
+	 */
+	public function syncCostcenters()
+	{
+		$this->logInfo('Start cost center data synchronization from SAP Success Factors');
+
+		// get last new job for input
+		$lastNewJobs = $this->getLastJobs(SyncEmployeesFromSAPSFLib::SAPSF_COSTCENTERS_FROM_SAPSF);
+		if (isError($lastNewJobs))
+		{
+			$this->logError('An error occurred while getting last new cost center sync job', getError($lastNewJobs));
+		}
+		elseif (hasData($lastNewJobs))
+		{
+			$lastNewJobs = getData($lastNewJobs);
+			$startdate = date('Y-m-d H:i:s');
+
+			$syncObj = mergeEmployeesArray($lastNewJobs);
+			$costcenters = $this->syncemployeesfromsapsflib->getEmployeesForSync(SyncEmployeesFromSAPSFLib::COST_CENTER_OBJ, $syncObj);
+
+			if (isError($costcenters))
+				$this->logError('An error occurred while getting costcenters', getError($costcenters));
+			elseif (!hasData($costcenters))
+			{
+				$this->logInfo("No costcenters found for synchronisation");
+			}
+			else
+			{
+				$costcenterstosync = array();
+				$costcentersdata = getData($costcenters);
+
+				foreach ($costcentersdata as $idx => $costcenter)
+				{
+					if (isError($costcenter))
+					{
+						$this->logError($costcenter);
+					}
+					else
+					{
+						$costcenterstosync[] = $costcenter;
+					}
+				}
+
+				$results = $this->syncemployeesfromsapsflib->syncCostcentersWithFhc($costcenterstosync);
+
+				if (hasData($results))
+				{
+					$results = getData($results);
+					$syncedMitarbeiter = array();
+					$syncedMitarbeiterRes = $this->syncemployeesfromsapsflib->getSyncedEmployees($results);
+
+					foreach ($syncedMitarbeiterRes as $key => $res)
+					{
+						if (isError($res))
+							$this->logError(getError($res));
+						else
+							$syncedMitarbeiter[$key] = getData($res);
+					}
+
+					$enddate = date('Y-m-d H:i:s');
+
+					// update jobs, set them to done, write synced employees as output.
+					$updatedJobs = $this->_getUpdatedJobs($syncedMitarbeiter, $lastNewJobs, $startdate, $enddate);
+					$updatejobsres = $this->updateJobsQueue(SyncEmployeesFromSAPSFLib::SAPSF_COSTCENTERS_FROM_SAPSF, $updatedJobs);
+
+					if (isError($updatejobsres))
+					{
+						$this->logError('An error occurred while updating costcenterssapsfjob', getError($updatejobsres));
+					}
+				}
+				else
+					$this->logInfo('No costcenter data synced from SAP Success Factors');
+			}
+		}
+
+		$this->logInfo('End cost center data synchronization from SAP Success Factors');
+	}
+
+	/**
 	 * Gets jobs updated after sync.
 	 * @param $syncedMitarbeiter array synced employees
 	 * @param $lastNewJobs array jobs before sync
@@ -190,7 +278,7 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 	 * @param $enddate string job end date
 	 * @return array updated jobs
 	 */
-	private function _getUpdatedJobs($syncedMitarbeiter, $lastNewJobs, $startdate, $enddate)
+	private function _getUpdatedJobs($syncedMitarbeiter, $lastNewJobs, $startdate, $enddate, $idtype = 'uid')
 	{
 		$updatedJobs = array();
 
@@ -200,10 +288,10 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 			$decodedInput = json_decode($job->input);
 			if ($decodedInput == null)
 			{
-				foreach ($syncedMitarbeiter as $uidkey => $ma)
+				foreach ($syncedMitarbeiter as $key => $ma)
 				{
 					$maobj = new stdClass();
-					$maobj->uid = $uidkey;
+					$maobj->{$idtype} = $key;
 					$joboutput[] = $maobj;
 				}
 			}
@@ -211,10 +299,10 @@ class SyncEmployeesFromSAPSF  extends JQW_Controller
 			{
 				foreach ($decodedInput as $el)
 				{
-					if (isset($syncedMitarbeiter[$el->uid]))
+					if (isset($syncedMitarbeiter[$el->{$idtype}]))
 					{
 						$maobj = new stdClass();
-						$maobj->uid = $el->uid;
+						$maobj->{$idtype} = $el->{$idtype};
 						$joboutput[] = $maobj;
 					}
 				}

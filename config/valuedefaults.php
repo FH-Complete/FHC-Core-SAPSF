@@ -68,10 +68,11 @@ $config['fhcdefaults']['User']['kztyp'] = array(
 	'ersatzkennzeichen' => 'ekz'
 );
 
-/*$config['fhcdefaults']['employee']['person'] = array(
-	'geburtsnation' => 'email',
-	'staatsbuergerschaft' => 'email'
-);*/
+$config['fhcdefaults']['CostCenter']['benutzerfunktion'] = array(
+	'bezeichnung' => 'Standardkostenstelle-Zuordnung',
+	'funktion_kurzbz' => 'kstzuordnung',
+	'insertvon' => 'SAPSF'
+);
 
 // Business Mail
 $config['sapsfdefaults']['kontaktmail']['PerEmail'] = array(

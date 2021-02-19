@@ -15,6 +15,7 @@ class FhcDbModel extends DB_Model
 		$this->load->model('person/Benutzer_model', 'BenutzerModel');
 		$this->load->model('ressource/Mitarbeiter_model', 'MitarbeiterModel');
 		$this->load->model('codex/Nation_model', 'NationModel');
+		$this->load->model('person/Benutzerfunktion_model', 'BenutzerfunktionModel');
 		$this->load->model('extensions/FHC-Core-SAPSF/fhcomplete/SAPStundensatz_model', 'StundensatzModel');
 	}
 
@@ -304,5 +305,22 @@ class FhcDbModel extends DB_Model
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Deletes all Kostenstellen Funktionen for a uid.
+	 * @param $uid
+	 * @return object
+	 */
+	public function deleteKostenstellenFunktionen($uid)
+	{
+		if (isEmptyString($uid))
+			return error('Invalid uid');
+
+		$query = "DELETE FROM public.tbl_benutzerfunktion
+					WHERE uid = ?
+					AND funktion_kurzbz = 'kstzuordnung'";
+
+		return $this->execQuery($query, array($uid));
 	}
 }
