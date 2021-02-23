@@ -115,6 +115,11 @@ $config['fieldmappings']['fromsapsf']['CostCenter']['benutzerfunktion'] = array(
 	'empInfo/jobInfoNav/endDate' => 'datum_bis'
 );
 
+$config['fieldmappings']['fromsapsf']['CostCenter']['sapaktiv'] = array(
+	'status' => 'sapaktiv',
+	'empInfo/personNav/customString1' => 'personalnummer'
+);
+
 $config['fieldmappings']['fromsapsf']['HourlyRate']['sap_stundensatz_typ'] = $stundensatztyp;
 
 $config['fieldmappings']['fromsapsf']['HourlyRate']['sap_kalkulatorischer_stundensatz'] = array(

@@ -212,7 +212,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		$errorno = 0;
 		foreach ($results as $result)
 		{
-			if (isError($result))
+			if (isset($result) && isError($result))
 			{
 				$syncedMitarbeiterRes['error_'.$errorno] = error(getError($result));
 				$errorno++;

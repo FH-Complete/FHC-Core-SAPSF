@@ -42,8 +42,8 @@ class QueryUserModel extends SAPSFQueryModel
 	 * @param array $expands fields to expand
 	 * @param string $lastModifiedDateTime date when users were last modified
 	 * @param string $fromDate starting with this date time-based values are retrieved
-	 * @param array $lastModifiedDateTimeProps additional properties checked for lastModifiedDateTime
-	 * @param array $startDateProps time-based values
+	 * @param array $lastModifiedDateTimeProps properties checked for lastModifiedDateTime
+	 * @param array $startDateProps time-based values, properties checked for startDate
 	 * @param array $uids if only particular uids need to be retrieved
 	 * @return object userdata
 	 */

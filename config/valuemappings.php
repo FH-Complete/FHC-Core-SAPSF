@@ -15,10 +15,12 @@ $config['valuemappings']['fromsapsf']['User']['person']['anrede'] = array(
 	'Divers' => ''
 );
 
-$config['valuemappings']['fromsapsf']['User']['sapaktiv']['sapaktiv'] = array(
+$sapaktivfield = array(
 	't' => true,
 	'f' => false
 );
+
+$config['valuemappings']['fromsapsf']['User']['sapaktiv']['sapaktiv'] = $sapaktivfield;
 
 $yesnofield = array('N' => false, 'Y' => true);
 
@@ -61,4 +63,4 @@ $adresstypmapping = array(
 
 $config['valuemappings']['fromsapsf']['User']['adressedaten']['typ'] = $adresstypmapping;
 
-/*$config['valuemappings']['fromsapsf']['User']['mitarbeiter']['habilitation'] = $yesnofield;*/
+$config['valuemappings']['fromsapsf']['CostCenter']['sapaktiv']['sapaktiv'] = $sapaktivfield;

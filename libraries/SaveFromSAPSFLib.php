@@ -178,10 +178,17 @@ class SaveFromSAPSFLib
 	public function saveKostenstellenfunktionen($kstobj)
 	{
 		$benutzerfunktion = $kstobj['benutzerfunktion'];
+		$sapaktiv = $kstobj['sapaktiv'];
 		$uid = $benutzerfunktion['mitarbeiter_uid'];
 
 		if (!isset($benutzerfunktion['oe_kurzbz']) || isEmptyString($benutzerfunktion['oe_kurzbz']))
+		{
+			// no error log for inactive users to avoid log "spam"
+			if ($sapaktiv['sapaktiv'] === false || !isset($sapaktiv['personalnummer']) || isEmptyString($sapaktiv['personalnummer']))
+				return null;
+
 			return error("No oe_kurzbz found for uid $uid");
+		}
 
 		$funktionenToInsert = array();
 
