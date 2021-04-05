@@ -110,8 +110,11 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 				'extraParams' => null
 			),
 			'datum_bis' => array(
-				'function' => '_convertDatesToFhc',
-				'extraParams' => null
+				'function' => '_convertKostenstelleEndDateForFhc',
+				'extraParams' => array(
+					array('table' => 'sapaktiv', 'name' => 'sap_event_reason'),
+					array('table' => 'benutzerfunktion', 'name' => 'datum_von')
+				)
 			)
 		),
 		'adresse' => array(), // filled in constructor
@@ -525,8 +528,8 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 	/**
 	 * Converts SAPSF cost center to FHC const center using a matching table.
-	 * @param $costcenter from SAPSF
-	 * @return array
+	 * @param string |  array costcenter(s) from SAPSF, string or array of strings
+	 * @return array contains fhc cost centers
 	 */
 	protected function _convertKostenstelleForFhc($costcenter)
 	{
@@ -553,6 +556,30 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		}
 
 		return $fhc_kostenstellen;
+	}
+
+	/**
+	 * Kündigung end date of last Kündigung is set to year 9999 in SAPSF.
+	 * In such case, it should not be saved as current Funktion with end date = null in FHC, but with end date = start date.
+	 * @param array | string $costcenterEndDates
+	 * @param array $params
+	 * @return array with possibly modified end dates
+	 */
+	protected function _convertKostenstelleEndDateForFhc($costcenterEndDates, $params)
+	{
+		$sapEventReasons = is_array($params['sap_event_reason']) ? $params['sap_event_reason'] : array($params['sap_event_reason']);
+		$sapDatumVon = is_array($params['datum_von']) ? $params['datum_von'] : array($params['datum_von']);
+		$fhcCostcenterEndDates = $this->_convertDatesToFhc($costcenterEndDates);
+
+		foreach ($fhcCostcenterEndDates as $idx => $fhcCostcenterEndDate)
+		{
+			if (in_array($sapEventReasons[$idx], $this->_synccostcentereventtypeexceptions))
+			{
+				$fhcCostcenterEndDates[$idx] = $sapDatumVon[$idx];
+			}
+		}
+
+		return $fhcCostcenterEndDates;
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

@@ -107,6 +107,14 @@ $config['fieldmappings']['fromsapsf']['User']['benutzer'] = array(
 	'empInfo/personNav/personalInfoNav/customStringxNav/externalCode' => 'hautpberuf'
 );*/
 
+$config['fieldmappings']['fromsapsf']['CostCenter']['sapaktiv'] = array(
+	'status' => 'sapaktiv',
+	'empInfo/personNav/customString1' => 'personalnummer',
+	'empInfo/jobInfoNav/eventReason' => 'sap_event_reason'
+	// not synced, just needed to determine correct end date in FAS, and for correct error logging
+	// MUST BE PLACED BEFORE benutzer so it's populated before!
+);
+
 $config['fieldmappings']['fromsapsf']['CostCenter']['benutzerfunktion'] = array(
 	'userId' => 'mitarbeiter_uid',
 	'empInfo/jobInfoNav/costCenter' => 'oe_kurzbz',
@@ -115,10 +123,6 @@ $config['fieldmappings']['fromsapsf']['CostCenter']['benutzerfunktion'] = array(
 	'empInfo/jobInfoNav/endDate' => 'datum_bis'
 );
 
-$config['fieldmappings']['fromsapsf']['CostCenter']['sapaktiv'] = array(
-	'status' => 'sapaktiv',
-	'empInfo/personNav/customString1' => 'personalnummer'
-);
 
 $config['fieldmappings']['fromsapsf']['HourlyRate']['sap_stundensatz_typ'] = $stundensatztyp;
 

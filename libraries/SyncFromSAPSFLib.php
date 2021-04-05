@@ -48,6 +48,7 @@ class SyncFromSAPSFLib
 		$this->_sapsfstartdatefields = $this->ci->config->item('sapsfstartdatefields');
 		$this->_sapsftypetimebasedfields = $this->ci->config->item('sapsftypetimebasedfields');
 		$this->_timebasedfieldexceptions = $this->ci->config->item('timebasedfieldexceptions');
+		$this->_synccostcentereventtypeexceptions = $this->ci->config->item('synccostcentereventtypeexceptions');
 
 		// load models
 		$this->ci->load->model('extensions/FHC-Core-SAPSF/fhcomplete/FhcDbModel', 'FhcDbModel');

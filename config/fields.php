@@ -125,7 +125,7 @@ $config['fhcfields']['CostCenter'] = array(
 
 $emailfield = 'kontaktmail/emailAddress';
 
-// required sapsf fields, excluded from sync if not present
+// required fields in sapsf, whole object is excluded from sync if not present
 $config['requiredsapsffields']['PerEmail']['kontaktmail'] = array(
 	$emailfield
 );
@@ -196,11 +196,12 @@ $config['sapsfstartdatefields'] = array(
 	"empInfo/personNav/homeAddressNavDEFLT"
 );
 
+// field not treated as time-based-fields, i.e. not checked and filtered by start date
 $config['timebasedfieldexceptions'] = array(
 	'empInfo/jobInfoNav/costCenter',
-	//'empInfo/jobInfoNav/businessUnit',
 	'empInfo/jobInfoNav/startDate',
-	'empInfo/jobInfoNav/endDate'
+	'empInfo/jobInfoNav/endDate',
+	'empInfo/jobInfoNav/eventReason'
 );
 
 // fields which are not only retrieved by start date (time-based), but also by type
@@ -214,4 +215,48 @@ $config['sapsftypetimebasedfields'] = array(
 	'empInfo/personNav/homeAddressNavDEFLT/city' => 'addressType',
 	'empInfo/personNav/homeAddressNavDEFLT/address1' => 'addressType',
 	'empInfo/personNav/homeAddressNavDEFLT/address2' => 'addressType'
+);
+
+// cost centers for employee are not synced if jobInfo event if one of exeception types
+$config['synccostcentereventtypeexceptions'] = array(
+	'EL',
+	'TERIREDN',
+	'BvA',
+	'FE',
+	'TERIDISH',
+	'TERIDIVS',
+	'TERIDISB',
+	'TERIAWOL',
+	'TERIINSB',
+	'TERICOND',
+	'TERIREDU',
+	'TERIRSTR',
+	'TERINONP',
+	'MS',
+	'TERRTMNT',
+	'PS',
+	'PDL',
+	'SG',
+	'TERITWBN',
+	'TEROTH',
+	'TERITWPY',
+	'KdDG',
+	'KdDN',
+	'TERIDEAT',
+	'TÜ',
+	'UvA',
+	'TERIATTD',
+	'TERVWLB',
+	'TERVCAR',
+	'TERVCOMP',
+	'TERVASGN',
+	'TERICOMP',
+	'TERVERL',
+	'TERVHLTH',
+	'TERTVTERM',
+	'TERVPERS',
+	'TERVVSP',
+	'TERERLRT',
+	'ZA',
+	'ZD'
 );
