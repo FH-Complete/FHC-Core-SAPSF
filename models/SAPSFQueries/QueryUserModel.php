@@ -80,7 +80,7 @@ class QueryUserModel extends SAPSFQueryModel
 			if (!isEmptyArray($startDateProps))
 			{
 				$first = true;
-				$filterDatesCnt = count($filterDates);
+				$filterDatesCnt = numberOfElements($filterDates);
 				foreach ($startDateProps as $prop)
 				{
 					if (!$first || $filterDatesCnt > 0)

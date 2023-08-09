@@ -358,7 +358,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 
 			if (is_array($phones))
 			{
-				for ($i = 0; $i < count($phones); $i++)
+				for ($i = 0; $i < numberOfElements($phones); $i++)
 				{
 					if (isset($params['telefontyp'][$i]) && $params['telefontyp'][$i] == $this->_sapsfvaluedefaults[$fhcphonetype]['PerPhone']['phoneType'] && !isEmptyString($phones[$i]))
 					{
@@ -387,7 +387,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 		{
 			if (is_array($kzval))
 			{
-				for ($i = 0; $i < count($kzval); $i++)
+				for ($i = 0; $i < numberOfElements($kzval); $i++)
 				{
 					if (isset($params['kztyp'][$i]) && $params['kztyp'][$i] == $this->_confvaluedefaults['User']['kztyp'][$params['misc']['kztyp']['fhcfield']])
 					{
@@ -690,7 +690,7 @@ class SyncEmployeesFromSAPSFLib extends SyncFromSAPSFLib
 			if (is_array($data))
 			{
 				// get correct value according to fielddtype
-				for ($i = 0; $i < count($data); $i++)
+				for ($i = 0; $i < numberOfElements($data); $i++)
 				{
 					if (isset($params[$fieldname][$i]) &&
 						$params[$fieldname][$i] == $sffieldtype)

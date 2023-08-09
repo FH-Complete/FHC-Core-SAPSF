@@ -127,7 +127,7 @@ class SyncFromSAPSFLib
 					$navprop = substr($sapsfkey, 0, strrpos($sapsfkey, '/'));
 					$found = false;
 
-					for ($i = 0; $i < count($expands); $i++)
+					for ($i = 0; $i < numberOfElements($expands); $i++)
 					{
 						if (strpos($expands[$i], $navprop) !== false)
 						{
@@ -229,7 +229,7 @@ class SyncFromSAPSFLib
 						{
 							$value = $sapsfobj->{$props[0]};
 
-							for ($i = 1; $i < count($props); $i++)
+							for ($i = 1; $i < numberOfElements($props); $i++)
 							{
 								if (isset($value->{$props[$i]}))
 								{
@@ -238,7 +238,7 @@ class SyncFromSAPSFLib
 								// navigate further if value has results array instead of a finite value
 								elseif (isset($value->results[0]->{$props[$i]}))
 								{
-									$noValues = count($value->results);
+									$noValues = numberOfElements($value->results);
 									if ($noValues == 1) // if only one result, navigate into it. Otherwise choose last based on date.
 										$value = $value->results[0]->{$props[$i]};
 									elseif (isset($value->results[0]->startDate))
@@ -276,7 +276,7 @@ class SyncFromSAPSFLib
 								$sfvalue = $value->{$field};
 							elseif (isset($value->results[0]) && property_exists($value->results[0], $field)) // if value has results array with the field
 							{
-								if (count($value->results) == 1) // take first result
+								if (numberOfElements($value->results) == 1) // take first result
 									$sfvalue = $value->results[0]->{$field};
 								elseif (isset($value->results[0]->startDate) && !in_array($sffield, $this->_timebasedfieldexceptions)) // if results are time-based
 								{

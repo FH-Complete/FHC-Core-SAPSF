@@ -15,7 +15,7 @@ function mergeEmployeesArray($jobs)
 	$resultObj->syncAll = false;
 	$resultObj->uids = array();
 
-	if (count($jobs) == 0) return $resultObj;
+	if (numberOfElements($jobs) == 0) return $resultObj;
 
 	foreach ($jobs as $job)
 	{

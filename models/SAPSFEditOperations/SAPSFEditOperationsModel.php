@@ -46,7 +46,7 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 				}
 				elseif (is_array($keyPredicateValue))
 				{
-					$numval = count($keyPredicateValue);
+					$numval = numberOfElements($keyPredicateValue);
 					if ($numval >= 2)// composite key
 					{
 						foreach ($keyPredicateValue as $name => $value)
@@ -113,7 +113,7 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 	protected function _callUpsert()
 	{
 		$result = null;
-		if (count($this->_entities) < 1)
+		if (numberOfElements($this->_entities) < 1)
 		{
 			$this->_setError('No entities provided.');
 		}
@@ -141,7 +141,7 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 			}
 			$uripart = implode(',', $mainurientities) . '/' . self::UPSERT . $this->_getFormatParamString();
 
-			$chunks = count($data) > self::MAX_REQUEST_NUMBER ? array_chunk($data, self::MAX_REQUEST_NUMBER) : array($data);
+			$chunks = numberOfElements($data) > self::MAX_REQUEST_NUMBER ? array_chunk($data, self::MAX_REQUEST_NUMBER) : array($data);
 
 			foreach ($chunks as $chunk)
 			{
@@ -168,7 +168,7 @@ class SAPSFEditOperationsModel extends SAPSFClientModel
 	{
 		$result = null;
 
-		if (count($this->_entities) !== 1)
+		if (numberOfElements($this->_entities) !== 1)
 		{
 			$this->_setError('Wrong number of entities provided. Try upsert if more than one.');
 		}

@@ -95,8 +95,8 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 			$mail_expl = explode('/', $mailfieldmapping);
 			$phone_expl = explode('/', $phonefieldmapping);
 
-			$mailfieldmapping_arr = array_slice($mail_expl, 0, count($mail_expl) - 1);
-			$phonefieldmapping_arr = array_slice($phone_expl, 0, count($phone_expl) - 1);
+			$mailfieldmapping_arr = array_slice($mail_expl, 0, numberOfElements($mail_expl) - 1);
+			$phonefieldmapping_arr = array_slice($phone_expl, 0, numberOfElements($phone_expl) - 1);
 			$officefieldmapping_arr = explode('/', $officefieldmapping);
 
 			$emailnav = implode('/',$mailfieldmapping_arr);
@@ -273,7 +273,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 							// set technical mail as primary if there is no other mail
 							if (!$hasPrivateMail && !$hasBusinessMail
 								&& isset($matosync[self::MAILTYPE][$fhcmailtechnical][self::DATA_INDEX])
-								&& count($matosync[self::MAILTYPE]) == 1
+								&& numberOfElements($matosync[self::MAILTYPE]) == 1
 								&& !isEmptyArray($matosync[self::MAILTYPE][$fhcmailtechnical][self::DATA_INDEX]))
 							{
 								$matosync[self::MAILTYPE][$fhcmailtechnical][self::DATA_INDEX][self::SAPSF_IS_PRIMARY_NAME] = true;
@@ -282,7 +282,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 							// set firmenhandy as primary if there is no other phone
 							if (!$hasPrivatePhone
 								&& isset($matosync[self::PHONETYPE][$fhctelmobile][self::DATA_INDEX])
-								&& count($matosync[self::PHONETYPE]) == 1
+								&& numberOfElements($matosync[self::PHONETYPE]) == 1
 								&& !isEmptyArray($matosync[self::PHONETYPE][$fhctelmobile][self::DATA_INDEX]))
 							{
 								$matosync[self::PHONETYPE][$fhctelmobile][self::DATA_INDEX][self::SAPSF_IS_PRIMARY_NAME] = true;
@@ -429,7 +429,7 @@ class SyncEmployeesToSAPSFLib extends SyncToSAPSFLib
 
 		// parse phone and get parts
 		$telparts = explode(' ', str_replace('-', ' ', $kontakt));
-		$counttelparts = count($telparts);
+		$counttelparts = numberOfElements($telparts);
 
 		if ($counttelparts >= 3)
 		{

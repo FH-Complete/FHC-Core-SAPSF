@@ -117,7 +117,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 				}
 				elseif (is_array($keyPredicateValue)) // composite key
 				{
-					if (count($keyPredicateValue) >= 2)
+					if (numberOfElements($keyPredicateValue) >= 2)
 					{
 						$valid = true;
 						foreach ($keyPredicateValue as $name => $value)
@@ -512,7 +512,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 								else
 								{
 									if (isset($filter['filters']) && is_array($filter['filters']) &&
-										!(count($filter['filters']) > 1 && !isset($filter['connectionOperator'])))
+										!(numberOfElements($filter['filters']) > 1 && !isset($filter['connectionOperator'])))
 									{
 										$fiStr = '';
 										$firstfil = true;
@@ -527,7 +527,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 												foreach ($fil['value'] as $idx => $val)
 												{
 													$fiStr .= $this->_encodeFilterValue($val);
-													if ($idx !== count($fil['value']) - 1)
+													if ($idx !== numberOfElements($fil['value']) - 1)
 														$fiStr .= ',';
 												}
 											}
@@ -540,7 +540,7 @@ class SAPSFQueryModel extends SAPSFClientModel
 									}
 								}
 							}
-							$nofilteroptions = count($filteroptions);
+							$nofilteroptions = numberOfElements($filteroptions);
 							if ($nofilteroptions > 0)
 							{
 								$queryString .= '$' . self::FILTEROPTION . '=';

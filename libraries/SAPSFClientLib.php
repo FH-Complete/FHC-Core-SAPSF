@@ -365,7 +365,7 @@ class SAPSFClientLib
             else
             {
                 // If data are present set property
-                if (isset($responsebody->d) && count($responsebody->d) > 0)
+                if (isset($responsebody->d) && numberOfElements($responsebody->d) > 0)
                     $this->_hasData = true;
 
                 $checkResponse = $response; // returns a success
